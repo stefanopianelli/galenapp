@@ -32,7 +32,7 @@ const SubstanceModal = ({
 
   const relatedPreparations = substanceData?.id && preparations
     ? preparations.filter(p => 
-        p.ingredients.some(ing => ing.id === substanceData.id)
+        p.ingredients.some(ing => Number(ing.id) === Number(substanceData.id))
       ) 
     : [];
 

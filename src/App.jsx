@@ -37,6 +37,7 @@ export default function GalenicoApp() {
 
   // Stato Modifica
   const [editingPrep, setEditingPrep] = useState(null);
+  const [initialWizardStep, setInitialWizardStep] = useState(1);
 
   // Stato Connessione
   const [isOnline, setIsOnline] = useState(false);
@@ -435,8 +436,15 @@ export default function GalenicoApp() {
     setActiveTab('preparations_log');
   };
 
-  const handleEditPreparation = (prep) => {
+  const handleJumpToStep = (prep, step = 1) => {
     setEditingPrep(prep);
+    setInitialWizardStep(step);
+    setActiveTab('preparation');
+  };
+
+  const handleNewPreparation = () => {
+    setEditingPrep(null);
+    setInitialWizardStep(1);
     setActiveTab('preparation');
   };
 
@@ -464,7 +472,7 @@ export default function GalenicoApp() {
       case 'preparations_log':
         return <PreparationsLog 
                   preparations={filteredPreparations} 
-                  handleEditPreparation={handleEditPreparation} 
+                  handleJumpToStep={handleJumpToStep} 
                   handleDeletePreparation={handleDeletePreparation}
                   activeFilter={preparationLogFilter}
                   clearFilter={() => setPreparationLogFilter(null)}
@@ -472,7 +480,14 @@ export default function GalenicoApp() {
                   setSearchTerm={setPrepSearchTerm}
                />;
       case 'preparation':
-        return <PreparationWizard inventory={inventory} preparations={preparations} onComplete={handleUsage} initialData={editingPrep} pharmacySettings={pharmacySettings} />;
+        return <PreparationWizard 
+                  inventory={inventory} 
+                  preparations={preparations} 
+                  onComplete={handleUsage} 
+                  initialData={editingPrep} 
+                  pharmacySettings={pharmacySettings}
+                  initialStep={initialWizardStep}
+               />;
       case 'logs':
         return <Logs logs={logs} />;
       case 'ai-assistant':
@@ -495,7 +510,7 @@ export default function GalenicoApp() {
         <nav className="flex-1 p-4 space-y-2">
           <SidebarItem icon={<ClipboardList size={20} />} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
           <SidebarItem icon={<Package size={20} />} label="Magazzino Sostanze" active={activeTab === 'inventory'} onClick={() => { setInventoryFilter('all'); setActiveTab('inventory'); }} />
-          <SidebarItem icon={<Pill size={20} />} label={editingPrep ? "Modifica Prep." : "Nuova Prep."} active={activeTab === 'preparation'} onClick={() => { setEditingPrep(null); setActiveTab('preparation'); }} />
+          <SidebarItem icon={<Pill size={20} />} label={editingPrep ? "Modifica Prep." : "Nuova Prep."} active={activeTab === 'preparation'} onClick={handleNewPreparation} />
           <SidebarItem icon={<LayoutList size={20} />} label="Registro Preparazioni" active={activeTab === 'preparations_log'} onClick={() => setActiveTab('preparations_log')} />
           <SidebarItem icon={<History size={20} />} label="Registro Movimenti" active={activeTab === 'logs'} onClick={() => setActiveTab('logs')} />
           <div className="pt-4 mt-4 border-t border-slate-700">

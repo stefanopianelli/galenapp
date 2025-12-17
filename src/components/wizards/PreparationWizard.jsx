@@ -6,8 +6,8 @@ import { callGemini } from '../../services/gemini';
 import { generateWorkSheetPDF } from '../../services/pdfGenerator';
 
 // --- SOTTO-COMPONENTE PER IL WIZARD DI PREPARAZIONE ---
-function PreparationWizard({ inventory, preparations, onComplete, initialData, pharmacySettings }) {
-  const [step, setStep] = useState(1);
+function PreparationWizard({ inventory, preparations, onComplete, initialData, pharmacySettings, initialStep }) {
+  const [step, setStep] = useState(initialStep || 1);
   const [selectedIngredients, setSelectedIngredients] = useState([]);
   
   const [currentIngredientId, setCurrentIngredientId] = useState('');
@@ -23,6 +23,10 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+  useEffect(() => {
+    setStep(initialStep || 1);
+  }, [initialStep, initialData]);
+  
   const getNextPrepNumber = () => {
     const currentYear = new Date().getFullYear().toString().slice(-2);
     let maxProg = 0;
@@ -234,7 +238,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
         {[1, 2, 3, 4].map(num => (
           <div key={num} className={`flex items-center gap-2 ${step >= num ? 'text-teal-600 font-bold' : 'text-slate-400'}`}>
             <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${step >= num ? 'border-teal-600 bg-teal-50' : 'border-slate-300'}`}>{num}</div>
-            <span className="text-sm">{num === 1 ? 'Dettagli' : num === 2 ? 'Lotti' : num === 3 ? 'Tariffa' : 'Conferma'}</span>
+            <span className="text-sm">{num === 1 ? 'Anagrafica' : num === 2 ? 'Componenti' : num === 3 ? 'Tariffa' : 'Conferma'}</span>
           </div>
         ))}
       </div>
@@ -242,7 +246,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
       <Card className="p-8 min-h-[500px]">
         {step === 1 && (
             <div className="space-y-4 animate-in fade-in">
-                <h2 className="text-xl font-bold text-slate-800">Dettagli Ricetta</h2>
+                <h2 className="text-xl font-bold text-slate-800">Anagrafica Ricetta</h2>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="col-span-2"><label className="block text-sm font-bold">Nome *</label><input className="w-full border p-3 rounded-md outline-none focus:ring-2 ring-teal-500" value={details.name} onChange={e => setDetails({...details, name: e.target.value})} /></div>
                     <div><label className="block text-sm font-bold">N.P. *</label><input className="w-full border p-3 rounded-md outline-none bg-slate-50 font-mono" value={details.prepNumber} onChange={e => setDetails({...details, prepNumber: e.target.value})} /></div>
@@ -259,7 +263,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
         {step === 2 && (
             <div className="space-y-6 animate-in fade-in">
-                <h2 className="text-xl font-bold text-slate-800">Selezione Lotti</h2>
+                <h2 className="text-xl font-bold text-slate-800">Selezione Componenti</h2>
                 <div className="bg-blue-50 p-4 rounded-md border border-blue-100 text-sm text-blue-800 mb-4"><p>Seleziona i lotti specifici. Il sistema calcola la giacenza residua.</p></div>
                 <div className="flex gap-3 items-end bg-slate-50 p-4 rounded-md border border-slate-200">
                     <div className="flex-1"><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Sostanza (N.I.)</label><select className="w-full border p-2 rounded text-sm outline-none" value={currentIngredientId} onChange={e => setCurrentIngredientId(e.target.value)}><option value="">-- Seleziona --</option>{availableIngredients.map(item => <option key={item.id} value={item.id}>{item.name} (N.I.: {item.ni} | Disp: {parseFloat(getRemainingQuantity(item)).toFixed(2)} {item.unit})</option>)}</select></div>

@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Hash, Calendar, Pencil, Trash2, Filter, X, Search } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 
-const PreparationsLog = ({ preparations, handleEditPreparation, handleDeletePreparation, activeFilter, clearFilter, searchTerm, setSearchTerm }) => {
+const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparation, activeFilter, clearFilter, searchTerm, setSearchTerm }) => {
   const filteredPrepName = activeFilter && preparations.length === 1 ? preparations[0].name : null;
+  const [openMenuId, setOpenMenuId] = useState(null);
 
   return (
     <div className="space-y-4">
@@ -36,7 +37,6 @@ const PreparationsLog = ({ preparations, handleEditPreparation, handleDeletePrep
       <Card>
         <div className="overflow-auto" style={{ maxHeight: '80vh' }}>
           <table className="w-full text-left text-sm">
-            {/* ... il resto della tabella rimane invariato ... */}
             <thead className="sticky top-0 z-10 bg-slate-50 text-slate-600 border-b border-slate-200">
               <tr>
                 <th className="px-6 py-3 font-semibold whitespace-nowrap">Data / N.P.</th>
@@ -58,7 +58,12 @@ const PreparationsLog = ({ preparations, handleEditPreparation, handleDeletePrep
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="font-bold text-slate-800">{prep.name}</div>
+                    <div 
+                      className="font-bold text-slate-800 cursor-pointer hover:underline hover:text-teal-600"
+                      onClick={() => handleJumpToStep(prep, 1)}
+                    >
+                      {prep.name}
+                    </div>
                     <div className="flex items-center gap-2 mt-1">
                       <Badge type="neutral">{prep.pharmaceuticalForm}</Badge>
                       <span className="text-xs text-slate-400 flex items-center gap-1">
@@ -91,17 +96,24 @@ const PreparationsLog = ({ preparations, handleEditPreparation, handleDeletePrep
                     {prep.totalPrice ? `€ ${parseFloat(prep.totalPrice).toFixed(2)}` : '-'}
                   </td>
                   <td className="px-6 py-4 text-center whitespace-nowrap">
-                    <div className="flex justify-center gap-2">
+                    <div className="relative">
                       <button
-                        onClick={() => handleEditPreparation(prep)}
+                        onClick={() => setOpenMenuId(openMenuId === prep.id ? null : prep.id)}
                         className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
                         title="Modifica"
                       >
                         <Pencil size={16} />
                       </button>
+                      {openMenuId === prep.id && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-20 border">
+                          <button onClick={() => { handleJumpToStep(prep, 1); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Modifica Anagrafica</button>
+                          <button onClick={() => { handleJumpToStep(prep, 2); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Modifica Componenti</button>
+                          <button onClick={() => { handleJumpToStep(prep, 3); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Modifica Tariffa</button>
+                        </div>
+                      )}
                       <button
                         onClick={() => handleDeletePreparation(prep.id)}
-                        className="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded transition-colors"
+                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
                         title="Elimina"
                       >
                         <Trash2 size={16} />
