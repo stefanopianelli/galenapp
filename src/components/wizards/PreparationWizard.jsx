@@ -3,9 +3,10 @@ import { Euro, Plus, Trash2, Save, Sparkles, Loader2, Info } from 'lucide-react'
 import Card from '../ui/Card';
 import { NATIONAL_TARIFF_FEES, VAT_RATE, DISPOSAL_FEE, ADDITIONAL_FEE } from '../../constants/tariffs';
 import { callGemini } from '../../services/gemini';
+import { generateWorkSheetPDF } from '../../services/pdfGenerator';
 
 // --- SOTTO-COMPONENTE PER IL WIZARD DI PREPARAZIONE ---
-function PreparationWizard({ inventory, preparations, onComplete, initialData }) {
+function PreparationWizard({ inventory, preparations, onComplete, initialData, pharmacySettings }) {
   const [step, setStep] = useState(1);
   const [selectedIngredients, setSelectedIngredients] = useState([]);
   
@@ -205,6 +206,12 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData })
 
   const handleFinalize = () => {
     if (details.name && selectedIngredients.length > 0) {
+        const preparationData = {
+            details,
+            ingredients: selectedIngredients,
+            pricing
+        };
+        generateWorkSheetPDF(preparationData, pharmacySettings);
         onComplete(selectedIngredients, {
             ...details,
             prepUnit: getPrepUnit(details.pharmaceuticalForm),

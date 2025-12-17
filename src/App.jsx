@@ -10,6 +10,7 @@ import {
   Wifi,
   WifiOff,
   Loader2,
+  Settings,
 } from 'lucide-react';
 
 import { MOCK_INVENTORY, MOCK_PREPARATIONS, MOCK_LOGS } from './constants/mockData';
@@ -21,6 +22,7 @@ import Logs from './components/sections/Logs';
 import AIAssistant from './components/sections/AIAssistant';
 import PreparationWizard from './components/wizards/PreparationWizard';
 import SubstanceModal from './components/modals/SubstanceModal';
+import SettingsComponent from './components/sections/Settings';
 
 export default function GalenicoApp() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -29,6 +31,9 @@ export default function GalenicoApp() {
   const [inventory, setInventory] = useState([]);
   const [logs, setLogs] = useState([]);
   const [preparations, setPreparations] = useState([]);
+  const [pharmacySettings, setPharmacySettings] = useState({
+    name: '', address: '', zip: '', city: '', province: '', phone: ''
+  });
 
   // Stato Modifica
   const [editingPrep, setEditingPrep] = useState(null);
@@ -65,10 +70,14 @@ export default function GalenicoApp() {
       const savedInv = localStorage.getItem('galenico_inventory');
       const savedLogs = localStorage.getItem('galenico_logs');
       const savedPreps = localStorage.getItem('galenico_preparations');
+      const savedSettings = localStorage.getItem('galenico_settings');
 
       setInventory(savedInv ? JSON.parse(savedInv) : MOCK_INVENTORY);
       setLogs(savedLogs ? JSON.parse(savedLogs) : MOCK_LOGS);
       setPreparations(savedPreps ? JSON.parse(savedPreps) : MOCK_PREPARATIONS);
+      if (savedSettings) {
+        setPharmacySettings(JSON.parse(savedSettings));
+      }
     } catch (e) {
       console.error("Errore lettura localstorage", e);
       setInventory(MOCK_INVENTORY);
@@ -93,6 +102,11 @@ export default function GalenicoApp() {
     setIsOnline(false);
     setLoadingData(false);
   }, []);
+
+  useEffect(() => {
+    // Salva le impostazioni della farmacia ogni volta che cambiano
+    localStorage.setItem('galenico_settings', JSON.stringify(pharmacySettings));
+  }, [pharmacySettings]);
 
   // --- LOGICHE AGGIUNTIVE E HELPER ---
 
@@ -418,11 +432,13 @@ export default function GalenicoApp() {
       case 'preparations_log':
         return <PreparationsLog preparations={preparations} handleEditPreparation={handleEditPreparation} handleDeletePreparation={handleDeletePreparation} />;
       case 'preparation':
-        return <PreparationWizard inventory={inventory} preparations={preparations} onComplete={handleUsage} initialData={editingPrep} />;
+        return <PreparationWizard inventory={inventory} preparations={preparations} onComplete={handleUsage} initialData={editingPrep} pharmacySettings={pharmacySettings} />;
       case 'logs':
         return <Logs logs={logs} />;
       case 'ai-assistant':
         return <AIAssistant />;
+      case 'settings':
+        return <SettingsComponent settings={pharmacySettings} setSettings={setPharmacySettings} />;
       default:
         return null;
     }
@@ -442,7 +458,10 @@ export default function GalenicoApp() {
           <SidebarItem icon={<Pill size={20} />} label={editingPrep ? "Modifica Prep." : "Nuova Prep."} active={activeTab === 'preparation'} onClick={() => { setEditingPrep(null); setActiveTab('preparation'); }} />
           <SidebarItem icon={<LayoutList size={20} />} label="Registro Preparazioni" active={activeTab === 'preparations_log'} onClick={() => setActiveTab('preparations_log')} />
           <SidebarItem icon={<History size={20} />} label="Registro Movimenti" active={activeTab === 'logs'} onClick={() => setActiveTab('logs')} />
-          <div className="pt-4 mt-4 border-t border-slate-700"><SidebarItem icon={<Sparkles size={20} className="text-purple-400" />} label="Assistente IA" active={activeTab === 'ai-assistant'} onClick={() => setActiveTab('ai-assistant')} /></div>
+          <div className="pt-4 mt-4 border-t border-slate-700">
+            <SidebarItem icon={<Sparkles size={20} className="text-purple-400" />} label="Assistente IA" active={activeTab === 'ai-assistant'} onClick={() => setActiveTab('ai-assistant')} />
+            <SidebarItem icon={<Settings size={20} />} label="Impostazioni" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
+          </div>
         </nav>
         <div className="p-4 border-t border-slate-800"><div className="flex items-center gap-2 mb-2 text-xs">{isOnline ? <span className="flex items-center gap-1 text-green-400"><Wifi size={12} /> Online</span> : <span className="flex items-center gap-1 text-slate-500"><WifiOff size={12} /> Locale</span>}</div><p className="text-xs text-slate-500">Utente: Dr. Farmacista</p></div>
       </aside>
@@ -456,6 +475,7 @@ export default function GalenicoApp() {
             {activeTab === 'preparations_log' && 'Registro Generale Preparazioni'}
             {activeTab === 'logs' && 'Registro di Carico/Scarico'}
             {activeTab === 'ai-assistant' && 'Assistente Galenico IA'}
+            {activeTab === 'settings' && 'Impostazioni Farmacia'}
           </h1>
           <div className="flex items-center gap-4"><div className="bg-slate-100 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 border border-slate-200">{new Date().toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div></div>
         </header>
