@@ -25,7 +25,7 @@ const Logs = ({ logs }) => {
                   <td className="px-6 py-3 whitespace-nowrap"><Badge type={log.type === 'CARICO' ? 'success' : log.type === 'SMALTIMENTO' ? 'dark' : 'warning'}>{log.type}</Badge></td>
                   <td className="px-6 py-3 whitespace-nowrap font-medium text-slate-800">{log.substance}</td>
                   <td className="px-6 py-3 font-mono text-xs whitespace-nowrap">{log.ni}</td>
-                  <td className="px-6 py-3 text-right font-mono font-bold whitespace-nowrap">{log.quantity} {log.unit}</td>
+                  <td className="px-6 py-3 text-right font-mono font-bold whitespace-nowrap">{Number(log.quantity).toFixed(2)} {log.unit}</td>
                   <td className="px-6 py-3 text-slate-500 text-xs whitespace-nowrap">{log.notes}</td>
                 </tr>
               ))}

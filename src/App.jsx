@@ -309,22 +309,25 @@ export default function GalenicoApp() {
     let updatedInventory;
     let newLog;
 
+    const formatToNumber = (val) => val ? parseFloat(parseFloat(val).toFixed(2)) : 0;
+    
+    const substanceToSave = {
+      ...newSubstance,
+      quantity: formatToNumber(newSubstance.quantity),
+      costPerGram: newSubstance.costPerGram ? parseFloat(parseFloat(newSubstance.costPerGram).toFixed(4)) : 0, // Manteniamo più precisione per il costo/g
+      totalCost: formatToNumber(newSubstance.totalCost)
+    };
+
     if (editingSubstance) {
       updatedInventory = inventory.map(item => item.id === editingSubstance.id ? {
         ...item,
-        ...newSubstance,
-        quantity: parseFloat(newSubstance.quantity),
-        costPerGram: parseFloat(newSubstance.costPerGram),
-        totalCost: parseFloat(newSubstance.totalCost)
+        ...substanceToSave
       } : item);
-      newLog = { id: Date.now(), date: new Date().toISOString().split('T')[0], type: 'RETTIFICA', substance: newSubstance.name, ni: newSubstance.ni, lot: newSubstance.lot, quantity: parseFloat(newSubstance.quantity), unit: newSubstance.unit, operator: 'Sessione Corrente', notes: `Aggiornamento Anagrafica N.I. ${newSubstance.ni}` };
+      newLog = { id: Date.now(), date: new Date().toISOString().split('T')[0], type: 'RETTIFICA', substance: newSubstance.name, ni: newSubstance.ni, lot: newSubstance.lot, quantity: substanceToSave.quantity, unit: newSubstance.unit, operator: 'Sessione Corrente', notes: `Aggiornamento Anagrafica N.I. ${newSubstance.ni}` };
     } else {
       const newItem = {
         id: Date.now(),
-        ...newSubstance,
-        quantity: parseFloat(newSubstance.quantity),
-        costPerGram: parseFloat(newSubstance.costPerGram),
-        totalCost: parseFloat(newSubstance.totalCost),
+        ...substanceToSave,
         openDate: null,
         disposed: false
       };

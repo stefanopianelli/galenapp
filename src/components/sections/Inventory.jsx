@@ -63,7 +63,7 @@ const Inventory = ({
                       >
                         {item.name}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap"><span className="text-xs font-mono bg-slate-100 px-1 rounded">{item.ni}</span></td><td className="px-6 py-4 whitespace-nowrap">{item.expiry}</td><td className="px-6 py-4 whitespace-nowrap">{item.supplier}</td><td className="px-6 py-4 text-right font-mono font-medium whitespace-nowrap">{item.quantity} {item.unit}</td><td className="px-6 py-4 text-right font-mono whitespace-nowrap">{item.costPerGram ? `€ ${Number(item.costPerGram).toFixed(2)}` : '-'}</td><td className="px-6 py-4 text-center whitespace-nowrap">{item.usageCount}</td>
+                      <td className="px-6 py-4 whitespace-nowrap"><span className="text-xs font-mono bg-slate-100 px-1 rounded">{item.ni}</span></td><td className="px-6 py-4 whitespace-nowrap">{item.expiry}</td><td className="px-6 py-4 whitespace-nowrap">{item.supplier}</td><td className="px-6 py-4 text-right font-mono font-medium whitespace-nowrap">{Number(item.quantity).toFixed(2)} {item.unit}</td><td className="px-6 py-4 text-right font-mono whitespace-nowrap">{item.costPerGram ? `€ ${Number(item.costPerGram).toFixed(2)}` : '-'}</td><td className="px-6 py-4 text-center whitespace-nowrap">{item.usageCount}</td>
                       <td className="px-6 py-4 text-center">{item.quantity === 0 ? <Badge type="neutral">Terminata</Badge> : new Date(item.expiry) < new Date() ? <Badge type="danger">Scaduto</Badge> : days <= 30 ? <Badge type="warning">In Scadenza</Badge> : item.quantity < 50 ? <Badge type="warning">Scarso</Badge> : <Badge type="success">OK</Badge>}</td>
                       <td className="px-6 py-4 text-center"><div className="flex justify-center gap-2"><button onClick={() => handleOpenEditModal(item)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-full transition-colors" title="Modifica"><Pencil size={16} /></button><button onClick={() => handleDispose(item.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="Smaltisci"><Trash2 size={16} /></button></div></td>
                     </tr>
@@ -92,7 +92,7 @@ const Inventory = ({
                   >
                     {item.name}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{item.ni}</td><td className="px-6 py-4 whitespace-nowrap">{item.expiry}</td><td className="px-6 py-4 whitespace-nowrap">{item.supplier}</td><td className="px-6 py-4 text-right whitespace-nowrap">{item.quantity} {item.unit}</td><td className="px-6 py-4 text-right whitespace-nowrap">{item.costPerGram ? `€ ${Number(item.costPerGram).toFixed(2)}` : '-'}</td><td className="px-6 py-4 text-center"><Badge type="dark">Smaltito</Badge></td>
+                  <td className="px-6 py-4 whitespace-nowrap">{item.ni}</td><td className="px-6 py-4 whitespace-nowrap">{item.expiry}</td><td className="px-6 py-4 whitespace-nowrap">{item.supplier}</td><td className="px-6 py-4 text-right whitespace-nowrap">{Number(item.quantity).toFixed(2)} {item.unit}</td><td className="px-6 py-4 text-right whitespace-nowrap">{item.costPerGram ? `€ ${Number(item.costPerGram).toFixed(2)}` : '-'}</td><td className="px-6 py-4 text-center"><Badge type="dark">Smaltito</Badge></td>
                 </tr>))}</tbody>
             </table>
           </div>

@@ -51,7 +51,7 @@ const PreparationsLog = ({ preparations, handleEditPreparation, handleDeletePrep
                         <li key={idx} className="text-xs flex items-center justify-between bg-slate-50 p-1 rounded border border-slate-100">
                           <span className="font-medium text-slate-700">{ing.name}</span>
                           <span className="text-slate-500 font-mono mx-2">N.I.: {ing.ni}</span>
-                          <span className="font-bold text-slate-800">{ing.amountUsed} {ing.unit}</span>
+                          <span className="font-bold text-slate-800">{Number(ing.amountUsed).toFixed(2)} {ing.unit}</span>
                         </li>
                       ))}
                     </ul>
