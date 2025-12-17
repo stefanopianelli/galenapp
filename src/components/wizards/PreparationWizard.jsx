@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Euro, Plus, Trash2, Save, Sparkles, Loader2, Info } from 'lucide-react';
+import { Euro, Plus, Trash2, Save, Sparkles, Loader2, Info, FileDown } from 'lucide-react';
 import Card from '../ui/Card';
 import { NATIONAL_TARIFF_FEES, VAT_RATE, DISPOSAL_FEE, ADDITIONAL_FEE } from '../../constants/tariffs';
 import { callGemini } from '../../services/gemini';
@@ -204,19 +204,22 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
   const pricing = calculateTotal();
 
-  const handleFinalize = () => {
+  const handleDownloadWorksheet = () => {
+    const preparationData = {
+        details,
+        ingredients: selectedIngredients,
+        pricing
+    };
+    generateWorkSheetPDF(preparationData, pharmacySettings);
+  };
+
+  const handleSavePreparation = () => {
     if (details.name && selectedIngredients.length > 0) {
-        const preparationData = {
-            details,
-            ingredients: selectedIngredients,
-            pricing
-        };
-        generateWorkSheetPDF(preparationData, pharmacySettings);
-        onComplete(selectedIngredients, {
-            ...details,
-            prepUnit: getPrepUnit(details.pharmaceuticalForm),
-            totalPrice: pricing.final 
-        });
+      onComplete(selectedIngredients, {
+        ...details,
+        prepUnit: getPrepUnit(details.pharmaceuticalForm),
+        totalPrice: pricing.final 
+      });
     }
   };
 
@@ -293,7 +296,17 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="text-center"><h2 className="text-xl font-bold text-slate-800">Conferma Finale</h2><div className="bg-slate-50 p-6 border rounded-md mt-4"><p className="text-slate-600">Confermi la produzione di <b>{details.name}</b>?</p><p className="text-3xl font-bold mt-2 text-teal-700">€ {pricing.final.toFixed(2)}</p></div></div>
                 <div className="bg-purple-50 p-4 rounded-lg border border-purple-200 relative"><div className="flex justify-between mb-2 items-center"><h3 className="font-bold text-purple-800 flex gap-2"><Sparkles size={16}/> AI Check</h3><button onClick={runAiAnalysis} disabled={isAnalyzing} className="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-full hover:bg-purple-700 flex items-center gap-2">{isAnalyzing ? <Loader2 className="animate-spin w-3 h-3" /> : 'Analizza'}</button></div><div className="text-sm text-purple-900 max-h-[150px] overflow-y-auto whitespace-pre-line leading-relaxed">{aiAnalysis || "Clicca Analizza per controllo dosaggi..."}</div></div>
-                <div className="pt-4 flex justify-between border-t border-slate-100"><button onClick={() => setStep(3)} className="text-slate-500 hover:underline">Indietro</button><button onClick={handleFinalize} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 flex items-center gap-2"><Save size={18}/> Salva e Scarica</button></div>
+                <div className="pt-4 flex justify-between border-t border-slate-100">
+                  <button onClick={() => setStep(3)} className="text-slate-500 hover:underline">Indietro</button>
+                  <div className="flex items-center gap-3">
+                    <button onClick={handleDownloadWorksheet} className="bg-slate-600 text-white px-6 py-2 rounded-md hover:bg-slate-700 flex items-center gap-2">
+                        <FileDown size={18}/> Scarica Foglio
+                    </button>
+                    <button onClick={handleSavePreparation} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 flex items-center gap-2">
+                        <Save size={18}/> Salva Preparazione
+                    </button>
+                  </div>
+                </div>
             </div>
         )}
       </Card>
