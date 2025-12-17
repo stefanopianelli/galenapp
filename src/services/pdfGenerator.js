@@ -1,6 +1,13 @@
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return dateString; // Return original if invalid
+  return new Intl.DateTimeFormat('it-IT').format(date);
+};
+
 export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
   const doc = new jsPDF();
   
@@ -41,7 +48,7 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
       [{content: 'Numero Progressivo:', styles: {fontStyle: 'bold'}}, details.prepNumber],
       [{content: 'Nome Preparazione:', styles: {fontStyle: 'bold'}}, details.name],
       [{content: 'Data Preparazione:', styles: {fontStyle: 'bold'}}, prepDate],
-      [{content: 'Data Limite Utilizzo:', styles: {fontStyle: 'bold'}}, details.expiryDate],
+      [{content: 'Data Limite Utilizzo:', styles: {fontStyle: 'bold'}}, formatDate(details.expiryDate)],
       [{content: 'Quantità Totale:', styles: {fontStyle: 'bold'}}, `${details.quantity} ${details.prepUnit}`],
       [{content: 'Forma Farmaceutica:', styles: {fontStyle: 'bold'}}, details.pharmaceuticalForm],
     ],
@@ -83,15 +90,17 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
     ing.name,
     ing.lot,
     `${ing.amountUsed} ${ing.unit}`,
+    `€ ${(ing.costPerGram * ing.amountUsed).toFixed(2)}`,
     '' // Empty space for signature
   ]);
 
   doc.autoTable({
     startY: y,
-    head: [['Componente', 'N. Lotto', 'Quantità Pesata', 'Firma Operatore']],
+    head: [['Componente', 'N. Lotto', 'Quantità Pesata', 'Costo', 'Firma Operatore']],
     body: ingredientsBody,
     theme: 'grid',
-    headStyles: { fillColor: [230, 230, 230], textColor: 20, fontStyle: 'bold' }
+    headStyles: { fillColor: [230, 230, 230], textColor: 20, fontStyle: 'bold' },
+    columnStyles: { 3: { halign: 'right' } }
   });
   y = doc.autoTable.previous.finalY + 10;
 
@@ -117,9 +126,15 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
       theme: 'grid',
       headStyles: { fillColor: [230, 230, 230], textColor: 20, fontStyle: 'bold' }
   });
-  y = doc.autoTable.previous.finalY + 15;
+  y = doc.autoTable.previous.finalY + 10;
 
-  // --- FINAL PRICE & NOTES ---
+  // --- FINAL PRICE & NOTES & SIGNATURE ---
+  // Check if there is enough space for the final block
+  if (y > 250) {
+    doc.addPage();
+    y = 20; // Reset y for the new page
+  }
+
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.text(`Prezzo Praticato: € ${pricing.final.toFixed(2)}`, 20, y);
