@@ -1,14 +1,29 @@
 import React from 'react';
-import { Hash, Calendar, Pencil, Trash2 } from 'lucide-react';
+import { Hash, Calendar, Pencil, Trash2, Filter, X } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 
-const PreparationsLog = ({ preparations, handleEditPreparation, handleDeletePreparation }) => {
+const PreparationsLog = ({ preparations, handleEditPreparation, handleDeletePreparation, activeFilter, clearFilter }) => {
+  const filteredPrepName = activeFilter && preparations.length === 1 ? preparations[0].name : null;
+
   return (
     <div className="space-y-4">
+      {activeFilter && (
+        <div className="flex items-center justify-between bg-amber-50 text-amber-800 px-4 py-2 rounded-md border border-amber-200">
+            <div className="flex items-center gap-2">
+                <Filter size={16} />
+                <span className="font-semibold">Filtro attivo:</span>
+                <span className="font-mono bg-white border px-2 py-0.5 rounded text-sm">{filteredPrepName || `#${activeFilter}`}</span>
+            </div>
+            <button onClick={clearFilter} className="flex items-center gap-1 hover:bg-amber-100 px-2 py-1 rounded transition-colors text-sm">
+                <X size={14} /> Rimuovi filtro
+            </button>
+        </div>
+      )}
       <Card>
         <div className="overflow-auto" style={{ maxHeight: '80vh' }}>
           <table className="w-full text-left text-sm">
+            {/* ... il resto della tabella rimane invariato ... */}
             <thead className="sticky top-0 z-10 bg-slate-50 text-slate-600 border-b border-slate-200">
               <tr>
                 <th className="px-6 py-3 font-semibold whitespace-nowrap">Data / N.P.</th>
@@ -85,7 +100,7 @@ const PreparationsLog = ({ preparations, handleEditPreparation, handleDeletePrep
               {preparations.length === 0 && (
                 <tr>
                   <td colSpan="7" className="px-6 py-8 text-center text-slate-400 italic">
-                    Nessuna preparazione registrata.
+                    {activeFilter ? "La preparazione cercata non è stata trovata." : "Nessuna preparazione registrata."}
                   </td>
                 </tr>
               )}

@@ -63,6 +63,9 @@ export default function GalenicoApp() {
   // STATO FILTRO (all, expiring, expired)
   const [inventoryFilter, setInventoryFilter] = useState('all');
 
+  // Stato per il filtro del registro preparazioni
+  const [preparationLogFilter, setPreparationLogFilter] = useState(null);
+
   // --- LOGICA DI GESTIONE DATI (Locale) ---
 
   const loadLocalData = () => {
@@ -108,6 +111,12 @@ export default function GalenicoApp() {
     localStorage.setItem('galenico_settings', JSON.stringify(pharmacySettings));
   }, [pharmacySettings]);
 
+  const handleShowPreparation = (prepId) => {
+    setPreparationLogFilter(prepId);
+    setActiveTab('preparations_log');
+    setIsAddModalOpen(false);
+  };
+  
   // --- LOGICHE AGGIUNTIVE E HELPER ---
 
   // CALCOLO AUTOMATICO COSTO/GRAMMO
@@ -433,7 +442,16 @@ export default function GalenicoApp() {
           requestSort={requestSort}
         />;
       case 'preparations_log':
-        return <PreparationsLog preparations={preparations} handleEditPreparation={handleEditPreparation} handleDeletePreparation={handleDeletePreparation} />;
+        const filteredPreparations = preparationLogFilter
+          ? preparations.filter(p => p.id === preparationLogFilter)
+          : preparations;
+        return <PreparationsLog 
+                  preparations={filteredPreparations} 
+                  handleEditPreparation={handleEditPreparation} 
+                  handleDeletePreparation={handleDeletePreparation}
+                  activeFilter={preparationLogFilter}
+                  clearFilter={() => setPreparationLogFilter(null)}
+               />;
       case 'preparation':
         return <PreparationWizard inventory={inventory} preparations={preparations} onComplete={handleUsage} initialData={editingPrep} pharmacySettings={pharmacySettings} />;
       case 'logs':
@@ -501,6 +519,8 @@ export default function GalenicoApp() {
         isAnalyzingPdf={isAnalyzingPdf}
         handleRemoveSds={handleRemoveSds}
         handleDownloadPdf={handleDownloadPdf}
+        preparations={preparations}
+        onShowPreparation={handleShowPreparation}
       />
     </div>
   );
