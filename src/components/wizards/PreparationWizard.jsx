@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Euro, Plus, Trash2, Save, Sparkles, Loader2, Info } from 'lucide-react';
 import Card from '../ui/Card';
-import { NATIONAL_TARIFF_FEES, VAT_RATE, DISPOSAL_FEE } from '../../constants/tariffs';
+import { NATIONAL_TARIFF_FEES, VAT_RATE, DISPOSAL_FEE, ADDITIONAL_FEE } from '../../constants/tariffs';
 import { callGemini } from '../../services/gemini';
 
 // --- SOTTO-COMPONENTE PER IL WIZARD DI PREPARAZIONE ---
@@ -66,9 +66,18 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData })
             pharmaceuticalForm: initialData.pharmaceuticalForm,
             posology: initialData.posology
         });
-        setSelectedIngredients(initialData.ingredients);
+
+        // Enrich ingredients with costPerGram from inventory
+        const enrichedIngredients = initialData.ingredients.map(ing => {
+            const inventoryItem = (inventory || []).find(item => item.id === ing.id);
+            return {
+                ...ing,
+                costPerGram: inventoryItem ? inventoryItem.costPerGram : 0,
+            };
+        });
+        setSelectedIngredients(enrichedIngredients);
     }
-  }, [initialData]);
+  }, [initialData, inventory]);
 
   // CALCOLO TARIFFA COMPLESSO (Logica Normativa Vigente D.M. 30/01/2018)
   const calculateComplexFee = () => {
@@ -178,12 +187,14 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData })
     }
     
     const disposal = applyDisposalFee ? DISPOSAL_FEE : 0;
-    const net = substancesCost + parseFloat(containerCost) + currentFee + disposal;
+    const additional = ADDITIONAL_FEE;
+    const net = substancesCost + parseFloat(containerCost) + currentFee + disposal + additional;
     const vat = net * VAT_RATE;
     return {
         substances: substancesCost,
         fee: currentFee,
         disposal: disposal,
+        additional: additional,
         net: net,
         vat: vat,
         final: net + vat
@@ -261,6 +272,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData })
                         <div><label className="block text-xs font-bold text-slate-500 mb-1">{applySurcharge ? 'Onorario + 40%' : 'Onorario'}</label><input type="number" className="w-full border p-2 rounded text-right font-mono bg-slate-100" value={professionalFee.toFixed(2)} readOnly /></div>
                         <div className="flex gap-2"><input type="checkbox" checked={applySurcharge} onChange={e => setApplySurcharge(e.target.checked)} /><label className="text-xs text-slate-600">Supplemento 40% (Sost. Pericolose)</label></div>
                         <div><label className="block text-xs font-bold text-slate-500 mb-1">Op. Tecnologiche Extra (+2.30€)</label><input type="number" min="0" className="w-full border p-2 rounded text-right font-mono" value={extraTechOps} onChange={e => setExtraTechOps(parseInt(e.target.value)||0)} /></div>
+                        <div><label className="block text-xs font-bold text-slate-500 mb-1">Addizionale</label><input type="text" className="w-full border p-2 rounded text-right font-mono bg-slate-100" value={pricing.additional.toFixed(2)} readOnly /></div>
                         <div className="flex gap-2 mt-2"><input type="checkbox" checked={applyDisposalFee} onChange={e => setApplyDisposalFee(e.target.checked)} /><label className="text-xs text-slate-600">Smaltimento/Sanificazione (+2.50€)</label></div>
                         <div><label className="block text-xs font-bold text-slate-500 mb-1">Costo Recipiente</label><input type="number" step="0.10" className="w-full border p-2 rounded text-right font-mono" value={containerCost} onChange={e => setContainerCost(parseFloat(e.target.value)||0)} /></div>
                     </div>

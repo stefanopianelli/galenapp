@@ -16,4 +16,5 @@ export const NATIONAL_TARIFF_FEES = {
 };
 
 export const VAT_RATE = 0.10; 
+export const ADDITIONAL_FEE = 2.50;
 export const DISPOSAL_FEE = 2.50;
