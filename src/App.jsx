@@ -59,6 +59,7 @@ export default function GalenicoApp() {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   // Stato per Ricerca
   const [searchTerm, setSearchTerm] = useState('');
+  const [prepSearchTerm, setPrepSearchTerm] = useState('');
 
   // STATO FILTRO (all, expiring, expired)
   const [inventoryFilter, setInventoryFilter] = useState('all');
@@ -259,6 +260,25 @@ export default function GalenicoApp() {
     };
   }, [inventory, logs, sortConfig, searchTerm, preparations, inventoryFilter]);
 
+  const filteredPreparations = useMemo(() => {
+    let filtered = preparations;
+
+    if (preparationLogFilter) {
+      return filtered.filter(p => p.id === preparationLogFilter);
+    }
+
+    if (prepSearchTerm) {
+      const term = prepSearchTerm.toLowerCase();
+      filtered = filtered.filter(p =>
+        p.name.toLowerCase().includes(term) ||
+        (p.ingredients && p.ingredients.some(ing => ing.name.toLowerCase().includes(term)))
+      );
+    }
+
+    return filtered;
+  }, [preparations, preparationLogFilter, prepSearchTerm]);
+
+
   const getNextNi = () => {
     const currentYear = new Date().getFullYear().toString().slice(-2);
     let maxProg = 0;
@@ -442,15 +462,14 @@ export default function GalenicoApp() {
           requestSort={requestSort}
         />;
       case 'preparations_log':
-        const filteredPreparations = preparationLogFilter
-          ? preparations.filter(p => p.id === preparationLogFilter)
-          : preparations;
         return <PreparationsLog 
                   preparations={filteredPreparations} 
                   handleEditPreparation={handleEditPreparation} 
                   handleDeletePreparation={handleDeletePreparation}
                   activeFilter={preparationLogFilter}
                   clearFilter={() => setPreparationLogFilter(null)}
+                  searchTerm={prepSearchTerm}
+                  setSearchTerm={setPrepSearchTerm}
                />;
       case 'preparation':
         return <PreparationWizard inventory={inventory} preparations={preparations} onComplete={handleUsage} initialData={editingPrep} pharmacySettings={pharmacySettings} />;

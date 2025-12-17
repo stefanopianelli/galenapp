@@ -1,13 +1,26 @@
 import React from 'react';
-import { Hash, Calendar, Pencil, Trash2, Filter, X } from 'lucide-react';
+import { Hash, Calendar, Pencil, Trash2, Filter, X, Search } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 
-const PreparationsLog = ({ preparations, handleEditPreparation, handleDeletePreparation, activeFilter, clearFilter }) => {
+const PreparationsLog = ({ preparations, handleEditPreparation, handleDeletePreparation, activeFilter, clearFilter, searchTerm, setSearchTerm }) => {
   const filteredPrepName = activeFilter && preparations.length === 1 ? preparations[0].name : null;
 
   return (
     <div className="space-y-4">
+       <div className="flex justify-between items-center">
+        <div className="relative">
+            <Search className="absolute left-3 top-2.5 text-slate-400 h-4 w-4" />
+            <input 
+                type="text" 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)} 
+                placeholder="Cerca per nome o ingrediente..." 
+                className="pl-9 pr-4 py-2 border border-slate-300 rounded-md text-sm w-64 focus:ring-2 focus:ring-teal-500 outline-none"
+            />
+        </div>
+      </div>
+
       {activeFilter && (
         <div className="flex items-center justify-between bg-amber-50 text-amber-800 px-4 py-2 rounded-md border border-amber-200">
             <div className="flex items-center gap-2">
@@ -100,7 +113,7 @@ const PreparationsLog = ({ preparations, handleEditPreparation, handleDeletePrep
               {preparations.length === 0 && (
                 <tr>
                   <td colSpan="7" className="px-6 py-8 text-center text-slate-400 italic">
-                    {activeFilter ? "La preparazione cercata non è stata trovata." : "Nessuna preparazione registrata."}
+                    {activeFilter || searchTerm ? "Nessuna preparazione trovata con i criteri specificati." : "Nessuna preparazione registrata."}
                   </td>
                 </tr>
               )}
