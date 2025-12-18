@@ -48,7 +48,7 @@ const Inventory = ({
       <div>
         <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2"><Package className="text-teal-600" size={20} /> Giacenze Attive</h3>
         <Card>
-          <div className="overflow-y-auto" style={{ maxHeight: '60vh' }}>
+          <div className="overflow-auto" style={{ maxHeight: '60vh' }}>
             <table className="w-full text-left text-sm">
               <thead className="sticky top-0 z-10 bg-slate-50 text-slate-600 border-b border-slate-200"><tr><SortableHeader label="Sostanza" columnKey="name" /><SortableHeader label="N.I." columnKey="ni" /><SortableHeader label="Scadenza" columnKey="expiry" /><SortableHeader label="Fornitore" columnKey="supplier" /><SortableHeader label="Giacenza" columnKey="quantity" className="text-right" /><SortableHeader label="€/g" columnKey="costPerGram" className="text-right" /><SortableHeader label="Utilizzi" columnKey="usageCount" className="text-center" /><SortableHeader label="Stato" columnKey="status" className="text-center" /><th className="px-6 py-4 text-center">Azioni</th></tr></thead>
               <tbody className="divide-y divide-slate-100">
@@ -81,7 +81,7 @@ const Inventory = ({
       <div>
         <h3 className="text-lg font-bold text-slate-500 mb-3 flex items-center gap-2"><Archive className="text-slate-400" size={20} /> Archivio Smaltiti</h3>
         <Card className="border-slate-100 bg-slate-50/50">
-          <div className="overflow-y-auto" style={{ maxHeight: '250px' }}>
+          <div className="overflow-auto" style={{ maxHeight: '250px' }}>
             <table className="w-full text-left text-sm opacity-75">
               <thead className="sticky top-0 z-10 bg-slate-100 text-slate-500 border-b border-slate-200"><tr><th className="px-6 py-4">Sostanza</th><th className="px-6 py-4">N.I.</th><th className="px-6 py-4">Scadenza</th><th className="px-6 py-4">Fornitore</th><th className="px-6 py-4 text-right">Residuo</th><th className="px-6 py-4 text-right">€/g</th><th className="px-6 py-4 text-center">Stato</th></tr></thead>
               <tbody className="divide-y divide-slate-100">{sortedDisposedInventory.map(item => (
