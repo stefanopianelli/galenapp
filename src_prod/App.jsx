@@ -37,7 +37,6 @@ export default function GalenicoApp() {
 
   // Stato Modifica
   const [editingPrep, setEditingPrep] = useState(null);
-  const [initialWizardStep, setInitialWizardStep] = useState(1);
 
   // Stato Connessione
   const [isOnline, setIsOnline] = useState(false);
@@ -47,6 +46,7 @@ export default function GalenicoApp() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingSubstance, setEditingSubstance] = useState(null);
   const [isReadOnlyMode, setIsReadOnlyMode] = useState(false);
+  const [isAnalyzingPdf, setIsAnalyzingPdf] = useState(false);
 
   const [newSubstance, setNewSubstance] = useState({
     name: '', ni: '', lot: '', expiry: '', quantity: '', unit: 'g', costPerGram: '', totalCost: '', supplier: '', purity: '',
@@ -128,14 +128,32 @@ export default function GalenicoApp() {
     }
   }, [newSubstance.totalCost, newSubstance.quantity]);
 
-  // Registra semplicemente il file SDS senza analizzarlo
+  // Simulazione analisi PDF SDS
   const handleSdsUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    setNewSubstance(prev => ({
-      ...prev,
-      sdsFile: file,
-    }));
+
+    setIsAnalyzingPdf(true);
+
+    setTimeout(() => {
+      const extractedData = {
+        cas: '83701-22-8',
+        formula: 'C9H15N5O4S',
+        ceNumber: '253-874-2',
+        molecularWeight: '209.25 g/mol',
+        hazardStatements: 'H302 (Nocivo se ingerito), H315 (Irritante pelle), H319 (Irritante occhi)',
+        pictograms: ['GHS07', 'GHS08']
+      };
+
+      setNewSubstance(prev => ({
+        ...prev,
+        sdsFile: file,
+        securityData: extractedData
+      }));
+
+      setIsAnalyzingPdf(false);
+      // setActiveModalTab('security'); // This state is now inside the modal
+    }, 2000);
   };
 
   const handleRemoveSds = () => {
@@ -417,15 +435,8 @@ export default function GalenicoApp() {
     setActiveTab('preparations_log');
   };
 
-  const handleJumpToStep = (prep, step = 1) => {
+  const handleEditPreparation = (prep) => {
     setEditingPrep(prep);
-    setInitialWizardStep(step);
-    setActiveTab('preparation');
-  };
-
-  const handleNewPreparation = () => {
-    setEditingPrep(null);
-    setInitialWizardStep(1);
     setActiveTab('preparation');
   };
 
@@ -453,7 +464,7 @@ export default function GalenicoApp() {
       case 'preparations_log':
         return <PreparationsLog 
                   preparations={filteredPreparations} 
-                  handleJumpToStep={handleJumpToStep} 
+                  handleEditPreparation={handleEditPreparation} 
                   handleDeletePreparation={handleDeletePreparation}
                   activeFilter={preparationLogFilter}
                   clearFilter={() => setPreparationLogFilter(null)}
@@ -461,14 +472,7 @@ export default function GalenicoApp() {
                   setSearchTerm={setPrepSearchTerm}
                />;
       case 'preparation':
-        return <PreparationWizard 
-                  inventory={inventory} 
-                  preparations={preparations} 
-                  onComplete={handleUsage} 
-                  initialData={editingPrep} 
-                  pharmacySettings={pharmacySettings}
-                  initialStep={initialWizardStep}
-               />;
+        return <PreparationWizard inventory={inventory} preparations={preparations} onComplete={handleUsage} initialData={editingPrep} pharmacySettings={pharmacySettings} />;
       case 'logs':
         return <Logs logs={logs} />;
       case 'ai-assistant':
@@ -491,7 +495,7 @@ export default function GalenicoApp() {
         <nav className="flex-1 p-4 space-y-2">
           <SidebarItem icon={<ClipboardList size={20} />} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
           <SidebarItem icon={<Package size={20} />} label="Magazzino Sostanze" active={activeTab === 'inventory'} onClick={() => { setInventoryFilter('all'); setActiveTab('inventory'); }} />
-          <SidebarItem icon={<Pill size={20} />} label={editingPrep ? "Modifica Prep." : "Nuova Prep."} active={activeTab === 'preparation'} onClick={handleNewPreparation} />
+          <SidebarItem icon={<Pill size={20} />} label={editingPrep ? "Modifica Prep." : "Nuova Prep."} active={activeTab === 'preparation'} onClick={() => { setEditingPrep(null); setActiveTab('preparation'); }} />
           <SidebarItem icon={<LayoutList size={20} />} label="Registro Preparazioni" active={activeTab === 'preparations_log'} onClick={() => setActiveTab('preparations_log')} />
           <SidebarItem icon={<History size={20} />} label="Registro Movimenti" active={activeTab === 'logs'} onClick={() => setActiveTab('logs')} />
           <div className="pt-4 mt-4 border-t border-slate-700">
@@ -531,6 +535,7 @@ export default function GalenicoApp() {
         onSubmit={handleAddOrUpdateSubstance}
         getNextNi={getNextNi}
         handleSdsUpload={handleSdsUpload}
+        isAnalyzingPdf={isAnalyzingPdf}
         handleRemoveSds={handleRemoveSds}
         handleDownloadPdf={handleDownloadPdf}
         preparations={preparations}
