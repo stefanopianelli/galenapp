@@ -401,10 +401,20 @@ export default function GalenicoApp() {
     const newInventory = currentInventory.map(item => {
       const used = itemsUsed.find(u => u.id === item.id);
       if (used) {
-        const newItem = { ...item, quantity: item.quantity - used.amountUsed };
+        const newQuantity = item.quantity - used.amountUsed;
+        const newItem = { 
+          ...item, 
+          quantity: newQuantity 
+        };
+
         if (!newItem.firstUseDate) {
           newItem.firstUseDate = new Date().toISOString().split('T')[0];
         }
+        
+        if (newQuantity <= 0) {
+          newItem.endUseDate = new Date().toISOString().split('T')[0];
+        }
+
         return newItem;
       }
       return item;
