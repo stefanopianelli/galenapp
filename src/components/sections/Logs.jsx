@@ -2,7 +2,39 @@ import React from 'react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 
-const Logs = ({ logs }) => {
+const Logs = ({ logs, preparations, handleShowPreparation }) => {
+
+  const renderNote = (note) => {
+    if (!note) return '-';
+
+    const match = note.match(/#(\d{2}\/P\d{3})/);
+    if (!match) {
+      return note;
+    }
+
+    const prepNumber = match[1];
+    const prep = preparations.find(p => p.prepNumber === prepNumber);
+
+    if (!prep) {
+      return note;
+    }
+
+    const parts = note.split(`#${prepNumber}`);
+    
+    return (
+      <span>
+        {parts[0]}
+        <button 
+          onClick={() => handleShowPreparation(prep.id)} 
+          className="text-teal-600 font-bold hover:underline"
+        >
+          #{prepNumber}
+        </button>
+        {parts[1]}
+      </span>
+    );
+  };
+
   return (
     <div className="space-y-4">
       <Card>
@@ -25,8 +57,11 @@ const Logs = ({ logs }) => {
                   <td className="px-6 py-3 whitespace-nowrap"><Badge type={log.type === 'CARICO' ? 'success' : log.type === 'SMALTIMENTO' ? 'dark' : 'warning'}>{log.type}</Badge></td>
                   <td className="px-6 py-3 whitespace-nowrap font-medium text-slate-800">{log.substance}</td>
                   <td className="px-6 py-3 font-mono text-xs whitespace-nowrap">{log.ni}</td>
-                  <td className="px-6 py-3 text-right font-mono font-bold whitespace-nowrap">{Number(log.quantity).toFixed(2)} {log.unit}</td>
-                  <td className="px-6 py-3 text-slate-500 text-xs whitespace-nowrap">{log.notes}</td>
+                  <td className={`px-6 py-3 text-right font-mono font-bold whitespace-nowrap ${(log.type === 'CARICO' || log.type === 'ANNULLAMENTO') ? 'text-green-600' : 'text-red-600'}`}>
+                    {(log.type === 'CARICO' || log.type === 'ANNULLAMENTO') ? '+' : '-'}
+                    {Number(log.quantity).toFixed(2)} {log.unit}
+                  </td>
+                  <td className="px-6 py-3 text-slate-500 text-xs whitespace-nowrap">{renderNote(log.notes)}</td>
                 </tr>
               ))}
             </tbody>
