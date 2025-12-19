@@ -16,6 +16,8 @@ const Inventory = ({
   handleDispose,
   sortConfig,
   requestSort,
+  activeSubstanceFilter,
+  clearSubstanceFilter,
 }) => {
 
   const SortIcon = ({ columnKey }) => {
@@ -44,6 +46,19 @@ const Inventory = ({
           <button onClick={handleOpenAddModal} className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors"><Plus size={16} /> Nuovo Carico</button>
         </div>
       </div>
+
+      {activeSubstanceFilter && (
+        <div className="flex items-center justify-between bg-blue-50 text-blue-800 px-4 py-2 rounded-md border border-blue-200">
+            <div className="flex items-center gap-2">
+                <Filter size={16} />
+                <span className="font-semibold">Filtro Sostanza:</span>
+                <span className="font-mono bg-white border px-2 py-0.5 rounded text-sm">{sortedActiveInventory.length > 0 ? sortedActiveInventory[0].name : ''}</span>
+            </div>
+            <button onClick={clearSubstanceFilter} className="flex items-center gap-1 hover:bg-blue-100 px-2 py-1 rounded transition-colors text-sm">
+                <X size={14} /> Rimuovi filtro
+            </button>
+        </div>
+      )}
 
       <div>
         <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2"><Package className="text-teal-600" size={20} /> Giacenze Attive</h3>

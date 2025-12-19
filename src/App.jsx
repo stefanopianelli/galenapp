@@ -67,6 +67,9 @@ export default function GalenicoApp() {
   // Stato per il filtro del registro preparazioni
   const [preparationLogFilter, setPreparationLogFilter] = useState(null);
 
+  // Stato per il filtro del magazzino per sostanza
+  const [inventoryFilterSubstance, setInventoryFilterSubstance] = useState(null);
+
   // --- LOGICA DI GESTIONE DATI (Locale) ---
 
   const loadLocalData = () => {
@@ -115,6 +118,12 @@ export default function GalenicoApp() {
   const handleShowPreparation = (prepId) => {
     setPreparationLogFilter(prepId);
     setActiveTab('preparations_log');
+    setIsAddModalOpen(false);
+  };
+
+  const handleShowSubstanceInInventory = (substanceId) => {
+    setInventoryFilterSubstance(substanceId);
+    setActiveTab('inventory');
     setIsAddModalOpen(false);
   };
   
@@ -434,21 +443,39 @@ export default function GalenicoApp() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard stats={stats} logs={logs} inventory={inventory} setActiveTab={setActiveTab} setInventoryFilter={setInventoryFilter} handleDispose={handleDispose} />;
+        return <Dashboard 
+                  stats={stats} 
+                  logs={logs} 
+                  inventory={inventory} 
+                  preparations={preparations}
+                  setActiveTab={setActiveTab} 
+                  setInventoryFilter={setInventoryFilter} 
+                  handleDispose={handleDispose}
+                  handleShowPreparation={handleShowPreparation}
+                  handleShowSubstanceInInventory={handleShowSubstanceInInventory}
+                />;
       case 'inventory':
+        const filteredInventory = inventoryFilterSubstance
+          ? sortedActiveInventory.filter(item => item.id === inventoryFilterSubstance)
+          : sortedActiveInventory;
+        const filteredDisposedInventory = inventoryFilterSubstance
+          ? sortedDisposedInventory.filter(item => item.id === inventoryFilterSubstance)
+          : sortedDisposedInventory;
         return <Inventory
           inventoryFilter={inventoryFilter}
           setInventoryFilter={setInventoryFilter}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
-          sortedActiveInventory={sortedActiveInventory}
-          sortedDisposedInventory={sortedDisposedInventory}
+          sortedActiveInventory={filteredInventory}
+          sortedDisposedInventory={filteredDisposedInventory}
           handleOpenAddModal={handleOpenAddModal}
           handleOpenEditModal={handleOpenEditModal}
           handleOpenViewModal={handleOpenViewModal}
           handleDispose={handleDispose}
           sortConfig={sortConfig}
           requestSort={requestSort}
+          activeSubstanceFilter={inventoryFilterSubstance}
+          clearSubstanceFilter={() => setInventoryFilterSubstance(null)}
         />;
       case 'preparations_log':
         return <PreparationsLog 

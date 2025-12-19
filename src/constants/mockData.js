@@ -72,9 +72,9 @@ export const MOCK_PREPARATIONS = [
 
 
 export const MOCK_LOGS = [
-    { id: 1, date: '2024-01-10', type: 'CARICO', substance: 'Minoxidil Base', ni: '25/S001', quantity: 450, unit: 'g' },
-    { id: 2, date: '2024-01-15', type: 'SCARICO', substance: 'Minoxidil Base', ni: '25/S001', quantity: 5, unit: 'g' },
-    { id: 3, date: '2024-02-10', type: 'SCARICO', substance: 'Urea USP', ni: '25/S003', quantity: 10, unit: 'g' },
-    { id: 4, date: '2024-03-05', type: 'SCARICO', substance: 'Mentolo Racemo', ni: '25/S008', quantity: 2, unit: 'g' },
-    { id: 5, date: '2023-12-05', type: 'SMALTIMENTO', substance: 'Sodio Cloruro', ni: '23/S099', quantity: 100, unit: 'g' }
+    { id: 1, date: '2024-01-10', type: 'CARICO', substance: 'Paracetamolo Polvere', ni: '25/S101', quantity: 50, unit: 'g', notes: 'Carico iniziale' },
+    { id: 2, date: '2024-01-15', type: 'SCARICO', substance: 'Melatonina', ni: '25/S102', quantity: 5, unit: 'g', notes: 'Preparazione #201' },
+    { id: 3, date: '2024-02-10', type: 'SCARICO', substance: 'Finasteride', ni: '25/S103', quantity: 1, unit: 'g', notes: 'Preparazione #202' },
+    { id: 4, date: '2024-03-05', type: 'CARICO', substance: 'Lattosio Monoidrato', ni: '25/E001', quantity: 1000, unit: 'g', notes: 'Nuovo arrivo' },
+    { id: 5, date: '2023-12-05', type: 'SMALTIMENTO', substance: 'Silice Colloidale Anidra', ni: '25/E004', quantity: 100, unit: 'g', notes: 'Smaltimento per scadenza' }
 ];
