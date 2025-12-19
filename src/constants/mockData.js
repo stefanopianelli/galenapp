@@ -28,43 +28,43 @@ export const MOCK_INVENTORY = [
 ];
 
 export const MOCK_PREPARATIONS = [
-  { id: 201, prepNumber: '25/C001', name: 'Melatonina 5mg', pharmaceuticalForm: 'Capsule', quantity: 120, prepUnit: 'n.', expiryDate: '2026-06-15', posology: '1 caps 30 min prima di coricarsi', date: '2025-12-10', patient: 'Laura Neri', doctor: 'Dr. Rossi', status: 'Completata', totalPrice: 32.50, ingredients: [
+  { id: 201, prepNumber: '25/P001', name: 'Melatonina 5mg', pharmaceuticalForm: 'Capsule', quantity: 120, prepUnit: 'n.', expiryDate: '2026-06-15', posology: '1 caps 30 min prima di coricarsi', date: '2025-12-10', patient: 'Laura Neri', doctor: 'Dr. Rossi', status: 'Completata', totalPrice: 32.50, ingredients: [
     { id: 2, name: 'Melatonina', ni: '25/S102', lot: 'MEL-332', amountUsed: 0.6, unit: 'g' },
     { id: 11, name: 'Lattosio Monoidrato', ni: '25/E001', lot: 'LAC-001', amountUsed: 35.4, unit: 'g' }
   ]},
-  { id: 202, prepNumber: '25/C002', name: 'Finasteride 1mg', pharmaceuticalForm: 'Capsule', quantity: 90, prepUnit: 'n.', expiryDate: '2026-06-12', posology: '1 caps al giorno', date: '2025-12-12', patient: 'Marco Verdi', doctor: 'Dr. Gialli', status: 'Completata', totalPrice: 38.00, ingredients: [
+  { id: 202, prepNumber: '25/P002', name: 'Finasteride 1mg', pharmaceuticalForm: 'Capsule', quantity: 90, prepUnit: 'n.', expiryDate: '2026-06-12', posology: '1 caps al giorno', date: '2025-12-12', patient: 'Marco Verdi', doctor: 'Dr. Gialli', status: 'Completata', totalPrice: 38.00, ingredients: [
     { id: 3, name: 'Finasteride', ni: '25/S103', lot: 'FIN-A55', amountUsed: 0.09, unit: 'g' },
     { id: 12, name: 'Cellulosa Microcristallina PH 102', ni: '25/E002', lot: 'CMC-102', amountUsed: 26.91, unit: 'g' }
   ]},
-  { id: 203, prepNumber: '25/C003', name: 'Tadalafil 20mg', pharmaceuticalForm: 'Capsule', quantity: 30, prepUnit: 'n.', expiryDate: '2026-06-08', posology: '1 caps al bisogno', date: '2025-12-08', patient: 'Paolo Bianchi', doctor: 'Dr. Blu', status: 'Completata', totalPrice: 45.10, ingredients: [
+  { id: 203, prepNumber: '25/P003', name: 'Tadalafil 20mg', pharmaceuticalForm: 'Capsule', quantity: 30, prepUnit: 'n.', expiryDate: '2026-06-08', posology: '1 caps al bisogno', date: '2025-12-08', patient: 'Paolo Bianchi', doctor: 'Dr. Blu', status: 'Completata', totalPrice: 45.10, ingredients: [
     { id: 4, name: 'Tadalafil', ni: '25/S104', lot: 'TAD-B01', amountUsed: 0.6, unit: 'g' },
     { id: 12, name: 'Cellulosa Microcristallina PH 102', ni: '25/E002', lot: 'CMC-102', amountUsed: 8.4, unit: 'g' }
   ]},
-  { id: 204, prepNumber: '25/C004', name: 'Caffeina 100mg', pharmaceuticalForm: 'Capsule', quantity: 60, prepUnit: 'n.', expiryDate: '2026-06-14', posology: '1 caps al mattino', date: '2025-12-14', patient: 'Chiara Rossi', doctor: 'Dr. Neri', status: 'Completata', totalPrice: 28.75, ingredients: [
+  { id: 204, prepNumber: '25/P004', name: 'Caffeina 100mg', pharmaceuticalForm: 'Capsule', quantity: 60, prepUnit: 'n.', expiryDate: '2026-06-14', posology: '1 caps al mattino', date: '2025-12-14', patient: 'Chiara Rossi', doctor: 'Dr. Neri', status: 'Completata', totalPrice: 28.75, ingredients: [
     { id: 7, name: 'Caffeina Anidra', ni: '25/S107', lot: 'CAF-007', amountUsed: 6, unit: 'g' },
     { id: 11, name: 'Lattosio Monoidrato', ni: '25/E001', lot: 'LAC-001', amountUsed: 17.4, unit: 'g' }
   ]},
-  { id: 205, prepNumber: '25/C005', name: 'Paracetamolo 500mg', pharmaceuticalForm: 'Capsule', quantity: 20, prepUnit: 'n.', expiryDate: '2026-06-01', posology: '1 caps ogni 6 ore al bisogno', date: '2025-12-01', patient: 'Luca Gialli', doctor: 'Dr. Verdi', status: 'Completata', totalPrice: 21.00, ingredients: [
+  { id: 205, prepNumber: '25/P005', name: 'Paracetamolo 500mg', pharmaceuticalForm: 'Capsule', quantity: 20, prepUnit: 'n.', expiryDate: '2026-06-01', posology: '1 caps ogni 6 ore al bisogno', date: '2025-12-01', patient: 'Luca Gialli', doctor: 'Dr. Verdi', status: 'Completata', totalPrice: 21.00, ingredients: [
     { id: 1, name: 'Paracetamolo Polvere', ni: '25/S101', lot: 'PAR-001', amountUsed: 10, unit: 'g' },
     { id: 13, name: 'Magnesio Stearato Vegetale', ni: '25/E003', lot: 'MG-ST-V', amountUsed: 0.2, unit: 'g' }
   ]},
-  { id: 206, prepNumber: '25/C006', name: 'Minoxidil 2.5mg', pharmaceuticalForm: 'Capsule', quantity: 100, prepUnit: 'n.', expiryDate: '2026-06-15', posology: '1 caps al giorno', date: '2025-12-15', patient: 'Giuseppe Rosato', doctor: 'Dr. Bruni', status: 'Completata', totalPrice: 30.00, ingredients: [
+  { id: 206, prepNumber: '25/P006', name: 'Minoxidil 2.5mg', pharmaceuticalForm: 'Capsule', quantity: 100, prepUnit: 'n.', expiryDate: '2026-06-15', posology: '1 caps al giorno', date: '2025-12-15', patient: 'Giuseppe Rosato', doctor: 'Dr. Bruni', status: 'Completata', totalPrice: 30.00, ingredients: [
     { id: 8, name: 'Minoxidil Base', ni: '25/S108', lot: 'MNX-A11', amountUsed: 0.25, unit: 'g' },
     { id: 12, name: 'Cellulosa Microcristallina PH 102', ni: '25/E002', lot: 'CMC-102', amountUsed: 29.75, unit: 'g' }
   ]},
-  { id: 207, prepNumber: '25/C007', name: 'Coenzima Q10 100mg', pharmaceuticalForm: 'Capsule', quantity: 60, prepUnit: 'n.', expiryDate: '2026-02-20', posology: '1 caps die', date: '2025-11-20', patient: 'Maria Ciano', doctor: 'Dr. Oliva', status: 'Completata', totalPrice: 35.20, ingredients: [
+  { id: 207, prepNumber: '25/P007', name: 'Coenzima Q10 100mg', pharmaceuticalForm: 'Capsule', quantity: 60, prepUnit: 'n.', expiryDate: '2026-02-20', posology: '1 caps die', date: '2025-11-20', patient: 'Maria Ciano', doctor: 'Dr. Oliva', status: 'Completata', totalPrice: 35.20, ingredients: [
     { id: 10, name: 'Coenzima Q10', ni: '25/S110', lot: 'Q10-Z01', amountUsed: 6, unit: 'g' },
     { id: 11, name: 'Lattosio Monoidrato', ni: '25/E001', lot: 'LAC-001', amountUsed: 18, unit: 'g' }
   ]},
-  { id: 208, prepNumber: '25/C008', name: 'Curcumina 500mg', pharmaceuticalForm: 'Capsule', quantity: 90, prepUnit: 'n.', expiryDate: '2026-06-13', posology: '2 cps die', date: '2025-12-13', patient: 'Fabio Magenta', doctor: 'Dr. Viola', status: 'Completata', totalPrice: 31.80, ingredients: [
+  { id: 208, prepNumber: '25/P008', name: 'Curcumina 500mg', pharmaceuticalForm: 'Capsule', quantity: 90, prepUnit: 'n.', expiryDate: '2026-06-13', posology: '2 cps die', date: '2025-12-13', patient: 'Fabio Magenta', doctor: 'Dr. Viola', status: 'Completata', totalPrice: 31.80, ingredients: [
     { id: 5, name: 'Curcumina Estr. Secco', ni: '25/S105', lot: 'CUR-95C', amountUsed: 45, unit: 'g' },
     { id: 13, name: 'Magnesio Stearato Vegetale', ni: '25/E003', lot: 'MG-ST-V', amountUsed: 0.9, unit: 'g' }
   ]},
-  { id: 209, prepNumber: '25/C009', name: 'Diltiazem 60mg', pharmaceuticalForm: 'Capsule', quantity: 100, prepUnit: 'n.', expiryDate: '2026-05-10', posology: '1 caps x 3/die', date: '2025-11-10', patient: 'Anna Arancio', doctor: 'Dr. Sole', status: 'Completata', totalPrice: 39.50, ingredients: [
+  { id: 209, prepNumber: '25/P009', name: 'Diltiazem 60mg', pharmaceuticalForm: 'Capsule', quantity: 100, prepUnit: 'n.', expiryDate: '2026-05-10', posology: '1 caps x 3/die', date: '2025-11-10', patient: 'Anna Arancio', doctor: 'Dr. Sole', status: 'Completata', totalPrice: 39.50, ingredients: [
     { id: 9, name: 'Diltiazem Cloridrato', ni: '25/S109', lot: 'DIL-X09', amountUsed: 6, unit: 'g' },
     { id: 11, name: 'Lattosio Monoidrato', ni: '25/E001', lot: 'LAC-001', amountUsed: 24, unit: 'g' }
   ]},
-  { id: 210, prepNumber: '25/C010', name: 'Vitamina D3 5000 UI', pharmaceuticalForm: 'Capsule', quantity: 120, prepUnit: 'n.', expiryDate: '2026-06-11', posology: '1 caps a settimana', date: '2025-12-11', patient: 'Mario Marrone', doctor: 'Dr. Bosco', status: 'Completata', totalPrice: 30.15, ingredients: [
+  { id: 210, prepNumber: '25/P010', name: 'Vitamina D3 5000 UI', pharmaceuticalForm: 'Capsule', quantity: 120, prepUnit: 'n.', expiryDate: '2026-06-11', posology: '1 caps a settimana', date: '2025-12-11', patient: 'Mario Marrone', doctor: 'Dr. Bosco', status: 'Completata', totalPrice: 30.15, ingredients: [
     { id: 6, name: 'Vitamina D3 100.000 UI/g', ni: '25/S106', lot: 'VD3-C01', amountUsed: 6, unit: 'g' },
     { id: 12, name: 'Cellulosa Microcristallina PH 102', ni: '25/E002', lot: 'CMC-102', amountUsed: 30, unit: 'g' }
   ]}
