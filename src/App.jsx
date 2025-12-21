@@ -52,6 +52,7 @@ export default function GalenicoApp() {
     name: '', ni: '', lot: '', expiry: '', quantity: '', unit: 'g', costPerGram: '', totalCost: '', supplier: '', purity: '',
     receptionDate: '', ddtNumber: '', ddtDate: '', firstUseDate: null, endUseDate: null,
     sdsFile: null,
+    technicalSheetFile: null,
     securityData: null
   });
 
@@ -147,12 +148,29 @@ export default function GalenicoApp() {
     }));
   };
 
+  const handleTechnicalSheetUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setNewSubstance(prev => ({
+      ...prev,
+      technicalSheetFile: file,
+    }));
+  };
+
   const handleRemoveSds = () => {
-    if (window.confirm("Rimuovere la scheda di sicurezza e cancellare i dati estratti?")) {
+    if (window.confirm("Rimuovere la Scheda di Sicurezza?")) {
       setNewSubstance(prev => ({
         ...prev,
         sdsFile: null,
-        securityData: null
+      }));
+    }
+  };
+
+  const handleRemoveTechnicalSheet = () => {
+    if (window.confirm("Rimuovere la Scheda Tecnica?")) {
+      setNewSubstance(prev => ({
+        ...prev,
+        technicalSheetFile: null,
       }));
     }
   };
@@ -697,6 +715,8 @@ export default function GalenicoApp() {
         getNextNi={getNextNi}
         handleSdsUpload={handleSdsUpload}
         handleRemoveSds={handleRemoveSds}
+        handleTechnicalSheetUpload={handleTechnicalSheetUpload}
+        handleRemoveTechnicalSheet={handleRemoveTechnicalSheet}
         handleDownloadPdf={handleDownloadPdf}
         preparations={preparations}
         onShowPreparation={handleShowPreparation}

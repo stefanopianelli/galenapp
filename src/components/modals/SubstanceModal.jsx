@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Biohazard, FileUp, FileText, Trash2, FileDown, History } from 'lucide-react';
+import { Package, Biohazard, FileUp, FileText, Trash2, FileDown, History, Pencil, Check } from 'lucide-react';
 import { UPLOADS_BASE_URL } from '../../constants/config';
 import { GHS_PICTOGRAMS } from '../../constants/ghsPictograms';
 
@@ -14,6 +14,8 @@ const SubstanceModal = ({
   getNextNi,
   handleSdsUpload,
   handleRemoveSds,
+  handleTechnicalSheetUpload,
+  handleRemoveTechnicalSheet,
   handleDownloadPdf,
   preparations,
   onShowPreparation,
@@ -101,6 +103,7 @@ const SubstanceModal = ({
           <form id="substanceForm" onSubmit={onSubmit} className="space-y-4">
             {activeModalTab === 'general' && (
               <div className="grid grid-cols-2 gap-4 animate-in fade-in">
+                 {/* Contenuto Dati Generali */}
                  <div className="col-span-2">
                   <label className="block text-sm font-medium text-slate-700 mb-1">Nome Sostanza</label>
                   <input required className="w-full border p-2 rounded focus:ring-2 ring-teal-500 outline-none disabled:bg-slate-50 disabled:text-slate-500"
@@ -224,7 +227,7 @@ const SubstanceModal = ({
                 
                 <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mt-6">
                   <label className="block text-sm font-bold text-blue-800 mb-2 flex items-center gap-2">
-                    <FileUp size={16} /> Scheda di Sicurezza Fornitore (PDF)
+                    <FileUp size={16} /> Scheda di Sicurezza (SDS)
                   </label>
                   {substanceData.sdsFile ? (
                     <div className="flex items-center justify-between bg-white p-2 rounded border border-blue-200">
@@ -233,14 +236,36 @@ const SubstanceModal = ({
                         <span className="truncate">{substanceData.sdsFile instanceof File ? substanceData.sdsFile.name : substanceData.sdsFile}</span>
                       </div>
                       <div className="flex items-center">
-                        <a href={UPLOADS_BASE_URL} onClick={handleDownloadPdf} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded" title="Scarica SDS"><FileDown size={16}/></a>
+                        <a href="#" onClick={(e) => handleDownloadPdf(e, substanceData.sdsFile)} className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded" title="Scarica"><FileDown size={16}/></a>
                         {!isReadOnly && (
-                          <button type="button" onClick={handleRemoveSds} className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded" title="Rimuovi SDS"><Trash2 size={16} /></button>
+                          <button type="button" onClick={handleRemoveSds} className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded" title="Rimuovi"><Trash2 size={16} /></button>
                         )}
                       </div>
                     </div>
                   ) : (
                     <input type="file" accept=".pdf" onChange={handleSdsUpload} disabled={isReadOnly} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed" />
+                  )}
+                </div>
+
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <label className="block text-sm font-bold text-gray-800 mb-2 flex items-center gap-2">
+                    <FileUp size={16} /> Scheda Tecnica
+                  </label>
+                  {substanceData.technicalSheetFile ? (
+                    <div className="flex items-center justify-between bg-white p-2 rounded border border-gray-300">
+                      <div className="flex items-center gap-2 text-sm text-gray-800 truncate">
+                        <FileText size={16} />
+                        <span className="truncate">{substanceData.technicalSheetFile instanceof File ? substanceData.technicalSheetFile.name : substanceData.technicalSheetFile}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <a href="#" onClick={(e) => handleDownloadPdf(e, substanceData.technicalSheetFile)} className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded" title="Scarica"><FileDown size={16}/></a>
+                        {!isReadOnly && (
+                          <button type="button" onClick={handleRemoveTechnicalSheet} className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded" title="Rimuovi"><Trash2 size={16} /></button>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <input type="file" accept=".pdf" onChange={handleTechnicalSheetUpload} disabled={isReadOnly} className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed" />
                   )}
                 </div>
               </div>
