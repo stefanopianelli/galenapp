@@ -6,6 +6,7 @@ import { callGemini } from '../../services/gemini';
 import { generateWorkSheetPDF } from '../../services/pdfGenerator';
 
 function PreparationWizard({ inventory, preparations, onComplete, initialData, pharmacySettings, initialStep }) {
+  console.log("Wizard Initialized with data:", initialData);
   const [step, setStep] = useState(initialStep || 1);
   const [selectedIngredients, setSelectedIngredients] = useState([]);
   
@@ -41,12 +42,13 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
   useEffect(() => {
     if (initialData) {
+        const isDuplicate = initialData.isDuplicate;
         setDetails({
             name: initialData.name,
             patient: initialData.patient,
             doctor: initialData.doctor,
             notes: initialData.notes || '',
-            prepNumber: initialData.prepNumber,
+            prepNumber: isDuplicate ? getNextPrepNumber() : initialData.prepNumber,
             quantity: initialData.quantity || '',
             expiryDate: initialData.expiryDate,
             pharmaceuticalForm: initialData.pharmaceuticalForm,

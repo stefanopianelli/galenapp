@@ -1,11 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Hash, Calendar, Pencil, Trash2, Filter, X, Search } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 
-const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparation, activeFilter, clearFilter, searchTerm, setSearchTerm }) => {
+const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparation, handleDuplicatePreparation, activeFilter, clearFilter, searchTerm, setSearchTerm }) => {
   const filteredPrepName = activeFilter && preparations.length === 1 ? preparations[0].name : null;
   const [openMenuId, setOpenMenuId] = useState(null);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [menuRef]);
 
   return (
     <div className="space-y-4">
@@ -96,19 +109,24 @@ const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparati
                     {prep.totalPrice ? `€ ${parseFloat(prep.totalPrice).toFixed(2)}` : '-'}
                   </td>
                   <td className="px-6 py-4 text-center whitespace-nowrap">
-                    <div className="relative">
+                    <div className="relative flex justify-center gap-2">
                       <button
                         onClick={() => setOpenMenuId(openMenuId === prep.id ? null : prep.id)}
-                        className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
+                        className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full transition-colors"
                         title="Modifica"
                       >
                         <Pencil size={16} />
                       </button>
                       {openMenuId === prep.id && (
-                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-20 border">
+                        <div 
+                          ref={menuRef}
+                          className="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg z-20 border"
+                        >
                           <button onClick={() => { handleJumpToStep(prep, 1); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Modifica Anagrafica</button>
                           <button onClick={() => { handleJumpToStep(prep, 2); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Modifica Componenti</button>
                           <button onClick={() => { handleJumpToStep(prep, 3); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Modifica Tariffa</button>
+                          <div className="border-t my-1"></div>
+                          <button onClick={() => { handleDuplicatePreparation(prep); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Duplica Preparazione</button>
                         </div>
                       )}
                       <button
