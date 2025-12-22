@@ -51,6 +51,7 @@ export default function GalenicoApp() {
   const [newSubstance, setNewSubstance] = useState({
     name: '', ni: '', lot: '', expiry: '', quantity: '', unit: 'g', costPerGram: '', totalCost: '', supplier: '', purity: '',
     receptionDate: '', ddtNumber: '', ddtDate: '', firstUseDate: null, endUseDate: null,
+    isExcipient: false,
     sdsFile: null,
     technicalSheetFile: null,
     securityData: null

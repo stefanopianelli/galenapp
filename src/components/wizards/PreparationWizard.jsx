@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Euro, Plus, Trash2, Save, Sparkles, Loader2, Info, FileDown, Pencil, Check } from 'lucide-react';
+import { Euro, Plus, Trash2, Save, FileDown, Pencil, Check, Info } from 'lucide-react';
 import Card from '../ui/Card';
 import { NATIONAL_TARIFF_FEES, VAT_RATE, ADDITIONAL_FEE } from '../../constants/tariffs';
-import { callGemini } from '../../services/gemini';
 import { generateWorkSheetPDF } from '../../services/pdfGenerator';
 
 function PreparationWizard({ inventory, preparations, onComplete, initialData, pharmacySettings, initialStep }) {
-  console.log("Wizard Initialized with data:", initialData);
   const [step, setStep] = useState(initialStep || 1);
   const [selectedIngredients, setSelectedIngredients] = useState([]);
   
@@ -25,16 +23,23 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   }, [initialStep, initialData]);
 
   const [details, setDetails] = useState({ 
-    name: '', 
-    patient: '', 
-    doctor: '', 
-    notes: '',
-    prepNumber: '', 
-    quantity: '', 
-    expiryDate: '', 
-    pharmaceuticalForm: 'Capsule',
-    posology: '' 
+    name: '', patient: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
+    expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '' 
   });
+
+  const getNextPrepNumber = () => {
+    const currentYear = new Date().getFullYear().toString().slice(-2);
+    let maxProg = 0;
+    (preparations || []).forEach(p => {
+        if (p.prepNumber && p.prepNumber.startsWith(`${currentYear}/P`)) {
+            try {
+                const progNum = parseInt(p.prepNumber.split('/P')[1]);
+                if (!isNaN(progNum) && progNum > maxProg) maxProg = progNum;
+            } catch (e) { console.error("Could not parse prep number:", p.prepNumber); }
+        }
+    });
+    return `${currentYear}/P${(maxProg + 1).toString().padStart(3, '0')}`;
+  };
 
   useEffect(() => {
     if (initialData) {
@@ -53,11 +58,10 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
         const enrichedIngredients = initialData.ingredients.map(ing => {
             const inventoryItem = (inventory || []).find(item => item.id === ing.id);
-            return { ...ing, costPerGram: inventoryItem ? inventoryItem.costPerGram : 0 };
+            return { ...ing, costPerGram: inventoryItem?.costPerGram || 0, isExcipient: inventoryItem?.isExcipient || false };
         });
         setSelectedIngredients(enrichedIngredients);
     } else {
-      // Reset for new preparation
       setDetails({ 
         name: '', patient: '', doctor: '', notes: '',
         prepNumber: getNextPrepNumber(), 
@@ -66,20 +70,6 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
       setSelectedIngredients([]);
     }
   }, [initialData, inventory, preparations]);
-
-  const getNextPrepNumber = () => {
-    const currentYear = new Date().getFullYear().toString().slice(-2);
-    let maxProg = 0;
-    (preparations || []).forEach(p => {
-        if (p.prepNumber && p.prepNumber.startsWith(`${currentYear}/P`)) {
-            try {
-                const progNum = parseInt(p.prepNumber.split('/P')[1]);
-                if (!isNaN(progNum) && progNum > maxProg) maxProg = progNum;
-            } catch (e) { console.error("Could not parse prep number:", p.prepNumber); }
-        }
-    });
-    return `${currentYear}/P${(maxProg + 1).toString().padStart(3, '0')}`;
-  };
 
   const calculateComplexFee = () => {
     const qty = parseFloat(details.quantity) || 0;
@@ -90,7 +80,10 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
         fee = 22.00;
         if (qty > BASE_QTY) fee += (Math.ceil((qty - BASE_QTY) / 10) * 2.00);
         else if (qty < BASE_QTY && qty > 0) fee -= (Math.ceil((BASE_QTY - qty) / 10) * 1.00);
-        const extraComponents = Math.max(0, selectedIngredients.length - 1);
+        
+        const activeSubstancesCount = selectedIngredients.filter(i => !i.isExcipient).length;
+        const extraComponents = Math.max(0, activeSubstancesCount - 1);
+        
         fee += (Math.min(extraComponents, 4) * 0.60);
         fee += (extraTechOps * 2.30);
         fee *= 1.40; // Applica sempre il supplemento del 40%
@@ -158,7 +151,6 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   };
   
   const startEditingAmount = (index) => {
-    console.log("startEditingAmount called for index:", index);
     setEditingIngredientIndex(index);
     setTempAmount(selectedIngredients[index].amountUsed);
   };

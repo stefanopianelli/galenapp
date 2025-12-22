@@ -103,7 +103,19 @@ const SubstanceModal = ({
           <form id="substanceForm" onSubmit={onSubmit} className="space-y-4">
             {activeModalTab === 'general' && (
               <div className="grid grid-cols-2 gap-4 animate-in fade-in">
-                 {/* Contenuto Dati Generali */}
+                 <div className="col-span-2 flex items-center gap-2 bg-slate-50 p-2 rounded border border-slate-200">
+                    <input 
+                      type="checkbox" 
+                      id="isExcipient"
+                      checked={substanceData.isExcipient || false} 
+                      onChange={e => setSubstanceData({ ...substanceData, isExcipient: e.target.checked })}
+                      disabled={isReadOnly}
+                      className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500 cursor-pointer"
+                    />
+                    <label htmlFor="isExcipient" className="text-sm font-bold text-slate-700 cursor-pointer select-none">
+                      Questa sostanza è un Eccipiente
+                    </label>
+                 </div>
                  <div className="col-span-2">
                   <label className="block text-sm font-medium text-slate-700 mb-1">Nome Sostanza</label>
                   <input required className="w-full border p-2 rounded focus:ring-2 ring-teal-500 outline-none disabled:bg-slate-50 disabled:text-slate-500"
