@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Euro, Plus, Trash2, Save, Sparkles, Loader2, Info, FileDown, Pencil, Check } from 'lucide-react';
 import Card from '../ui/Card';
-import { NATIONAL_TARIFF_FEES, VAT_RATE, DISPOSAL_FEE, ADDITIONAL_FEE } from '../../constants/tariffs';
+import { NATIONAL_TARIFF_FEES, VAT_RATE, ADDITIONAL_FEE } from '../../constants/tariffs';
 import { callGemini } from '../../services/gemini';
 import { generateWorkSheetPDF } from '../../services/pdfGenerator';
 
@@ -18,11 +18,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   
   const [containerCost, setContainerCost] = useState(1.50);
   const [professionalFee, setProfessionalFee] = useState(0);
-  const [applySurcharge, setApplySurcharge] = useState(false);
-  const [applyDisposalFee, setApplyDisposalFee] = useState(false);
   const [extraTechOps, setExtraTechOps] = useState(0);
-  const [aiAnalysis, setAiAnalysis] = useState(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   useEffect(() => {
     setStep(initialStep || 1);
@@ -97,6 +93,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
         const extraComponents = Math.max(0, selectedIngredients.length - 1);
         fee += (Math.min(extraComponents, 4) * 0.60);
         fee += (extraTechOps * 2.30);
+        fee *= 1.40; // Applica sempre il supplemento del 40%
     } else {
         fee = NATIONAL_TARIFF_FEES[form] || 8.00;
         fee += (extraTechOps * 2.30);
@@ -173,13 +170,11 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
   const calculateTotal = () => {
     const substancesCost = selectedIngredients.reduce((acc, ing) => acc + (ing.costPerGram ? ing.costPerGram * ing.amountUsed : 0), 0);
-    let currentFee = parseFloat(professionalFee);
-    if (applySurcharge) currentFee += (currentFee * 0.40);
-    const disposal = applyDisposalFee ? DISPOSAL_FEE : 0;
+    const currentFee = parseFloat(professionalFee);
     const additional = ADDITIONAL_FEE;
-    const net = substancesCost + parseFloat(containerCost) + currentFee + disposal + additional;
+    const net = substancesCost + parseFloat(containerCost) + currentFee + additional;
     const vat = net * VAT_RATE;
-    return { substances: substancesCost, fee: currentFee, disposal, additional, net, vat, final: net + vat };
+    return { substances: substancesCost, fee: currentFee, disposal: 0, additional, net, vat, final: net + vat };
   };
 
   const pricing = calculateTotal();
@@ -230,9 +225,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                     <div className="w-32"><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Q.tà</label><input type="number" step="0.01" className="w-full border p-2 rounded text-sm outline-none" value={amountNeeded} onChange={e => setAmountNeeded(e.target.value)} /></div>
                     <button onClick={addIngredient} className="bg-slate-800 text-white px-4 py-2 rounded hover:bg-slate-700 mb-[1px]"><Plus size={18} /></button>
                 </div>
-                <div className="space-y-2">{selectedIngredients.map((ing, idx) => {
-                  console.log(`Render row ${idx}, editingIngredientIndex is: ${editingIngredientIndex}`);
-                  return (
+                <div className="space-y-2">{selectedIngredients.map((ing, idx) => (
                   <div key={idx} className="flex justify-between items-center bg-white p-3 border rounded shadow-sm">
                     <div>
                       <div className="font-bold">{ing.name}</div>
@@ -262,7 +255,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                       <button type="button" onClick={() => removeIngredient(idx)} className="text-red-500 hover:bg-red-50 p-1.5 rounded-full"><Trash2 size={16} /></button>
                     </div>
                   </div>
-                )})}</div>
+                ))}</div>
                 <div className="flex justify-between pt-4"><button onClick={() => setStep(1)} className="text-slate-500 hover:underline">Indietro</button><button disabled={selectedIngredients.length === 0} onClick={() => setStep(3)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 disabled:opacity-50">Calcola Prezzo</button></div>
             </div>
         )}
@@ -274,11 +267,9 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                     <div className="bg-slate-50 p-4 rounded-md border border-slate-200"><h3 className="font-bold text-sm text-slate-700 mb-3 border-b pb-2">Costo Materie Prime</h3>{selectedIngredients.map((ing, i) => <div key={i} className="flex justify-between text-sm"><span>{ing.name} ({Number(ing.amountUsed).toFixed(2)}{ing.unit})</span><span className="font-mono">€ {(ing.costPerGram * ing.amountUsed).toFixed(2)}</span></div>)}<div className="flex justify-between font-bold text-sm mt-3 pt-2 border-t border-slate-300"><span>Totale Sostanze</span><span>€ {pricing.substances.toFixed(2)}</span></div></div>
                     <div className="bg-slate-50 p-4 rounded-md border border-slate-200 space-y-4">
                         <h3 className="font-bold text-sm text-slate-700 mb-3 border-b pb-2">Onorari & Costi</h3>
-                        <div><label className="block text-xs font-bold text-slate-500 mb-1">{applySurcharge ? 'Onorario + 40%' : 'Onorario'}</label><input type="number" className="w-full border p-2 rounded text-right font-mono bg-slate-100" value={professionalFee.toFixed(2)} readOnly /></div>
-                        <div className="flex gap-2"><input type="checkbox" checked={applySurcharge} onChange={e => setApplySurcharge(e.target.checked)} /><label className="text-xs text-slate-600">Supplemento 40% (Sost. Pericolose)</label></div>
+                        <div><label className="block text-xs font-bold text-slate-500 mb-1">Onorario + Suppl. 40%</label><input type="number" className="w-full border p-2 rounded text-right font-mono bg-slate-100" value={professionalFee.toFixed(2)} readOnly /></div>
                         <div><label className="block text-xs font-bold text-slate-500 mb-1">Op. Tecnologiche Extra (+2.30€)</label><input type="number" min="0" className="w-full border p-2 rounded text-right font-mono" value={extraTechOps} onChange={e => setExtraTechOps(parseInt(e.target.value)||0)} /></div>
                         <div><label className="block text-xs font-bold text-slate-500 mb-1">Addizionale</label><input type="text" className="w-full border p-2 rounded text-right font-mono bg-slate-100" value={pricing.additional.toFixed(2)} readOnly /></div>
-                        <div className="flex gap-2 mt-2"><input type="checkbox" checked={applyDisposalFee} onChange={e => setApplyDisposalFee(e.target.checked)} /><label className="text-xs text-slate-600">Smaltimento/Sanificazione (+2.50€)</label></div>
                         <div><label className="block text-xs font-bold text-slate-500 mb-1">Costo Recipiente</label><input type="number" step="0.10" className="w-full border p-2 rounded text-right font-mono" value={containerCost} onChange={e => setContainerCost(parseFloat(e.target.value)||0)} /></div>
                     </div>
                 </div>
