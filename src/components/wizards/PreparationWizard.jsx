@@ -203,15 +203,50 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
     }
   };
 
+  const handleStepClick = (targetStep) => {
+    // Se è una modifica (initialData presente e non è un duplicato), permetti navigazione libera
+    if (initialData && !initialData.isDuplicate) {
+      setStep(targetStep);
+      return;
+    }
+
+    // Se stiamo tornando indietro, permettilo sempre
+    if (targetStep < step) {
+      setStep(targetStep);
+      return;
+    }
+
+    // Se stiamo andando avanti, controlla i requisiti
+    if (targetStep === 2 && isStep1Valid) {
+      setStep(2);
+    } else if (targetStep === 3 && isStep1Valid && selectedIngredients.length > 0) {
+      setStep(3);
+    } else if (targetStep === 4 && isStep1Valid && selectedIngredients.length > 0) {
+      setStep(4);
+    }
+  };
+
   const pharmaForms = ['Capsule', 'Crema', 'Gel', 'Unguento', 'Pasta', 'Lozione', 'Sciroppo', 'Soluzione Cutanea', 'Soluzione Orale', 'Polvere', 'Supposte', 'Ovuli', 'Cartine'];
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="flex justify-between mb-8">
         {[1, 2, 3, 4].map(num => (
-          <div key={num} className={`flex items-center gap-2 ${step >= num ? 'text-teal-600 font-bold' : 'text-slate-400'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${step >= num ? 'border-teal-600 bg-teal-50' : 'border-slate-300'}`}>{num}</div>
-            <span className="text-sm">{num === 1 ? 'Anagrafica' : num === 2 ? 'Componenti' : num === 3 ? 'Tariffa' : 'Conferma'}</span>
+          <div 
+            key={num} 
+            onClick={() => handleStepClick(num)}
+            className={`flex items-center gap-2 cursor-pointer select-none transition-colors ${
+              step >= num ? 'text-teal-600 font-bold' : 'text-slate-400 hover:text-slate-500'
+            }`}
+          >
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${
+              step >= num ? 'border-teal-600 bg-teal-50' : 'border-slate-300 bg-white'
+            }`}>
+              {num}
+            </div>
+            <span className="text-sm hidden sm:inline">
+              {num === 1 ? 'Anagrafica' : num === 2 ? 'Componenti' : num === 3 ? 'Tariffa' : 'Conferma'}
+            </span>
           </div>
         ))}
       </div>
