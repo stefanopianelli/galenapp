@@ -25,6 +25,12 @@ export const MOCK_INVENTORY = [
   
   // --- ESAURITA (ma non smaltita) ---
   { id: 15, name: 'Tadalafil', ni: '24/S099', lot: 'TAD-OLD', expiry: '2026-12-31', quantity: 0, unit: 'g', totalCost: 1000.00, costPerGram: 50, supplier: 'Acef', purity: '99%', receptionDate: '2024-10-01', ddtNumber: 'ACE-OLD', ddtDate: '2024-09-30', firstUseDate: null, endUseDate: null, disposed: false, sdsFile: null, securityData: null },
+
+  // --- CONTENITORI (4) ---
+  { id: 101, name: 'Flacone Vetro Scuro 100ml', ni: '25/C001', lot: 'VET-100', expiry: '2030-12-31', quantity: 50, unit: 'n.', totalCost: 45.00, costPerGram: 0.90, supplier: 'Vetreria Scienza', receptionDate: '2025-01-20', ddtNumber: 'VS-001', ddtDate: '2025-01-18', isContainer: true, disposed: false },
+  { id: 102, name: 'Barattolo Plastica 50g', ni: '25/C002', lot: 'PL-50', expiry: '2029-06-30', quantity: 100, unit: 'n.', totalCost: 60.00, costPerGram: 0.60, supplier: 'Plastilab', receptionDate: '2025-02-10', ddtNumber: 'PL-442', ddtDate: '2025-02-08', isContainer: true, disposed: false },
+  { id: 103, name: 'Flacone Vetro 30ml + Contagocce', ni: '25/C003', lot: 'CG-30', expiry: '2030-01-01', quantity: 30, unit: 'n.', totalCost: 42.00, costPerGram: 1.40, supplier: 'Vetreria Scienza', receptionDate: '2025-03-05', ddtNumber: 'VS-055', ddtDate: '2025-03-04', isContainer: true, disposed: false },
+  { id: 104, name: 'Scatola Capsule (100 posti)', ni: '25/C004', lot: 'BOX-C', expiry: '2028-12-31', quantity: 200, unit: 'n.', totalCost: 100.00, costPerGram: 0.50, supplier: 'Cartotecnica Galenica', receptionDate: '2025-04-12', ddtNumber: 'CG-123', ddtDate: '2025-04-10', isContainer: true, disposed: false },
 ];
 
 export const MOCK_PREPARATIONS = [

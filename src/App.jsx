@@ -51,7 +51,8 @@ export default function GalenicoApp() {
   const [newSubstance, setNewSubstance] = useState({
     name: '', ni: '', lot: '', expiry: '', quantity: '', unit: 'g', costPerGram: '', totalCost: '', supplier: '', purity: '',
     receptionDate: '', ddtNumber: '', ddtDate: '', firstUseDate: null, endUseDate: null,
-    isExcipient: false,
+    minStock: '', // Campo Scorta Minima
+    isExcipient: false, isContainer: false,
     sdsFile: null,
     technicalSheetFile: null,
     securityData: null
@@ -289,13 +290,15 @@ export default function GalenicoApp() {
   }, [preparations, preparationLogFilter, prepSearchTerm]);
 
 
-  const getNextNi = () => {
+  const getNextNi = (isContainer = false) => {
     const currentYear = new Date().getFullYear().toString().slice(-2);
+    const typeChar = isContainer ? 'C' : 'S';
     let maxProg = 0;
+    
     inventory.forEach(item => {
-      const prefix = `${currentYear}/S`;
+      const prefix = `${currentYear}/${typeChar}`;
       if (item.ni && item.ni.toUpperCase().startsWith(prefix)) {
-        const parts = item.ni.toUpperCase().split('S');
+        const parts = item.ni.toUpperCase().split(typeChar);
         if (parts.length > 1) {
           const progNum = parseInt(parts[1]);
           if (!isNaN(progNum) && progNum > maxProg) {
@@ -304,14 +307,17 @@ export default function GalenicoApp() {
         }
       }
     });
-    return `${currentYear}/S${(maxProg + 1).toString().padStart(3, '0')}`;
+    return `${currentYear}/${typeChar}${(maxProg + 1).toString().padStart(3, '0')}`;
   };
 
-  const handleOpenAddModal = () => {
+  const handleOpenAddModal = (type = 'substance') => {
     setEditingSubstance(null);
+    const isContainer = type === 'container';
     setNewSubstance({
-      name: '', ni: getNextNi(), lot: '', expiry: '', quantity: '', unit: 'g', costPerGram: '', totalCost: '', supplier: '', purity: '',
+      name: '', ni: getNextNi(isContainer), lot: '', expiry: '', quantity: '', unit: isContainer ? 'n.' : 'g', costPerGram: '', totalCost: '', supplier: '', purity: '',
       receptionDate: '', ddtNumber: '', ddtDate: '', firstUseDate: null, endUseDate: null,
+      minStock: isContainer ? '10' : '5',
+      isExcipient: false, isContainer: isContainer,
       sdsFile: null,
       securityData: null
     });
@@ -324,6 +330,7 @@ export default function GalenicoApp() {
     setNewSubstance({
       ...item,
       quantity: item.quantity.toString(),
+      minStock: item.minStock || (item.isContainer ? '10' : '5'),
       totalCost: item.totalCost ? item.totalCost.toString() : '',
       costPerGram: item.costPerGram !== undefined && item.costPerGram !== null ? item.costPerGram.toString() : ''
     });
@@ -336,6 +343,7 @@ export default function GalenicoApp() {
     setNewSubstance({
       ...item,
       quantity: item.quantity.toString(),
+      minStock: item.minStock || (item.isContainer ? '10' : '5'),
       totalCost: item.totalCost ? item.totalCost.toString() : '',
       costPerGram: item.costPerGram !== undefined && item.costPerGram !== null ? item.costPerGram.toString() : ''
     });
