@@ -30,130 +30,129 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
     setStep(initialStep || 1);
   }, [initialStep, initialData]);
 
-  const [details, setDetails] = useState({ 
-    name: '', patient: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
-    expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', prepType: 'magistrale'
-  });
-
-  const getNextPrepNumber = () => {
-    const currentYear = new Date().getFullYear().toString().slice(-2);
-    let maxProg = 0;
-    (preparations || []).forEach(p => {
-        if (p.prepNumber && p.prepNumber.startsWith(`${currentYear}/P`)) {
-            try {
-                const progNum = parseInt(p.prepNumber.split('/P')[1]);
-                if (!isNaN(progNum) && progNum > maxProg) maxProg = progNum;
-            } catch (e) { console.error("Could not parse prep number:", p.prepNumber); }
-        }
-    });
-    return `${currentYear}/P${(maxProg + 1).toString().padStart(3, '0')}`;
-  };
-
-  useEffect(() => {
-    const defaultDetails = {
+    const [details, setDetails] = useState({
       name: '', patient: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
-      expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', status: 'Bozza', prepType: 'magistrale', batches: []
-    };
-
-    if (initialData) {
-        const isDuplicate = initialData.isDuplicate;
-        const isNew = !initialData.id;
-
-        setDetails({
-            ...defaultDetails, // Start with defaults to ensure all keys exist
-            ...initialData,    // Then spread initialData
-            prepNumber: (isNew || isDuplicate) ? getNextPrepNumber() : initialData.prepNumber,
-            status: initialData.status || 'Bozza'
-        });
-        
-        if (initialData.batches) {
-          setBatches(initialData.batches);
-        }
-
-        const enrichedIngredients = (initialData.ingredients || []).map(ing => {
-            const inventoryItem = (inventory || []).find(item => item.id === ing.id);
-            return { 
-                ...ing, 
-                costPerGram: inventoryItem?.costPerGram || 0, 
-                isExcipient: inventoryItem?.isExcipient || false,
-                isContainer: inventoryItem?.isContainer || false
-            };
-        });
-        setSelectedIngredients(enrichedIngredients);
-    } else {
-      setDetails({ 
-        ...defaultDetails,
-        prepNumber: getNextPrepNumber(), 
-      });
-      setSelectedIngredients([]);
-    }
-  }, [initialData, inventory, preparations]);
-  
-  const calculateComplexFee = () => {
-    const qty = parseFloat(details.quantity) || 0;
-    const form = details.pharmaceuticalForm;
-    let fee = 0;
-    if (form === 'Capsule' || form === 'Cartine') {
-        const BASE_QTY = 120;
-        fee = 22.00;
-        if (qty > BASE_QTY) fee += (Math.ceil((qty - BASE_QTY) / 10) * 2.00);
-        else if (qty < BASE_QTY && qty > 0) fee -= (Math.ceil((BASE_QTY - qty) / 10) * 1.00);
-        
-        const activeSubstancesCount = selectedIngredients.filter(i => !i.isExcipient && !i.isContainer).length;
-        const extraComponents = Math.max(0, activeSubstancesCount - 1);
-        
-        fee += (Math.min(extraComponents, 4) * 0.60);
-        fee += (extraTechOps * 2.30);
-        fee *= 1.40;
-    } else {
-        fee = NATIONAL_TARIFF_FEES[form] || 8.00;
-        fee += (extraTechOps * 2.30);
-    }
-    return fee;
-  };
-
-  useEffect(() => {
-      setProfessionalFee(calculateComplexFee());
-  }, [details.pharmaceuticalForm, details.quantity, selectedIngredients, extraTechOps]);
-
-  const handleBatchChange = (containerId, field, value) => {
-    setBatches(prevBatches => {
-      const existingBatchIndex = prevBatches.findIndex(batch => batch.containerId === containerId);
-      const numericValue = parseFloat(value);
-
-      if (existingBatchIndex > -1) {
-        const updatedBatches = [...prevBatches];
-        updatedBatches[existingBatchIndex] = {
-          ...updatedBatches[existingBatchIndex],
-          [field]: !isNaN(numericValue) ? numericValue : value // Conserva stringa se non numero
-        };
-        return updatedBatches;
-      } else {
-        return [
-          ...prevBatches,
-          {
-            containerId,
-            [field]: !isNaN(numericValue) ? numericValue : value
-          }
-        ];
-      }
+      expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', warnings: '', prepType: 'magistrale'
     });
-  };
-
-  const getPrepUnit = (form) => {
-    if (['Crema', 'Gel', 'Unguento', 'Pasta', 'Polvere'].includes(form)) return 'g';
-    if (['Lozione', 'Sciroppo', 'Soluzione Cutanea', 'Soluzione Orale'].includes(form)) return 'ml';
-    if (['Capsule', 'Supposte', 'Ovuli', 'Cartine'].includes(form)) return 'n.'; 
-    return '-';
-  };
-
-  const isStep1Valid = (() => {
-    const baseFields = details.name && details.prepNumber && details.quantity && details.pharmaceuticalForm && details.expiryDate;
-    if (!baseFields) return false;
-    if (isOfficinale) return true;
-    return !!(details.patient && details.doctor);
-  })();
   
+    const getNextPrepNumber = () => {
+      const currentYear = new Date().getFullYear().toString().slice(-2);
+      let maxProg = 0;
+      (preparations || []).forEach(p => {
+          if (p.prepNumber && p.prepNumber.startsWith(`${currentYear}/P`)) {
+              try {
+                  const progNum = parseInt(p.prepNumber.split('/P')[1]);
+                  if (!isNaN(progNum) && progNum > maxProg) maxProg = progNum;
+              } catch (e) { console.error("Could not parse prep number:", p.prepNumber); }
+          }
+      });
+      return `${currentYear}/P${(maxProg + 1).toString().padStart(3, '0')}`;
+    };
+  
+    useEffect(() => {
+      const defaultDetails = {
+        name: '', patient: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
+        expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', status: 'Bozza', prepType: 'magistrale', batches: []
+      };
+  
+      if (initialData) {
+          const isDuplicate = initialData.isDuplicate;
+          const isNew = !initialData.id;
+  
+          setDetails({
+              ...defaultDetails, // Start with defaults to ensure all keys exist
+              ...initialData,    // Then spread initialData
+              prepNumber: (isNew || isDuplicate) ? getNextPrepNumber() : initialData.prepNumber,
+              status: initialData.status || 'Bozza'
+          });
+          
+          if (initialData.batches) {
+            setBatches(initialData.batches);
+          }
+  
+          const enrichedIngredients = (initialData.ingredients || []).map(ing => {
+              const inventoryItem = (inventory || []).find(item => item.id === ing.id);
+              return { 
+                  ...ing, 
+                  costPerGram: inventoryItem?.costPerGram || 0, 
+                  isExcipient: inventoryItem?.isExcipient || false,
+                  isContainer: inventoryItem?.isContainer || false
+              };
+          });
+          setSelectedIngredients(enrichedIngredients);
+      } else {
+        setDetails({ 
+          ...defaultDetails,
+          prepNumber: getNextPrepNumber(), 
+        });
+        setSelectedIngredients([]);
+      }
+    }, [initialData, inventory, preparations]);
+    
+    const calculateComplexFee = () => {
+      const qty = parseFloat(details.quantity) || 0;
+      const form = details.pharmaceuticalForm;
+      let fee = 0;
+      if (form === 'Capsule' || form === 'Cartine') {
+          const BASE_QTY = 120;
+          fee = 22.00;
+          if (qty > BASE_QTY) fee += (Math.ceil((qty - BASE_QTY) / 10) * 2.00);
+          else if (qty < BASE_QTY && qty > 0) fee -= (Math.ceil((BASE_QTY - qty) / 10) * 1.00);
+          
+          const activeSubstancesCount = selectedIngredients.filter(i => !i.isExcipient && !i.isContainer).length;
+          const extraComponents = Math.max(0, activeSubstancesCount - 1);
+          
+          fee += (Math.min(extraComponents, 4) * 0.60);
+          fee += (extraTechOps * 2.30);
+          fee *= 1.40;
+      } else {
+          fee = NATIONAL_TARIFF_FEES[form] || 8.00;
+          fee += (extraTechOps * 2.30);
+      }
+      return fee;
+    };
+  
+    useEffect(() => {
+        setProfessionalFee(calculateComplexFee());
+    }, [details.pharmaceuticalForm, details.quantity, selectedIngredients, extraTechOps]);
+  
+    const handleBatchChange = (containerId, field, value) => {
+      setBatches(prevBatches => {
+        const existingBatchIndex = prevBatches.findIndex(batch => batch.containerId === containerId);
+        const numericValue = parseFloat(value);
+  
+        if (existingBatchIndex > -1) {
+          const updatedBatches = [...prevBatches];
+          updatedBatches[existingBatchIndex] = {
+            ...updatedBatches[existingBatchIndex],
+            [field]: !isNaN(numericValue) ? numericValue : value // Conserva stringa se non numero
+          };
+          return updatedBatches;
+        } else {
+          return [
+            ...prevBatches,
+            {
+              containerId,
+              [field]: !isNaN(numericValue) ? numericValue : value
+            }
+          ];
+        }
+      });
+    };
+  
+    const getPrepUnit = (form) => {
+      if (['Crema', 'Gel', 'Unguento', 'Pasta', 'Polvere'].includes(form)) return 'g';
+      if (['Lozione', 'Sciroppo', 'Soluzione Cutanea', 'Soluzione Orale'].includes(form)) return 'ml';
+      if (['Capsule', 'Supposte', 'Ovuli', 'Cartine'].includes(form)) return 'n.'; 
+      return '-';
+    };
+  
+    const isStep1Valid = (() => {
+      const baseFields = details.name && details.prepNumber && details.quantity && details.pharmaceuticalForm && details.expiryDate && details.posology && details.warnings;
+      if (!baseFields) return false;
+      if (isOfficinale) return true;
+      return !!(details.patient && details.doctor);
+    })();  
   const calculateBatchBalance = () => {
     const totalExpected = parseFloat(details.quantity) || 0;
     const totalAllocated = batches.reduce((acc, batch) => {
@@ -234,9 +233,6 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   };
 
   const calculateTotal = () => {
-    if (!isStep1Valid) {
-      return { substances: 0, fee: 0, disposal: 0, additional: 0, net: 0, vat: 0, final: 0 };
-    }
     const substancesCost = selectedIngredients.reduce((acc, ing) => acc + (ing.costPerGram ? ing.costPerGram * ing.amountUsed : 0), 0);
     const currentFee = parseFloat(professionalFee);
     const additional = ADDITIONAL_FEE;
@@ -360,6 +356,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                       </>
                     )}
                     <div className="col-span-2"><label className="block text-sm font-bold">Posologia *</label><textarea className="w-full border p-3 rounded-md outline-none h-20 resize-none" value={details.posology} onChange={e => setDetails({...details, posology: e.target.value})} /></div>
+                    <div className="col-span-2"><label className="block text-sm font-bold">Avvertenze *</label><textarea className="w-full border p-3 rounded-md outline-none h-20 resize-none" value={details.warnings} onChange={e => setDetails({...details, warnings: e.target.value})} /></div>
                 </div>
                 <div className="flex justify-end pt-4"><button disabled={!isStep1Valid} onClick={() => setStep(2)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 disabled:opacity-50">Avanti</button></div>
             </div>

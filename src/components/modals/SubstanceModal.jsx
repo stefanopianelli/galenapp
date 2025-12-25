@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Package, Biohazard, FileUp, FileText, Trash2, FileDown, History, Pencil, Check, Box } from 'lucide-react';
-import { UPLOADS_BASE_URL } from '../../constants/config';
 import { GHS_PICTOGRAMS } from '../../constants/ghsPictograms';
 
 const SubstanceModal = ({
@@ -32,17 +31,6 @@ const SubstanceModal = ({
     return null;
   }
   
-  const handleSecurityDataChange = (e) => {
-    const { name, value } = e.target;
-    setSubstanceData(prev => ({
-        ...prev,
-        securityData: {
-            ...(prev.securityData || {}),
-            [name]: value
-        }
-    }));
-  };
-
   const handlePictogramChange = (code) => {
     const currentPictograms = substanceData.securityData?.pictograms || [];
     const newPictograms = currentPictograms.includes(code)
@@ -52,7 +40,7 @@ const SubstanceModal = ({
     setSubstanceData(prev => ({
       ...prev,
       securityData: {
-        ...prev.securityData,
+        ...(prev.securityData || {}),
         pictograms: newPictograms,
       },
     }));
@@ -64,20 +52,6 @@ const SubstanceModal = ({
       ) 
     : [];
 
-  const SecurityInput = ({ label, name, value }) => (
-    <div>
-        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">{label}</label>
-        <input 
-            type="text"
-            name={name}
-            value={value || ''}
-            onChange={handleSecurityDataChange}
-            disabled={isReadOnly}
-            className="w-full border p-2 rounded outline-none focus:ring-2 ring-teal-500 disabled:bg-slate-50 disabled:text-slate-500"
-        />
-    </div>
-  );
-  
   const isContainer = substanceData.isContainer;
 
   return (
@@ -219,20 +193,6 @@ const SubstanceModal = ({
             )}
             {activeModalTab === 'security' && (
               <div className="space-y-6 animate-in fade-in">
-                <SecurityInput label="Numero CAS" name="cas" value={substanceData.securityData?.cas} />
-                <SecurityInput label="Numero CE" name="ceNumber" value={substanceData.securityData?.ceNumber} />
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Indicazioni di Pericolo (H)</label>
-                  <textarea 
-                      name="hazardStatements"
-                      value={substanceData.securityData?.hazardStatements || ''}
-                      onChange={handleSecurityDataChange}
-                      disabled={isReadOnly}
-                      className="w-full border p-2 rounded outline-none focus:ring-2 ring-teal-500 disabled:bg-slate-50 disabled:text-slate-500"
-                      rows={3}
-                      placeholder="Es. H302, H315"
-                  />
-                </div>
                 <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Pittogrammi GHS</label>
                     <div className="grid grid-cols-3 gap-x-4 gap-y-2 mt-2 p-4 border rounded-md">
@@ -250,6 +210,35 @@ const SubstanceModal = ({
                             </label>
                         ))}
                     </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 pt-4">
+                  <div className="flex items-center gap-2 bg-red-50 p-3 rounded border border-red-200">
+                      <input 
+                        type="checkbox" 
+                        id="isDoping"
+                        checked={substanceData.isDoping || false} 
+                        onChange={e => setSubstanceData({ ...substanceData, isDoping: e.target.checked })}
+                        disabled={isReadOnly}
+                        className="w-4 h-4 text-red-600 rounded focus:ring-red-500 cursor-pointer"
+                      />
+                      <label htmlFor="isDoping" className="text-sm font-bold text-red-800 cursor-pointer select-none">
+                        Sostanza Dopante
+                      </label>
+                  </div>
+                  <div className="flex items-center gap-2 bg-purple-50 p-3 rounded border border-purple-200">
+                      <input 
+                        type="checkbox" 
+                        id="isNarcotic"
+                        checked={substanceData.isNarcotic || false} 
+                        onChange={e => setSubstanceData({ ...substanceData, isNarcotic: e.target.checked })}
+                        disabled={isReadOnly}
+                        className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500 cursor-pointer"
+                      />
+                      <label htmlFor="isNarcotic" className="text-sm font-bold text-purple-800 cursor-pointer select-none">
+                        Sostanza Stupefacente
+                      </label>
+                  </div>
                 </div>
                 
                 <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mt-6">

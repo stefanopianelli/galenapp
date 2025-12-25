@@ -54,10 +54,10 @@ export default function GalenicoApp() {
     name: '', ni: '', lot: '', expiry: '', quantity: '', unit: 'g', costPerGram: '', totalCost: '', supplier: '', purity: '',
     receptionDate: '', ddtNumber: '', ddtDate: '', firstUseDate: null, endUseDate: null,
     minStock: '', // Campo Scorta Minima
-    isExcipient: false, isContainer: false,
+    isExcipient: false, isContainer: false, isDoping: false, isNarcotic: false,
     sdsFile: null,
     technicalSheetFile: null,
-    securityData: null
+    securityData: { pictograms: [] }
   });
 
   // Stato per Ordinamento Tabella Magazzino
