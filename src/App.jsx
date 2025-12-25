@@ -71,6 +71,9 @@ export default function GalenicoApp() {
   // STATO FILTRO (all, expiring, expired)
   const [inventoryFilter, setInventoryFilter] = useState('all');
 
+  // Stato per il filtro del tipo di preparazione (all, magistrale, officinale)
+  const [prepTypeFilter, setPrepTypeFilter] = useState('all');
+
   // Stato per il filtro del registro preparazioni
   const [preparationLogFilter, setPreparationLogFilter] = useState(null);
 
@@ -290,6 +293,14 @@ export default function GalenicoApp() {
       filtered = filtered.filter(p => p.id === preparationLogFilter);
     }
 
+    if (prepTypeFilter !== 'all') {
+      if (prepTypeFilter === 'magistrale') {
+        filtered = filtered.filter(p => p.prepType === 'magistrale' || !p.prepType);
+      } else { // 'officinale'
+        filtered = filtered.filter(p => p.prepType === 'officinale');
+      }
+    }
+
     if (prepSearchTerm) {
       const term = prepSearchTerm.toLowerCase();
       filtered = filtered.filter(p =>
@@ -318,7 +329,7 @@ export default function GalenicoApp() {
     }
 
     return filtered;
-  }, [preparations, preparationLogFilter, prepSearchTerm, prepSortConfig]);
+  }, [preparations, preparationLogFilter, prepSearchTerm, prepSortConfig, prepTypeFilter]);
 
 
   const getNextNi = (isContainer = false) => {
@@ -698,31 +709,35 @@ export default function GalenicoApp() {
 
           />;
 
-                case 'preparations_log':
+                        case 'preparations_log':
 
-                  return <PreparationsLog 
+                          return <PreparationsLog 
 
-                            preparations={filteredPreparations} 
+                                    preparations={filteredPreparations} 
 
-                            handleJumpToStep={handleJumpToStep}
+                                    handleJumpToStep={handleJumpToStep}
 
-                            handleDuplicatePreparation={handleDuplicatePreparation}
+                                    handleDuplicatePreparation={handleDuplicatePreparation}
 
-                            handleDeletePreparation={handleDeletePreparation}
+                                    handleDeletePreparation={handleDeletePreparation}
 
-                            activeFilter={preparationLogFilter}
+                                    activeFilter={preparationLogFilter}
 
-                            clearFilter={() => setPreparationLogFilter(null)}
+                                    clearFilter={() => setPreparationLogFilter(null)}
 
-                            searchTerm={prepSearchTerm}
+                                    searchTerm={prepSearchTerm}
 
-                            setSearchTerm={setPrepSearchTerm}
+                                    setSearchTerm={setPrepSearchTerm}
 
-                            sortConfig={prepSortConfig}
+                                    sortConfig={prepSortConfig}
 
-                            requestSort={requestPrepSort}
+                                    requestSort={requestPrepSort}
 
-                         />;
+                                    prepTypeFilter={prepTypeFilter}
+
+                                    setPrepTypeFilter={setPrepTypeFilter}
+
+                                 />;
               case 'preparation':
               return <PreparationWizard 
                         inventory={inventory} 

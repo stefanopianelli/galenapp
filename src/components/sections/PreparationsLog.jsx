@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Hash, Calendar, Pencil, Trash2, Filter, X, Search, ArrowUp, ArrowDown } from 'lucide-react';
+import { Hash, Calendar, Pencil, Trash2, Filter, X, Search, ArrowUp, ArrowDown, Stethoscope, FlaskConical } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 
-const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparation, handleDuplicatePreparation, activeFilter, clearFilter, searchTerm, setSearchTerm, sortConfig, requestSort }) => {
+const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparation, handleDuplicatePreparation, activeFilter, clearFilter, searchTerm, setSearchTerm, sortConfig, requestSort, prepTypeFilter, setPrepTypeFilter }) => {
   const filteredPrepName = activeFilter && preparations.length === 1 ? preparations[0].name : null;
   const [openMenuId, setOpenMenuId] = useState(null);
   const menuRef = useRef(null);
@@ -36,19 +36,41 @@ const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparati
       </div>
     </th>
   );
-
   return (
     <div className="space-y-4">
-       <div className="flex justify-between items-center">
-        <div className="relative">
-            <Search className="absolute left-3 top-2.5 text-slate-400 h-4 w-4" />
-            <input 
-                type="text" 
-                value={searchTerm} 
-                onChange={(e) => setSearchTerm(e.target.value)} 
-                placeholder="Cerca per nome o ingrediente..." 
-                className="pl-9 pr-4 py-2 border border-slate-300 rounded-md text-sm w-64 focus:ring-2 focus:ring-teal-500 outline-none"
-            />
+       <div className="flex justify-between items-center bg-white p-4 rounded-md border border-slate-200 shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+              <Search className="absolute left-3 top-2.5 text-slate-400 h-4 w-4" />
+              <input 
+                  type="text" 
+                  value={searchTerm} 
+                  onChange={(e) => setSearchTerm(e.target.value)} 
+                  placeholder="Cerca preparazione..." 
+                  className="pl-9 pr-4 py-2 border border-slate-300 rounded-md text-sm w-64 focus:ring-2 focus:ring-teal-500 outline-none"
+              />
+          </div>
+
+          <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+            <button 
+              onClick={() => setPrepTypeFilter('all')}
+              className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${prepTypeFilter === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              Tutte
+            </button>
+            <button 
+              onClick={() => setPrepTypeFilter('magistrale')}
+              className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all ${prepTypeFilter === 'magistrale' ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              <Stethoscope size={14} /> Magistrali
+            </button>
+            <button 
+              onClick={() => setPrepTypeFilter('officinale')}
+              className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition-all ${prepTypeFilter === 'officinale' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              <FlaskConical size={14} /> Officinali
+            </button>
+          </div>
         </div>
       </div>
 
