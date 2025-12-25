@@ -71,13 +71,24 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
           }
   
           const enrichedIngredients = (initialData.ingredients || []).map(ing => {
-              const inventoryItem = (inventory || []).find(item => item.id === ing.id);
-              return { 
-                  ...ing, 
-                  costPerGram: inventoryItem?.costPerGram || 0, 
-                  isExcipient: inventoryItem?.isExcipient || false,
-                  isContainer: inventoryItem?.isContainer || false
-              };
+            const inventoryItem = (inventory || []).find(item => item.id === ing.id);
+            if (!inventoryItem) {
+              return { ...ing, securityData: ing.securityData || { pictograms: [] } };
+            }
+            
+            return {
+              id: ing.id,
+              amountUsed: ing.amountUsed,
+              name: inventoryItem.name,
+              ni: inventoryItem.ni,
+              unit: inventoryItem.unit,
+              costPerGram: inventoryItem.costPerGram || 0,
+              isExcipient: inventoryItem.isExcipient || false,
+              isContainer: inventoryItem.isContainer || false,
+              isDoping: inventoryItem.isDoping || false,
+              isNarcotic: inventoryItem.isNarcotic || false,
+              securityData: inventoryItem.securityData || { pictograms: [] }
+            };
           });
           setSelectedIngredients(enrichedIngredients);
       } else {
@@ -235,7 +246,25 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   const calculateTotal = () => {
     const substancesCost = selectedIngredients.reduce((acc, ing) => acc + (ing.costPerGram ? ing.costPerGram * ing.amountUsed : 0), 0);
     const currentFee = parseFloat(professionalFee);
-    const additional = ADDITIONAL_FEE;
+    
+    let additional = 0;
+    const hasHazardousSubstance = selectedIngredients.some(ing => {
+        const isHazardous = (ing.securityData?.pictograms?.length > 0) || ing.isDoping || ing.isNarcotic;
+        if (isHazardous) {
+          console.log('Hazardous substance found:', { 
+            name: ing.name, 
+            pictograms: ing.securityData?.pictograms, 
+            isDoping: ing.isDoping, 
+            isNarcotic: ing.isNarcotic 
+          });
+        }
+        return isHazardous;
+    });
+    
+    if (hasHazardousSubstance) {
+        additional = 2.50;
+    }
+
     const net = substancesCost + currentFee + additional;
     const vat = net * VAT_RATE;
     return { substances: substancesCost, fee: currentFee, disposal: 0, additional, net, vat, final: net + vat };
@@ -449,8 +478,17 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                       <div><label className="block text-xs font-bold text-slate-500 mb-1">Addizionale</label><input type="text" className="w-full border p-2 rounded text-right font-mono bg-slate-100" value={pricing.additional.toFixed(2)} readOnly /></div>
                   </div>
               </div>
-              <div className="bg-teal-50 p-6 rounded-lg border border-teal-200 flex flex-col items-end"><div className="w-full flex justify-between text-sm text-teal-800 mb-1"><span>Totale Netto</span><span>€ {pricing.net.toFixed(2)}</span></div><div className="w-full flex justify-between text-sm text-teal-800 mb-2 border-b border-teal-200 pb-2"><span>IVA (10%)</span><span>€ {pricing.vat.toFixed(2)}</span></div><div className="flex items-baseline gap-4"><span className="text-lg font-bold text-teal-900">PREZZO FINALE</span><span className="text-3xl font-bold text-teal-700">€ {pricing.final.toFixed(2)}</span></div></div>
-              <div className="pt-4 flex justify-between"><button onClick={() => setStep(2)} className="text-slate-500 hover:underline">Indietro</button><button onClick={() => setStep(4)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700">Avanti a {isOfficinale ? "Lotti" : "Conferma"}</button></div>
+                              <div className="bg-teal-50 p-6 rounded-lg border border-teal-200 flex flex-col items-end">
+                                {initialData?.id && initialData.totalPrice && (
+                                  <div className="w-full flex justify-between text-sm text-slate-700 mb-1">
+                                    <span>Prezzo Salvato (All'ultima modifica)</span>
+                                    <span className="font-bold">€ {parseFloat(initialData.totalPrice).toFixed(2)}</span>
+                                  </div>
+                                )}
+                                <div className="w-full flex justify-between text-sm text-teal-800 mb-1"><span>Totale Netto</span><span>€ {pricing.net.toFixed(2)}</span></div>
+                                <div className="w-full flex justify-between text-sm text-teal-800 mb-2 border-b border-teal-200 pb-2"><span>IVA (10%)</span><span>€ {pricing.vat.toFixed(2)}</span></div>
+                                <div className="flex items-baseline gap-4"><span className="text-lg font-bold text-teal-900">PREZZO FINALE</span><span className="text-3xl font-bold text-teal-700">€ {pricing.final.toFixed(2)}</span></div>
+                              </div>              <div className="pt-4 flex justify-between"><button onClick={() => setStep(2)} className="text-slate-500 hover:underline">Indietro</button><button onClick={() => setStep(4)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700">Avanti a {isOfficinale ? "Lotti" : "Conferma"}</button></div>
           </div>
         )}
 
