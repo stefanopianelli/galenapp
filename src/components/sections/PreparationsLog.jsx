@@ -120,7 +120,7 @@ const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparati
                     </ul>
                   </td>
                   <td className="px-6 py-4 text-center whitespace-nowrap">
-                    <Badge type="success">Completata</Badge>
+                    {prep.status === 'Bozza' ? <Badge type="neutral">Bozza</Badge> : <Badge type="success">Completata</Badge>}
                   </td>
                   <td className="px-6 py-4 text-center font-bold text-teal-700 whitespace-nowrap">
                     {prep.totalPrice ? `€ ${parseFloat(prep.totalPrice).toFixed(2)}` : '-'}
@@ -139,9 +139,15 @@ const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparati
                           ref={menuRef}
                           className="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg z-20 border"
                         >
-                          <button onClick={() => { handleJumpToStep(prep, 1); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Modifica Anagrafica</button>
-                          <button onClick={() => { handleJumpToStep(prep, 2); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Modifica Componenti</button>
-                          <button onClick={() => { handleJumpToStep(prep, 3); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Modifica Tariffa</button>
+                          {prep.status === 'Bozza' ? (
+                            <button onClick={() => { handleJumpToStep(prep, 1); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Riprendi Bozza</button>
+                          ) : (
+                            <>
+                              <button onClick={() => { handleJumpToStep(prep, 1); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Modifica Anagrafica</button>
+                              <button onClick={() => { handleJumpToStep(prep, 2); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Modifica Componenti</button>
+                              <button onClick={() => { handleJumpToStep(prep, 3); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Modifica Tariffa</button>
+                            </>
+                          )}
                           <div className="border-t my-1"></div>
                           <button onClick={() => { handleDuplicatePreparation(prep); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Duplica Preparazione</button>
                         </div>

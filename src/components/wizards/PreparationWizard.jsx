@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Euro, Plus, Trash2, Save, FileDown, Pencil, Check, Info, Box, FlaskConical } from 'lucide-react';
 import Card from '../ui/Card';
+import Badge from '../ui/Badge';
 import { NATIONAL_TARIFF_FEES, VAT_RATE, ADDITIONAL_FEE } from '../../constants/tariffs';
 import { generateWorkSheetPDF } from '../../services/pdfGenerator';
 
@@ -8,11 +9,9 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   const [step, setStep] = useState(initialStep || 1);
   const [selectedIngredients, setSelectedIngredients] = useState([]);
   
-  // Stati per selezione Sostanze
   const [currentIngredientId, setCurrentIngredientId] = useState('');
   const [amountNeeded, setAmountNeeded] = useState('');
 
-  // Stati per selezione Contenitori
   const [currentContainerId, setCurrentContainerId] = useState('');
   const [containerAmountNeeded, setContainerAmountNeeded] = useState('');
 
@@ -57,7 +56,8 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
             quantity: initialData.quantity || '',
             expiryDate: initialData.expiryDate,
             pharmaceuticalForm: initialData.pharmaceuticalForm,
-            posology: initialData.posology
+            posology: initialData.posology,
+            status: initialData.status || 'Bozza' // Assegna status predefinito se mancante (es. se importato da mock)
         });
 
         const enrichedIngredients = initialData.ingredients.map(ing => {
@@ -74,7 +74,8 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
       setDetails({ 
         name: '', patient: '', doctor: '', notes: '',
         prepNumber: getNextPrepNumber(), 
-        quantity: '', expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '' 
+        quantity: '', expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '',
+        status: 'Bozza'
       });
       setSelectedIngredients([]);
     }
@@ -90,13 +91,12 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
         if (qty > BASE_QTY) fee += (Math.ceil((qty - BASE_QTY) / 10) * 2.00);
         else if (qty < BASE_QTY && qty > 0) fee -= (Math.ceil((BASE_QTY - qty) / 10) * 1.00);
         
-        // Conta solo le sostanze attive (NON eccipienti e NON contenitori)
         const activeSubstancesCount = selectedIngredients.filter(i => !i.isExcipient && !i.isContainer).length;
         const extraComponents = Math.max(0, activeSubstancesCount - 1);
         
         fee += (Math.min(extraComponents, 4) * 0.60);
         fee += (extraTechOps * 2.30);
-        fee *= 1.40; // Applica sempre il supplemento del 40%
+        fee *= 1.40;
     } else {
         fee = NATIONAL_TARIFF_FEES[form] || 8.00;
         fee += (extraTechOps * 2.30);
@@ -186,6 +186,9 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   };
 
   const calculateTotal = () => {
+    if (!isStep1Valid) {
+      return { substances: 0, fee: 0, disposal: 0, additional: 0, net: 0, vat: 0, final: 0 };
+    }
     const substancesCost = selectedIngredients.reduce((acc, ing) => acc + (ing.costPerGram ? ing.costPerGram * ing.amountUsed : 0), 0);
     const currentFee = parseFloat(professionalFee);
     const additional = ADDITIONAL_FEE;
@@ -197,40 +200,41 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   const pricing = calculateTotal();
 
   const handleDownloadWorksheet = () => generateWorkSheetPDF({ details, ingredients: selectedIngredients, pricing }, pharmacySettings);
-  const handleSavePreparation = () => {
+
+  const handleFinalSave = () => {
     if (details.name && selectedIngredients.length > 0) {
-      onComplete(selectedIngredients, { ...details, prepUnit: getPrepUnit(details.pharmaceuticalForm), totalPrice: pricing.final });
+      onComplete(selectedIngredients, { ...details, prepUnit: getPrepUnit(details.pharmaceuticalForm), totalPrice: pricing.final }, false);
     }
   };
 
+  const handleDraftSave = () => {
+    if (!details.name) {
+      alert("Per salvare una bozza, il nome della preparazione è obbligatorio.");
+      return;
+    }
+    onComplete(selectedIngredients, { ...details, prepUnit: getPrepUnit(details.pharmaceuticalForm), totalPrice: pricing.final }, true); // Salva come bozza
+  };
+
   const handleStepClick = (targetStep) => {
-    // Se è una modifica (initialData presente e non è un duplicato), permetti navigazione libera
     if (initialData && !initialData.isDuplicate) {
       setStep(targetStep);
       return;
     }
-
-    // Se stiamo tornando indietro, permettilo sempre
     if (targetStep < step) {
       setStep(targetStep);
       return;
     }
-
-    // Se stiamo andando avanti, controlla i requisiti
-    if (targetStep === 2 && isStep1Valid) {
-      setStep(2);
-    } else if (targetStep === 3 && isStep1Valid && selectedIngredients.length > 0) {
-      setStep(3);
-    } else if (targetStep === 4 && isStep1Valid && selectedIngredients.length > 0) {
-      setStep(4);
-    }
+    if (targetStep === 2 && isStep1Valid) setStep(2);
+    else if (targetStep === 3 && isStep1Valid && selectedIngredients.length > 0) setStep(3);
+    else if (targetStep === 4 && isStep1Valid && selectedIngredients.length > 0) setStep(4);
   };
 
   const pharmaForms = ['Capsule', 'Crema', 'Gel', 'Unguento', 'Pasta', 'Lozione', 'Sciroppo', 'Soluzione Cutanea', 'Soluzione Orale', 'Polvere', 'Supposte', 'Ovuli', 'Cartine'];
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <div className="flex justify-between mb-8">
+      {/* Step Indicators (full width) */}
+      <div className="flex justify-between mb-4">
         {[1, 2, 3, 4].map(num => (
           <div 
             key={num} 
@@ -251,11 +255,31 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
         ))}
       </div>
 
+      {/* Title and Save Draft button */}
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center gap-2">
+          <h2 className="text-2xl font-bold text-slate-800">
+            {initialData && !initialData.isDuplicate ? `Modifica Preparazione: ${initialData.prepNumber}` : 'Nuova Preparazione'}
+          </h2>
+          {details.status === 'Bozza' && <Badge type="neutral">Bozza</Badge>}
+        </div>
+        {/* Pulsante Salva Bozza - visibile in ogni step fino al 3, se non è completata */}
+        {(step < 4) && (details.status !== 'Completata') && (
+          <button 
+            onClick={handleDraftSave} 
+            className="bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md hover:bg-slate-300 flex items-center gap-1 text-sm shadow-sm transition-colors"
+            title="Salva come bozza per continuare più tardi"
+          >
+            <Save size={16} /> Salva Bozza
+          </button>
+        )}
+      </div>
+
       <Card className="p-8 min-h-[500px]">
         {step === 1 && (
             <div className="space-y-4 animate-in fade-in">
                 <h2 className="text-xl font-bold text-slate-800">Anagrafica Ricetta</h2>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4 pt-4">
                     <div className="col-span-2"><label className="block text-sm font-bold">Nome *</label><input className="w-full border p-3 rounded-md outline-none focus:ring-2 ring-teal-500" value={details.name} onChange={e => setDetails({...details, name: e.target.value})} /></div>
                     <div><label className="block text-sm font-bold">N.P. *</label><input className="w-full border p-3 rounded-md outline-none bg-slate-50 font-mono" value={details.prepNumber} onChange={e => setDetails({...details, prepNumber: e.target.value})} /></div>
                     <div><label className="block text-sm font-bold">Forma *</label><select className="w-full border p-3 rounded-md outline-none bg-white" value={details.pharmaceuticalForm} onChange={e => setDetails({...details, pharmaceuticalForm: e.target.value})}>{pharmaForms.map(f => <option key={f} value={f}>{f}</option>)}</select></div>
@@ -271,9 +295,8 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
         {step === 2 && (
             <div className="space-y-6 animate-in fade-in">
                 <h2 className="text-xl font-bold text-slate-800">Selezione Componenti</h2>
-                <div className="bg-blue-50 p-4 rounded-md border border-blue-100 text-sm text-blue-800 mb-4"><p>Seleziona i lotti specifici. Il sistema calcola la giacenza residua.</p></div>
+                <div className="bg-blue-50 p-4 rounded-md border border-blue-100 text-sm text-blue-800 mb-4 pt-4"><p>Seleziona i lotti specifici. Il sistema calcola la giacenza residua.</p></div>
                 
-                {/* Selezione Sostanze */}
                 <div className="space-y-1 mb-4">
                   <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1"><FlaskConical size={14}/> Aggiungi Sostanza</label>
                   <div className="flex gap-3 items-end bg-slate-50 p-4 rounded-md border border-slate-200">
@@ -288,7 +311,6 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                   </div>
                 </div>
 
-                {/* Selezione Contenitori */}
                 <div className="space-y-1 mb-6">
                   <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1"><Box size={14}/> Aggiungi Contenitore</label>
                   <div className="flex gap-3 items-end bg-slate-50 p-4 rounded-md border border-slate-200">
@@ -345,7 +367,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
         )}
         {step === 3 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Euro size={24} className="text-teal-600"/> Tariffazione Nazionale</h2>
+                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 pt-4"><Euro size={24} className="text-teal-600"/> Tariffazione Nazionale</h2>
                 <div className="bg-blue-50 border border-blue-200 rounded p-3 text-xs text-blue-800 flex items-start gap-2"><Info size={16} className="mt-0.5 shrink-0" /><div><strong>Dettaglio Calcolo:</strong><br/>{details.pharmaceuticalForm === 'Capsule' || details.pharmaceuticalForm === 'Cartine' ? <>• Base (fino a 120): 22,00 €<br/>• Extra Q.tà: +2,00€ ogni 10 oltre 120 / -1,00€ ogni 10 in meno<br/>• Extra Componenti: +0,60€ (oltre il 1°, max 4)<br/>• Op. Tecnologiche Extra: +2,30€ cad.</> : <>• Tariffa Tabellare Standard</>}</div></div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-slate-50 p-4 rounded-md border border-slate-200"><h3 className="font-bold text-sm text-slate-700 mb-3 border-b pb-2">Costo Materie Prime</h3>{selectedIngredients.map((ing, i) => <div key={i} className="flex justify-between text-sm"><span>{ing.name} ({Number(ing.amountUsed).toFixed(ing.isContainer ? 0 : 2)}{ing.unit})</span><span className="font-mono">€ {(ing.costPerGram * ing.amountUsed).toFixed(2)}</span></div>)}<div className="flex justify-between font-bold text-sm mt-3 pt-2 border-t border-slate-300"><span>Totale Sostanze</span><span>€ {pricing.substances.toFixed(2)}</span></div></div>
@@ -362,15 +384,20 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
         )}
         {step === 4 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="text-center"><h2 className="text-xl font-bold text-slate-800">Conferma Finale</h2><div className="bg-slate-50 p-6 border rounded-md mt-4"><p className="text-slate-600">Confermi la produzione di <b>{details.name}</b>?</p><p className="text-3xl font-bold mt-2 text-teal-700">€ {pricing.final.toFixed(2)}</p></div></div>
+                <div className="text-center"><h2 className="text-xl font-bold text-slate-800 pt-4">Conferma Finale</h2><div className="bg-slate-50 p-6 border rounded-md mt-4"><p className="text-slate-600">Confermi la produzione di <b>{details.name}</b>?</p><p className="text-3xl font-bold mt-2 text-teal-700">€ {pricing.final.toFixed(2)}</p></div></div>
                 <div className="pt-4 flex justify-between border-t border-slate-100">
                   <button onClick={() => setStep(3)} className="text-slate-500 hover:underline">Indietro</button>
                   <div className="flex items-center gap-3">
                     <button onClick={handleDownloadWorksheet} className="bg-slate-600 text-white px-6 py-2 rounded-md hover:bg-slate-700 flex items-center gap-2">
                         <FileDown size={18}/> Scarica Foglio
                     </button>
-                    <button onClick={handleSavePreparation} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 flex items-center gap-2">
-                        <Save size={18}/> Salva Preparazione
+                    {details.status !== 'Completata' && (
+                      <button onClick={handleDraftSave} className="bg-slate-200 text-slate-700 px-6 py-2 rounded-md hover:bg-slate-300 flex items-center gap-2 shadow-sm transition-colors">
+                          <Save size={18}/> Salva Bozza
+                      </button>
+                    )}
+                    <button onClick={handleFinalSave} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 flex items-center gap-2">
+                        <Save size={18}/> Salva e Completa
                     </button>
                   </div>
                 </div>

@@ -440,173 +440,82 @@ export default function GalenicoApp() {
     saveData(updatedInventory, [...refundLogs, ...logs], preparations.filter(p => p.id !== prepId));
   };
 
-        const handleUsage = (itemsUsed, prepDetails) => {
-
-          let currentInventory = [...inventory];
-
-          let currentLogs = [...logs];
-
-          let currentPreparations = [...preparations];
-
-      
-
-          if (editingPrep && editingPrep.id) { // MODIFICA di una preparazione ESISTENTE
-
-            const oldIngredients = editingPrep.ingredients;
-
-            const newIngredients = itemsUsed;
-
-            const logNote = `Modifica Prep. #${prepDetails.prepNumber}`;
-
-            let ingredientsChanged = false;
-
-      
-
-            // 1. Trova ingredienti aggiunti o la cui quantità è aumentata (-> SCARICO)
-
-            newIngredients.forEach(newIng => {
-
-              const oldIng = oldIngredients.find(o => o.id === newIng.id);
-
-              const invIndex = currentInventory.findIndex(i => i.id === newIng.id);
-
-      
-
-              if (!oldIng) { // Ingrediente nuovo
-
-                ingredientsChanged = true;
-
-                currentLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'SCARICO', substance: newIng.name, ni: newIng.ni, quantity: newIng.amountUsed, unit: newIng.unit, notes: logNote });
-
-                if (invIndex > -1) currentInventory[invIndex].quantity -= newIng.amountUsed;
-
-              } else if (newIng.amountUsed > oldIng.amountUsed) { // Quantità aumentata
-
-                ingredientsChanged = true;
-
-                const diff = newIng.amountUsed - oldIng.amountUsed;
-
-                currentLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'SCARICO', substance: newIng.name, ni: newIng.ni, quantity: diff, unit: newIng.unit, notes: logNote });
-
-                if (invIndex > -1) currentInventory[invIndex].quantity -= diff;
-
-              }
-
-            });
-
-      
-
-            // 2. Trova ingredienti rimossi o la cui quantità è diminuita (-> ANNULLAMENTO)
-
-            oldIngredients.forEach(oldIng => {
-
-              const newIng = newIngredients.find(n => n.id === oldIng.id);
-
-              const invIndex = currentInventory.findIndex(i => i.id === oldIng.id);
-
-      
-
-              if (!newIng) { // Ingrediente rimosso
-
-                ingredientsChanged = true;
-
-                currentLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'ANNULLAMENTO', substance: oldIng.name, ni: oldIng.ni, quantity: oldIng.amountUsed, unit: oldIng.unit, notes: logNote });
-
-                if (invIndex > -1) currentInventory[invIndex].quantity += oldIng.amountUsed;
-
-              } else if (oldIng.amountUsed < newIng.amountUsed) { // Quantità diminuita
-
-                ingredientsChanged = true;
-
-                const diff = oldIng.amountUsed - newIng.amountUsed;
-
-                currentLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'ANNULLAMENTO', substance: oldIng.name, ni: oldIng.ni, quantity: diff, unit: oldIng.unit, notes: logNote });
-
-                if (invIndex > -1) currentInventory[invIndex].quantity += diff;
-
-              }
-
-            });
-
-            
-
-            // 3. Aggiorna la preparazione esistente
-
-            const updatedPreparations = currentPreparations.map(p => 
-
-              p.id === editingPrep.id ? { ...p, ...prepDetails, ingredients: itemsUsed } : p
-
-            );
-
-            saveData(currentInventory, currentLogs, updatedPreparations);
-
-      
-
-          } else { // NUOVA preparazione (o DUPLICATA)
-
-            const newInventory = currentInventory.map(item => {
-
-              const used = itemsUsed.find(u => u.id === item.id);
-
-              if (used) {
-
-                const newQuantity = item.quantity - used.amountUsed;
-
-                const newItem = { ...item, quantity: newQuantity };
-
-                if (!newItem.firstUseDate) newItem.firstUseDate = new Date().toISOString().split('T')[0];
-
-                if (newQuantity <= 0) newItem.endUseDate = new Date().toISOString().split('T')[0];
-
-                return newItem;
-
-              }
-
-              return item;
-
-            });
-
-      
-
-            const logNote = editingPrep?.isDuplicate 
-
-              ? `Da Duplicazione Prep. #${editingPrep.prepNumber}` 
-
-              : `Nuova Prep. #${prepDetails.prepNumber}`;
-
-      
-
-            const newLogsEntries = itemsUsed.map(used => ({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'SCARICO', substance: used.name, ni: used.ni, quantity: used.amountUsed, unit: used.unit, operator: 'Sessione Corrente', notes: logNote }));
-
-      
-
-            const newPrep = {
-
-              id: Date.now(),
-
-              ...prepDetails,
-
-              date: new Date().toISOString().split('T')[0],
-
-              status: 'Completata', 
-
-              ingredients: itemsUsed
-
-            };
-
-            
-
-            saveData(newInventory, [...newLogsEntries, ...currentLogs], [newPrep, ...currentPreparations]);
-
+        const handleSavePreparation = (itemsUsed, prepDetails, isDraft = false) => {
+    let currentInventory = [...inventory];
+    let currentLogs = [...logs];
+    let currentPreparations = [...preparations];
+
+    const wasDraft = editingPrep && editingPrep.status === 'Bozza';
+    const isNowComplete = !isDraft;
+
+    // SCARICO MAGAZZINO: avviene solo se la prep è completa ora, ma prima non lo era (o era nuova)
+    if (isNowComplete && (!editingPrep || wasDraft)) {
+      itemsUsed.forEach(used => {
+        const invIndex = currentInventory.findIndex(i => i.id === used.id);
+        if (invIndex > -1) {
+          currentInventory[invIndex].quantity -= used.amountUsed;
+          if (!currentInventory[invIndex].firstUseDate) {
+            currentInventory[invIndex].firstUseDate = new Date().toISOString().split('T')[0];
           }
+          if (currentInventory[invIndex].quantity <= 0) {
+            currentInventory[invIndex].endUseDate = new Date().toISOString().split('T')[0];
+          }
+        }
+        currentLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'SCARICO', substance: used.name, ni: used.ni, quantity: used.amountUsed, unit: used.unit, notes: `Prep. #${prepDetails.prepNumber}` });
+      });
+    } else if (isNowComplete && editingPrep && !wasDraft) { // Modifica di una prep già completa
+        // Usa la logica delta esistente
+        const oldIngredients = editingPrep.ingredients;
+        const newIngredients = itemsUsed;
+        const logNote = `Modifica Prep. #${prepDetails.prepNumber}`;
 
-      
+        newIngredients.forEach(newIng => {
+          const oldIng = oldIngredients.find(o => o.id === newIng.id);
+          const invIndex = currentInventory.findIndex(i => i.id === newIng.id);
+          if (!oldIng) {
+            if(invIndex > -1) currentInventory[invIndex].quantity -= newIng.amountUsed;
+            currentLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'SCARICO', substance: newIng.name, ni: newIng.ni, quantity: newIng.amountUsed, unit: newIng.unit, notes: logNote });
+          } else if (newIng.amountUsed > oldIng.amountUsed) {
+            const diff = newIng.amountUsed - oldIng.amountUsed;
+            if(invIndex > -1) currentInventory[invIndex].quantity -= diff;
+            currentLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'SCARICO', substance: newIng.name, ni: newIng.ni, quantity: diff, unit: newIng.unit, notes: logNote });
+          }
+        });
 
-          setEditingPrep(null);
+        oldIngredients.forEach(oldIng => {
+          const newIng = newIngredients.find(n => n.id === oldIng.id);
+          const invIndex = currentInventory.findIndex(i => i.id === oldIng.id);
+          if (!newIng) {
+            if(invIndex > -1) currentInventory[invIndex].quantity += oldIng.amountUsed;
+            currentLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'ANNULLAMENTO', substance: oldIng.name, ni: oldIng.ni, quantity: oldIng.amountUsed, unit: oldIng.unit, notes: logNote });
+          } else if (oldIng.amountUsed > newIng.amountUsed) {
+            const diff = oldIng.amountUsed - newIng.amountUsed;
+            if(invIndex > -1) currentInventory[invIndex].quantity += diff;
+            currentLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'ANNULLAMENTO', substance: oldIng.name, ni: oldIng.ni, quantity: diff, unit: oldIng.unit, notes: logNote });
+          }
+        });
+    }
 
-          setActiveTab('preparations_log');
-
-        };
+    const finalStatus = isDraft ? 'Bozza' : 'Completata';
+    const prepToSave = { 
+      ...prepDetails, 
+      ingredients: itemsUsed, 
+      status: finalStatus,
+      date: editingPrep?.date || new Date().toISOString().split('T')[0],
+      id: editingPrep?.id || Date.now()
+    };
+    
+    const prepIndex = currentPreparations.findIndex(p => p.id === prepToSave.id);
+    if (prepIndex > -1) {
+      currentPreparations[prepIndex] = prepToSave;
+    } else {
+      currentPreparations.unshift(prepToSave);
+    }
+    
+    saveData(currentInventory, currentLogs, currentPreparations);
+    setEditingPrep(null);
+    setActiveTab('preparations_log');
+  };
 
     
 
@@ -763,16 +672,15 @@ export default function GalenicoApp() {
                             requestSort={requestPrepSort}
 
                          />;
-      case 'preparation':
-        return <PreparationWizard 
-                  inventory={inventory} 
-                  preparations={preparations} 
-                  onComplete={handleUsage} 
-                  initialData={editingPrep} 
-                  pharmacySettings={pharmacySettings}
-                  initialStep={initialWizardStep}
-               />;
-      case 'logs':
+              case 'preparation':
+              return <PreparationWizard 
+                        inventory={inventory} 
+                        preparations={preparations} 
+                        onComplete={handleSavePreparation} 
+                        initialData={editingPrep} 
+                        pharmacySettings={pharmacySettings}
+                        initialStep={initialWizardStep}
+                     />;      case 'logs':
         return <Logs logs={logs} preparations={preparations} handleShowPreparation={handleShowPreparation} />;
       case 'ai-assistant':
         return <AIAssistant />;
