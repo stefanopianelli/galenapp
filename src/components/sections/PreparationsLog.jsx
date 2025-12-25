@@ -146,6 +146,9 @@ const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparati
                               <button onClick={() => { handleJumpToStep(prep, 1); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Modifica Anagrafica</button>
                               <button onClick={() => { handleJumpToStep(prep, 2); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Modifica Componenti</button>
                               <button onClick={() => { handleJumpToStep(prep, 3); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Modifica Tariffa</button>
+                              {prep.prepType === 'officinale' && (
+                                <button onClick={() => { handleJumpToStep(prep, 4); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Modifica Lotti</button>
+                              )}
                             </>
                           )}
                           <div className="border-t my-1"></div>

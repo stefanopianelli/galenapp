@@ -446,40 +446,64 @@ export default function GalenicoApp() {
     let currentInventory = [...inventory];
     let currentLogs = [...logs];
     let currentPreparations = [...preparations];
-
-    const wasDraft = editingPrep && editingPrep.status === 'Bozza';
-    const isNowComplete = !isDraft;
-
-    // SCARICO MAGAZZINO: avviene solo se la prep è completa ora, ma prima non lo era (o era nuova)
-    if (isNowComplete && (!editingPrep || wasDraft)) {
-      itemsUsed.forEach(used => {
-        const invIndex = currentInventory.findIndex(i => i.id === used.id);
-        if (invIndex > -1) {
-          currentInventory[invIndex].quantity -= used.amountUsed;
-          if (!currentInventory[invIndex].firstUseDate) {
-            currentInventory[invIndex].firstUseDate = new Date().toISOString().split('T')[0];
+    
+    const isNewPrep = !editingPrep?.id;
+    const finalStatus = isDraft ? 'Bozza' : 'Completata';
+    
+    if (isNewPrep) {
+      // --- NUOVA PREPARAZIONE ---
+      const newPrep = {
+        ...prepDetails,
+        id: Date.now(),
+        date: new Date().toISOString().split('T')[0],
+        status: finalStatus,
+        ingredients: itemsUsed,
+      };
+      
+      if (!isDraft) { // Se non è bozza, scarica magazzino
+        itemsUsed.forEach(used => {
+          const invIndex = currentInventory.findIndex(i => i.id === used.id);
+          if (invIndex > -1) {
+            currentInventory[invIndex].quantity -= used.amountUsed;
+            if (!currentInventory[invIndex].firstUseDate) currentInventory[invIndex].firstUseDate = new Date().toISOString().split('T')[0];
+            if (currentInventory[invIndex].quantity <= 0) currentInventory[invIndex].endUseDate = new Date().toISOString().split('T')[0];
           }
-          if (currentInventory[invIndex].quantity <= 0) {
-            currentInventory[invIndex].endUseDate = new Date().toISOString().split('T')[0];
+          currentLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'SCARICO', substance: used.name, ni: used.ni, quantity: used.amountUsed, unit: used.unit, notes: `Nuova Prep. #${newPrep.prepNumber}` });
+        });
+      }
+      currentPreparations.unshift(newPrep);
+
+    } else {
+      // --- MODIFICA DI UNA PREPARAZIONE ESISTENTE ---
+      const wasDraft = editingPrep.status === 'Bozza';
+      const isNowComplete = !isDraft;
+
+      // Movimenti di magazzino
+      if (isNowComplete && wasDraft) { // Passaggio da Bozza a Completata
+        itemsUsed.forEach(used => {
+          const invIndex = currentInventory.findIndex(i => i.id === used.id);
+          if (invIndex > -1) {
+            currentInventory[invIndex].quantity -= used.amountUsed;
+            if (!currentInventory[invIndex].firstUseDate) currentInventory[invIndex].firstUseDate = new Date().toISOString().split('T')[0];
+            if (currentInventory[invIndex].quantity <= 0) currentInventory[invIndex].endUseDate = new Date().toISOString().split('T')[0];
           }
-        }
-        currentLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'SCARICO', substance: used.name, ni: used.ni, quantity: used.amountUsed, unit: used.unit, notes: `Prep. #${prepDetails.prepNumber}` });
-      });
-    } else if (isNowComplete && editingPrep && !wasDraft) { // Modifica di una prep già completa
-        // Usa la logica delta esistente
-        const oldIngredients = editingPrep.ingredients;
+          currentLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'SCARICO', substance: used.name, ni: used.ni, quantity: used.amountUsed, unit: used.unit, notes: `Complet. Prep. #${prepDetails.prepNumber}` });
+        });
+      } else if (isNowComplete && !wasDraft) { // Modifica di una prep già completa -> Logica Delta
+        const oldIngredients = editingPrep.ingredients || [];
         const newIngredients = itemsUsed;
         const logNote = `Modifica Prep. #${prepDetails.prepNumber}`;
 
         newIngredients.forEach(newIng => {
           const oldIng = oldIngredients.find(o => o.id === newIng.id);
           const invIndex = currentInventory.findIndex(i => i.id === newIng.id);
-          if (!oldIng) {
-            if(invIndex > -1) currentInventory[invIndex].quantity -= newIng.amountUsed;
+          if (invIndex === -1) return;
+          if (!oldIng) { // Ingrediente nuovo
+            currentInventory[invIndex].quantity -= newIng.amountUsed;
             currentLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'SCARICO', substance: newIng.name, ni: newIng.ni, quantity: newIng.amountUsed, unit: newIng.unit, notes: logNote });
-          } else if (newIng.amountUsed > oldIng.amountUsed) {
+          } else if (newIng.amountUsed > oldIng.amountUsed) { // Quantità aumentata
             const diff = newIng.amountUsed - oldIng.amountUsed;
-            if(invIndex > -1) currentInventory[invIndex].quantity -= diff;
+            currentInventory[invIndex].quantity -= diff;
             currentLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'SCARICO', substance: newIng.name, ni: newIng.ni, quantity: diff, unit: newIng.unit, notes: logNote });
           }
         });
@@ -487,31 +511,24 @@ export default function GalenicoApp() {
         oldIngredients.forEach(oldIng => {
           const newIng = newIngredients.find(n => n.id === oldIng.id);
           const invIndex = currentInventory.findIndex(i => i.id === oldIng.id);
-          if (!newIng) {
-            if(invIndex > -1) currentInventory[invIndex].quantity += oldIng.amountUsed;
+          if (invIndex === -1) return;
+          if (!newIng) { // Ingrediente rimosso
+            currentInventory[invIndex].quantity += oldIng.amountUsed;
             currentLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'ANNULLAMENTO', substance: oldIng.name, ni: oldIng.ni, quantity: oldIng.amountUsed, unit: oldIng.unit, notes: logNote });
-          } else if (oldIng.amountUsed > newIng.amountUsed) {
+          } else if (oldIng.amountUsed > newIng.amountUsed) { // Quantità diminuita
             const diff = oldIng.amountUsed - newIng.amountUsed;
-            if(invIndex > -1) currentInventory[invIndex].quantity += diff;
+            currentInventory[invIndex].quantity += diff;
             currentLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'ANNULLAMENTO', substance: oldIng.name, ni: oldIng.ni, quantity: diff, unit: oldIng.unit, notes: logNote });
           }
         });
-    }
+      }
+      // Se si salva una bozza (wasDraft && isDraft), non si fanno movimenti di magazzino.
 
-    const finalStatus = isDraft ? 'Bozza' : 'Completata';
-    const prepToSave = { 
-      ...prepDetails, 
-      ingredients: itemsUsed, 
-      status: finalStatus,
-      date: editingPrep?.date || new Date().toISOString().split('T')[0],
-      id: editingPrep?.id || Date.now()
-    };
-    
-    const prepIndex = currentPreparations.findIndex(p => p.id === prepToSave.id);
-    if (prepIndex > -1) {
-      currentPreparations[prepIndex] = prepToSave;
-    } else {
-      currentPreparations.unshift(prepToSave);
+      // Aggiorna la preparazione
+      const prepIndex = currentPreparations.findIndex(p => p.id === editingPrep.id);
+      if (prepIndex > -1) {
+        currentPreparations[prepIndex] = { ...currentPreparations[prepIndex], ...prepDetails, ingredients: itemsUsed, status: finalStatus };
+      }
     }
     
     saveData(currentInventory, currentLogs, currentPreparations);

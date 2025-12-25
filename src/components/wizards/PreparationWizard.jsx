@@ -24,6 +24,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   
   const [professionalFee, setProfessionalFee] = useState(0);
   const [extraTechOps, setExtraTechOps] = useState(0);
+  const [batches, setBatches] = useState([]); // Stato per i lotti delle officinali
 
   useEffect(() => {
     setStep(initialStep || 1);
@@ -49,17 +50,25 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   };
 
   useEffect(() => {
+    const defaultDetails = {
+      name: '', patient: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
+      expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', status: 'Bozza', prepType: 'magistrale', batches: []
+    };
+
     if (initialData) {
         const isDuplicate = initialData.isDuplicate;
+        const isNew = !initialData.id;
+
         setDetails({
-            ...initialData,
-            patient: initialData.patient || '',
-            doctor: initialData.doctor || '',
-            notes: initialData.notes || '',
-            // Se è una nuova preparazione (non una modifica), assegna un nuovo numero
-            prepNumber: (!initialData.id || isDuplicate) ? getNextPrepNumber() : initialData.prepNumber,
+            ...defaultDetails, // Start with defaults to ensure all keys exist
+            ...initialData,    // Then spread initialData
+            prepNumber: (isNew || isDuplicate) ? getNextPrepNumber() : initialData.prepNumber,
             status: initialData.status || 'Bozza'
         });
+        
+        if (initialData.batches) {
+          setBatches(initialData.batches);
+        }
 
         const enrichedIngredients = (initialData.ingredients || []).map(ing => {
             const inventoryItem = (inventory || []).find(item => item.id === ing.id);
@@ -72,25 +81,14 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
         });
         setSelectedIngredients(enrichedIngredients);
     } else {
-      // Questo blocco è per sicurezza, ma il flusso passa sempre per initialData ora
       setDetails({ 
-        name: '', patient: '', doctor: '', notes: '',
+        ...defaultDetails,
         prepNumber: getNextPrepNumber(), 
-        quantity: '', expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '',
-        status: 'Bozza',
-        prepType: 'magistrale'
       });
       setSelectedIngredients([]);
     }
   }, [initialData, inventory, preparations]);
-
-  useEffect(() => {
-    if(initialData?.prepType) {
-      setDetails(d => ({...d, prepType: initialData.prepType}));
-    }
-  }, [initialData]);
-
-
+  
   const calculateComplexFee = () => {
     const qty = parseFloat(details.quantity) || 0;
     const form = details.pharmaceuticalForm;
@@ -118,6 +116,30 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
       setProfessionalFee(calculateComplexFee());
   }, [details.pharmaceuticalForm, details.quantity, selectedIngredients, extraTechOps]);
 
+  const handleBatchChange = (containerId, field, value) => {
+    setBatches(prevBatches => {
+      const existingBatchIndex = prevBatches.findIndex(batch => batch.containerId === containerId);
+      const numericValue = parseFloat(value);
+
+      if (existingBatchIndex > -1) {
+        const updatedBatches = [...prevBatches];
+        updatedBatches[existingBatchIndex] = {
+          ...updatedBatches[existingBatchIndex],
+          [field]: !isNaN(numericValue) ? numericValue : value // Conserva stringa se non numero
+        };
+        return updatedBatches;
+      } else {
+        return [
+          ...prevBatches,
+          {
+            containerId,
+            [field]: !isNaN(numericValue) ? numericValue : value
+          }
+        ];
+      }
+    });
+  };
+
   const getPrepUnit = (form) => {
     if (['Crema', 'Gel', 'Unguento', 'Pasta', 'Polvere'].includes(form)) return 'g';
     if (['Lozione', 'Sciroppo', 'Soluzione Cutanea', 'Soluzione Orale'].includes(form)) return 'ml';
@@ -125,9 +147,12 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
     return '-';
   };
 
-  const isStep1Valid = isOfficinale
-    ? details.name && details.prepNumber && details.quantity && details.pharmaceuticalForm && details.expiryDate
-    : details.name && details.prepNumber && details.quantity && details.pharmaceuticalForm && details.expiryDate && details.patient && details.doctor;
+  const isStep1Valid = (() => {
+    const baseFields = details.name && details.prepNumber && details.quantity && details.pharmaceuticalForm && details.expiryDate;
+    if (!baseFields) return false;
+    if (isOfficinale) return true;
+    return !!(details.patient && details.doctor);
+  })();
   
   const getRemainingQuantity = (item) => {
     const used = selectedIngredients.filter(i => i.id === item.id).reduce((acc, curr) => acc + curr.amountUsed, 0);
@@ -215,7 +240,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
   const handleFinalSave = () => {
     if (details.name && selectedIngredients.length > 0) {
-      onComplete(selectedIngredients, { ...details, prepUnit: getPrepUnit(details.pharmaceuticalForm), totalPrice: pricing.final }, false);
+      onComplete(selectedIngredients, { ...details, prepUnit: getPrepUnit(details.pharmaceuticalForm), totalPrice: pricing.final, batches }, false);
     }
   };
 
@@ -224,27 +249,24 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
       alert("Per salvare una bozza, il nome della preparazione è obbligatorio.");
       return;
     }
-    onComplete(selectedIngredients, { ...details, prepUnit: getPrepUnit(details.pharmaceuticalForm), totalPrice: pricing.final }, true);
+    onComplete(selectedIngredients, { ...details, prepUnit: getPrepUnit(details.pharmaceuticalForm), totalPrice: pricing.final, batches }, true);
   };
 
   const handleStepClick = (targetStep) => {
-    // Se è una modifica (initialData con ID presente e non è un duplicato), permetti navigazione libera
     if (initialData?.id && !initialData.isDuplicate) {
       setStep(targetStep);
       return;
     }
-    // Se stiamo tornando indietro, permettilo sempre
     if (targetStep < step) {
       setStep(targetStep);
       return;
     }
-    // Se stiamo andando avanti, controlla i requisiti
     if (targetStep === 2 && isStep1Valid) setStep(2);
     else if (targetStep === 3 && isStep1Valid && selectedIngredients.length > 0) setStep(3);
     else if (targetStep === 4) {
       if (isOfficinale) {
         if (isStep1Valid && selectedIngredients.length > 0) setStep(4);
-      } else { // Magistrale: step 4 è la conferma
+      } else {
         if (isStep1Valid && selectedIngredients.length > 0) setStep(4);
       }
     } else if (targetStep === 5 && isOfficinale) {
@@ -425,8 +447,50 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
         {isOfficinale && step === 4 && (
           <div className="space-y-6 animate-in fade-in">
             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 pt-4"><ListOrdered size={24} className="text-blue-600"/> Gestione Lotti e Prezzi</h2>
-            <div className="bg-blue-50 p-4 rounded-md border border-blue-100 text-sm text-blue-800 mb-4 pt-4"><p>Definisci la quantità di prodotto per ogni confezione e il prezzo di vendita finale per ciascuna.</p></div>
-            <p className="text-center text-slate-500 italic py-12">Work in Progress: qui verrà implementata la gestione dei lotti.</p>
+            <div className="bg-blue-50 p-4 rounded-md border border-blue-100 text-sm text-blue-800 mb-4"><p>Definisci la quantità di prodotto per ogni confezione e il prezzo di vendita finale per ciascuna.</p></div>
+            
+            <div className="space-y-4">
+              {selectedIngredients.filter(ing => ing.isContainer).map((container, index) => {
+                const batchInfo = batches.find(b => b.containerId === container.id) || {};
+                return (
+                  <div key={index} className="grid grid-cols-3 gap-4 items-end bg-slate-50 p-4 rounded-md border">
+                    <div className="col-span-3 sm:col-span-1">
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Contenitore</label>
+                      <div className="flex items-center gap-2 p-2 bg-white rounded border border-slate-200">
+                        <Box size={16} className="text-blue-500" />
+                        <span className="font-semibold text-sm">{container.name}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Q.tà Prodotto / Conf.</label>
+                      <input 
+                        type="number" 
+                        step="1"
+                        placeholder="Es. 30"
+                        value={batchInfo.productQuantity || ''}
+                        onChange={(e) => handleBatchChange(container.id, 'productQuantity', e.target.value)}
+                        className="w-full border p-2 rounded text-sm outline-none" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Prezzo Vendita / Conf. (€)</label>
+                      <input 
+                        type="number"
+                        step="0.01"
+                        placeholder="Es. 15.50"
+                        value={batchInfo.unitPrice || ''}
+                        onChange={(e) => handleBatchChange(container.id, 'unitPrice', e.target.value)}
+                        className="w-full border p-2 rounded text-sm outline-none" 
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+              {selectedIngredients.filter(ing => ing.isContainer).length === 0 && (
+                <p className="text-center text-slate-400 italic py-12">Nessun contenitore selezionato nello Step 2.<br/>Torna indietro per aggiungerne uno.</p>
+              )}
+            </div>
+
             <div className="pt-4 flex justify-between"><button onClick={() => setStep(3)} className="text-slate-500 hover:underline">Indietro</button><button onClick={() => setStep(5)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700">Avanti a Conferma</button></div>
           </div>
         )}
