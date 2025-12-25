@@ -154,6 +154,17 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
     return !!(details.patient && details.doctor);
   })();
   
+  const calculateBatchBalance = () => {
+    const totalExpected = parseFloat(details.quantity) || 0;
+    const totalAllocated = batches.reduce((acc, batch) => {
+      const container = selectedIngredients.find(ing => ing.id === batch.containerId);
+      const numContainers = container ? parseFloat(container.amountUsed) : 0;
+      const qtyPerContainer = parseFloat(batch.productQuantity) || 0;
+      return acc + (numContainers * qtyPerContainer);
+    }, 0);
+    return totalExpected - totalAllocated;
+  };
+
   const getRemainingQuantity = (item) => {
     const used = selectedIngredients.filter(i => i.id === item.id).reduce((acc, curr) => acc + curr.amountUsed, 0);
     return item.quantity - used;
@@ -270,7 +281,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
         if (isStep1Valid && selectedIngredients.length > 0) setStep(4);
       }
     } else if (targetStep === 5 && isOfficinale) {
-      if (isStep1Valid && selectedIngredients.length > 0) setStep(5);
+      if (isStep1Valid && selectedIngredients.length > 0 && Math.abs(calculateBatchBalance()) < 0.01) setStep(5);
     }
   };
 
@@ -312,12 +323,14 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
       {/* Title and Save Draft button */}
       <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-2">
+        <div className="flex-1">
           <h2 className="text-2xl font-bold text-slate-800">
             {initialData?.id && !initialData.isDuplicate ? `Modifica Preparazione: ${initialData.prepNumber}` : 'Nuova Preparazione'}
-            <Badge type={isOfficinale ? "info" : "success"}>{isOfficinale ? "Officinale" : "Magistrale"}</Badge>
           </h2>
-          {details.status === 'Bozza' && <Badge type="neutral">Bozza</Badge>}
+          <div className="flex items-center gap-2 mt-1">
+            <Badge type={isOfficinale ? "info" : "success"}>{isOfficinale ? "Officinale" : "Magistrale"}</Badge>
+            {details.status === 'Bozza' && <Badge type="neutral">Bozza</Badge>}
+          </div>
         </div>
         {(step < totalSteps) && (details.status !== 'Completata') && (
           <button 
@@ -447,6 +460,36 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
         {isOfficinale && step === 4 && (
           <div className="space-y-6 animate-in fade-in">
             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 pt-4"><ListOrdered size={24} className="text-blue-600"/> Gestione Lotti e Prezzi</h2>
+            
+            {/* Calcolo Bilancio in tempo reale */}
+            {(() => {
+              const totalExpected = parseFloat(details.quantity) || 0;
+              const totalAllocated = batches.reduce((acc, batch) => {
+                const container = selectedIngredients.find(ing => ing.id === batch.containerId);
+                const numContainers = container ? parseFloat(container.amountUsed) : 0;
+                const qtyPerContainer = parseFloat(batch.productQuantity) || 0;
+                return acc + (numContainers * qtyPerContainer);
+              }, 0);
+              const remaining = totalExpected - totalAllocated;
+              const isBalanced = Math.abs(remaining) < 0.01;
+
+              return (
+                <div className={`p-4 rounded-md border text-sm flex justify-between items-center ${isBalanced ? 'bg-green-50 border-green-200 text-green-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+                  <div>
+                    <span className="block text-xs font-bold uppercase opacity-70">Totale Preparato</span>
+                    <span className="text-lg font-bold">{totalExpected.toFixed(2)} {getPrepUnit(details.pharmaceuticalForm)}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="block text-xs font-bold uppercase opacity-70">Assegnato ai Lotti</span>
+                    <span className="text-lg font-bold">{totalAllocated.toFixed(2)} {getPrepUnit(details.pharmaceuticalForm)}</span>
+                  </div>
+                  <div className={`text-right px-4 py-1 rounded font-mono font-bold ${isBalanced ? 'bg-green-100 text-green-700' : 'bg-white border border-amber-300 text-amber-700'}`}>
+                    {remaining > 0 ? `Da assegnare: ${remaining.toFixed(2)}` : remaining < 0 ? `Eccesso: ${Math.abs(remaining).toFixed(2)}` : "BILANCIATO"}
+                  </div>
+                </div>
+              );
+            })()}
+
             <div className="bg-blue-50 p-4 rounded-md border border-blue-100 text-sm text-blue-800 mb-4"><p>Definisci la quantità di prodotto per ogni confezione e il prezzo di vendita finale per ciascuna.</p></div>
             
             <div className="space-y-4">
@@ -456,9 +499,14 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                   <div key={index} className="grid grid-cols-3 gap-4 items-end bg-slate-50 p-4 rounded-md border">
                     <div className="col-span-3 sm:col-span-1">
                       <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Contenitore</label>
-                      <div className="flex items-center gap-2 p-2 bg-white rounded border border-slate-200">
-                        <Box size={16} className="text-blue-500" />
-                        <span className="font-semibold text-sm">{container.name}</span>
+                      <div className="flex flex-col gap-1 p-2 bg-white rounded border border-slate-200">
+                        <div className="flex items-center gap-2">
+                          <Box size={16} className="text-blue-500" />
+                          <span className="font-semibold text-sm">{container.name}</span>
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                          Pezzi totali: {Number(container.amountUsed).toFixed(0)}
+                        </div>
                       </div>
                     </div>
                     <div>
@@ -491,13 +539,58 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
               )}
             </div>
 
-            <div className="pt-4 flex justify-between"><button onClick={() => setStep(3)} className="text-slate-500 hover:underline">Indietro</button><button onClick={() => setStep(5)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700">Avanti a Conferma</button></div>
+            <div className="pt-4 flex justify-between">
+              <button onClick={() => setStep(3)} className="text-slate-500 hover:underline">Indietro</button>
+              <button 
+                disabled={Math.abs(calculateBatchBalance()) >= 0.01}
+                onClick={() => setStep(5)} 
+                className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Avanti a Conferma
+              </button>
+            </div>
           </div>
         )}
 
         {((isOfficinale && step === 5) || (!isOfficinale && step === 4)) && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="text-center"><h2 className="text-xl font-bold text-slate-800 pt-4 flex items-center justify-center gap-2"><ClipboardCheck size={24} />Conferma Finale</h2><div className="bg-slate-50 p-6 border rounded-md mt-4"><p className="text-slate-600">Confermi la produzione di <b>{details.name}</b>?</p><p className="text-3xl font-bold mt-2 text-teal-700">€ {pricing.final.toFixed(2)}</p></div></div>
+                <div className="text-center">
+                  <h2 className="text-xl font-bold text-slate-800 pt-4 flex items-center justify-center gap-2"><ClipboardCheck size={24} />Conferma Finale</h2>
+                  <div className="bg-slate-50 p-6 border rounded-md mt-4 max-w-md mx-auto">
+                    <p className="text-slate-600">Confermi la produzione di <b>{details.name}</b>?</p>
+                    <p className="text-3xl font-bold mt-2 text-teal-700">€ {pricing.final.toFixed(2)}</p>
+                  </div>
+                </div>
+
+                {isOfficinale && batches.length > 0 && (
+                  <div className="bg-blue-50/50 p-6 border border-blue-100 rounded-md mt-4">
+                    <h3 className="text-sm font-bold text-blue-800 uppercase tracking-wider mb-4 flex items-center gap-2">
+                      <ListOrdered size={16}/> Riepilogo Lotti di Produzione
+                    </h3>
+                    <div className="space-y-2">
+                      {batches.map((batch, i) => {
+                        const container = selectedIngredients.find(ing => ing.id === batch.containerId);
+                        return (
+                          <div key={i} className="flex justify-between items-center bg-white p-3 rounded border border-blue-100 shadow-sm">
+                            <div className="flex items-center gap-3">
+                              <Box size={18} className="text-blue-500" />
+                              <div>
+                                <div className="font-bold text-sm text-slate-800">{container?.name || 'Contenitore'}</div>
+                                <div className="text-xs text-slate-500">
+                                  <span className="font-bold text-blue-600">{Number(container?.amountUsed || 0).toFixed(0)} confezioni</span> preparate con {batch.productQuantity} unità cad.
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-mono font-bold text-blue-700">€ {parseFloat(batch.unitPrice || 0).toFixed(2)}</div>
+                              <div className="text-[10px] text-slate-400 font-bold uppercase">Prezzo Unitario</div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
                 <div className="pt-4 flex justify-between border-t border-slate-100">
                   <button onClick={() => setStep(isOfficinale ? 4 : 3)} className="text-slate-500 hover:underline">Indietro</button>
                   <div className="flex items-center gap-3">
