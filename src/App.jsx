@@ -22,6 +22,7 @@ import Logs from './components/sections/Logs';
 import AIAssistant from './components/sections/AIAssistant';
 import PreparationWizard from './components/wizards/PreparationWizard';
 import SubstanceModal from './components/modals/SubstanceModal';
+import PrepTypeSelectionModal from './components/modals/PrepTypeSelectionModal';
 import SettingsComponent from './components/sections/Settings';
 
 export default function GalenicoApp() {
@@ -47,6 +48,7 @@ export default function GalenicoApp() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingSubstance, setEditingSubstance] = useState(null);
   const [isReadOnlyMode, setIsReadOnlyMode] = useState(false);
+  const [isPrepTypeModalOpen, setIsPrepTypeModalOpen] = useState(false);
 
   const [newSubstance, setNewSubstance] = useState({
     name: '', ni: '', lot: '', expiry: '', quantity: '', unit: 'g', costPerGram: '', totalCost: '', supplier: '', purity: '',
@@ -557,15 +559,47 @@ export default function GalenicoApp() {
 
   
 
-    const handleNewPreparation = () => {
+      const handleNewPreparation = () => {
 
-      setEditingPrep(null);
+  
 
-      setInitialWizardStep(1);
+        setEditingPrep(null); // Resetta eventuale prep in modifica
 
-      setActiveTab('preparation');
+  
 
-    };
+        setInitialWizardStep(1);
+
+  
+
+        setIsPrepTypeModalOpen(true); // Apre la modale di selezione tipo
+
+  
+
+      };
+
+  
+
+    
+
+  
+
+      const startNewPreparation = (type) => {
+
+  
+
+        setEditingPrep({ prepType: type }); // Imposta il tipo di preparazione
+
+  
+
+        setIsPrepTypeModalOpen(false); // Chiude la modale
+
+  
+
+        setActiveTab('preparation'); // Avvia il wizard
+
+  
+
+      };
 
   
 
@@ -743,11 +777,17 @@ export default function GalenicoApp() {
         getNextNi={getNextNi}
         handleSdsUpload={handleSdsUpload}
         handleRemoveSds={handleRemoveSds}
-        handleTechnicalSheetUpload={handleTechnicalSheetUpload}
+        handleTechnicalSheetFile={handleTechnicalSheetUpload}
         handleRemoveTechnicalSheet={handleRemoveTechnicalSheet}
         handleDownloadPdf={handleDownloadPdf}
         preparations={preparations}
         onShowPreparation={handleShowPreparation}
+      />
+
+      <PrepTypeSelectionModal
+        isOpen={isPrepTypeModalOpen}
+        onClose={() => setIsPrepTypeModalOpen(false)}
+        onSelectType={startNewPreparation}
       />
     </div>
   );
