@@ -60,6 +60,8 @@ export default function GalenicoApp() {
 
   // Stato per Ordinamento Tabella Magazzino
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  // Stato per Ordinamento Tabella Preparazioni
+  const [prepSortConfig, setPrepSortConfig] = useState({ key: 'prepNumber', direction: 'asc' });
   // Stato per Ricerca
   const [searchTerm, setSearchTerm] = useState('');
   const [prepSearchTerm, setPrepSearchTerm] = useState('');
@@ -226,6 +228,14 @@ export default function GalenicoApp() {
     setSortConfig({ key, direction });
   };
 
+  const requestPrepSort = (key) => {
+    let direction = 'asc';
+    if (prepSortConfig.key === key && prepSortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setPrepSortConfig({ key, direction });
+  };
+
   const { sortedActiveInventory, sortedDisposedInventory } = useMemo(() => {
     let filteredData = inventory;
 
@@ -272,10 +282,10 @@ export default function GalenicoApp() {
   }, [inventory, logs, sortConfig, searchTerm, preparations, inventoryFilter]);
 
   const filteredPreparations = useMemo(() => {
-    let filtered = preparations;
+    let filtered = [...preparations];
 
     if (preparationLogFilter) {
-      return filtered.filter(p => p.id === preparationLogFilter);
+      filtered = filtered.filter(p => p.id === preparationLogFilter);
     }
 
     if (prepSearchTerm) {
@@ -286,8 +296,27 @@ export default function GalenicoApp() {
       );
     }
 
+    if (prepSortConfig.key) {
+      filtered.sort((a, b) => {
+        let aVal = a[prepSortConfig.key];
+        let bVal = b[prepSortConfig.key];
+
+        if (prepSortConfig.key === 'totalPrice') {
+            aVal = parseFloat(aVal || 0);
+            bVal = parseFloat(bVal || 0);
+        } else {
+            if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+            if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+        }
+
+        if (aVal < bVal) return prepSortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return prepSortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
     return filtered;
-  }, [preparations, preparationLogFilter, prepSearchTerm]);
+  }, [preparations, preparationLogFilter, prepSearchTerm, prepSortConfig]);
 
 
   const getNextNi = (isContainer = false) => {
@@ -709,27 +738,31 @@ export default function GalenicoApp() {
 
           />;
 
-        case 'preparations_log':
+                case 'preparations_log':
 
-          return <PreparationsLog 
+                  return <PreparationsLog 
 
-                    preparations={filteredPreparations} 
+                            preparations={filteredPreparations} 
 
-                    handleJumpToStep={handleJumpToStep}
+                            handleJumpToStep={handleJumpToStep}
 
-                    handleDuplicatePreparation={handleDuplicatePreparation}
+                            handleDuplicatePreparation={handleDuplicatePreparation}
 
-                    handleDeletePreparation={handleDeletePreparation}
+                            handleDeletePreparation={handleDeletePreparation}
 
-                    activeFilter={preparationLogFilter}
+                            activeFilter={preparationLogFilter}
 
-                    clearFilter={() => setPreparationLogFilter(null)}
+                            clearFilter={() => setPreparationLogFilter(null)}
 
-                    searchTerm={prepSearchTerm}
+                            searchTerm={prepSearchTerm}
 
-                    setSearchTerm={setPrepSearchTerm}
+                            setSearchTerm={setPrepSearchTerm}
 
-                 />;
+                            sortConfig={prepSortConfig}
+
+                            requestSort={requestPrepSort}
+
+                         />;
       case 'preparation':
         return <PreparationWizard 
                   inventory={inventory} 

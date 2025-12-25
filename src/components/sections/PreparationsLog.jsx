@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Hash, Calendar, Pencil, Trash2, Filter, X, Search } from 'lucide-react';
+import { Hash, Calendar, Pencil, Trash2, Filter, X, Search, ArrowUp, ArrowDown } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 
-const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparation, handleDuplicatePreparation, activeFilter, clearFilter, searchTerm, setSearchTerm }) => {
+const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparation, handleDuplicatePreparation, activeFilter, clearFilter, searchTerm, setSearchTerm, sortConfig, requestSort }) => {
   const filteredPrepName = activeFilter && preparations.length === 1 ? preparations[0].name : null;
   const [openMenuId, setOpenMenuId] = useState(null);
   const menuRef = useRef(null);
@@ -19,6 +19,23 @@ const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparati
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [menuRef]);
+
+  const SortIcon = ({ columnKey }) => {
+    if (sortConfig.key !== columnKey) return null;
+    return sortConfig.direction === 'asc' ? <ArrowUp size={14} className="inline ml-1" /> : <ArrowDown size={14} className="inline ml-1" />;
+  };
+
+  const SortableHeader = ({ label, columnKey, className = "" }) => (
+    <th
+      className={`px-6 py-3 font-semibold whitespace-nowrap cursor-pointer select-none hover:bg-slate-100 transition-colors ${className}`}
+      onClick={() => requestSort(columnKey)}
+    >
+      <div className={`flex items-center gap-1 ${className.includes('text-center') ? 'justify-center' : ''}`}>
+        {label}
+        <SortIcon columnKey={columnKey} />
+      </div>
+    </th>
+  );
 
   return (
     <div className="space-y-4">
@@ -52,12 +69,12 @@ const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparati
           <table className="w-full text-left text-sm">
             <thead className="sticky top-0 z-10 bg-slate-50 text-slate-600 border-b border-slate-200">
               <tr>
-                <th className="px-6 py-3 font-semibold whitespace-nowrap">Data / N.P.</th>
-                <th className="px-6 py-3 font-semibold whitespace-nowrap">Preparazione & Forma</th>
-                <th className="px-6 py-3 font-semibold whitespace-nowrap">Paziente / Medico</th>
+                <SortableHeader label="Data / N.P." columnKey="prepNumber" />
+                <SortableHeader label="Preparazione & Forma" columnKey="name" />
+                <SortableHeader label="Paziente / Medico" columnKey="patient" />
                 <th className="px-6 py-3 font-semibold whitespace-nowrap">Ingredienti & Lotti</th>
                 <th className="px-6 py-3 font-semibold text-center whitespace-nowrap">Stato</th>
-                <th className="px-6 py-3 font-semibold text-center whitespace-nowrap">Prezzo</th>
+                <SortableHeader label="Prezzo" columnKey="totalPrice" className="text-center" />
                 <th className="px-6 py-3 font-semibold text-center whitespace-nowrap">Azioni</th>
               </tr>
             </thead>
