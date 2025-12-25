@@ -243,33 +243,29 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
     setEditingIngredientIndex(null);
   };
 
-  const calculateTotal = () => {
-    const substancesCost = selectedIngredients.reduce((acc, ing) => acc + (ing.costPerGram ? ing.costPerGram * ing.amountUsed : 0), 0);
-    const currentFee = parseFloat(professionalFee);
-    
-    let additional = 0;
-    const hasHazardousSubstance = selectedIngredients.some(ing => {
-        const isHazardous = (ing.securityData?.pictograms?.length > 0) || ing.isDoping || ing.isNarcotic;
-        if (isHazardous) {
-          console.log('Hazardous substance found:', { 
-            name: ing.name, 
-            pictograms: ing.securityData?.pictograms, 
-            isDoping: ing.isDoping, 
-            isNarcotic: ing.isNarcotic 
-          });
+    const calculateTotal = () => {
+      const substancesCost = selectedIngredients.reduce((acc, ing) => acc + (ing.costPerGram ? ing.costPerGram * ing.amountUsed : 0), 0);
+      const currentFee = parseFloat(professionalFee);
+      
+          let additional = 0;
+          const hasHighRisk = selectedIngredients.some(ing => 
+            (ing.securityData?.pictograms?.length > 0) && ing.isNarcotic
+          );  
+      if (hasHighRisk) {
+        additional = 5.00;
+      } else {
+        const hasMediumRisk = selectedIngredients.some(ing => 
+          (ing.securityData?.pictograms?.length > 0) || ing.isDoping || ing.isNarcotic
+        );
+        if (hasMediumRisk) {
+          additional = 2.50;
         }
-        return isHazardous;
-    });
-    
-    if (hasHazardousSubstance) {
-        additional = 2.50;
-    }
-
-    const net = substancesCost + currentFee + additional;
-    const vat = net * VAT_RATE;
-    return { substances: substancesCost, fee: currentFee, disposal: 0, additional, net, vat, final: net + vat };
-  };
-
+      }
+  
+      const net = substancesCost + currentFee + additional;
+      const vat = net * VAT_RATE;
+      return { substances: substancesCost, fee: currentFee, disposal: 0, additional, net, vat, final: net + vat };
+    };
   const pricing = calculateTotal();
 
   const handleDownloadWorksheet = () => generateWorkSheetPDF({ details, ingredients: selectedIngredients, pricing }, pharmacySettings);
