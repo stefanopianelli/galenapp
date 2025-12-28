@@ -28,12 +28,11 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
 
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(pharmacyName, 20, 35);
-  doc.text(pharmacyAddress, 20, 40);
-  doc.text(pharmacyPhone, 20, 45);
+  const pharmacyInfoLine = `${pharmacyName} - ${pharmacyAddress}${pharmacyPhone ? ` - ${pharmacyPhone}` : ''}`;
+  doc.text(pharmacyInfoLine, doc.internal.pageSize.getWidth() / 2, 30, { align: 'center' });
 
   // --- PREPARATION DATA ---
-  let y = 60;
+  let y = 45;
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.text("Dati della Preparazione", 20, y);
@@ -69,6 +68,38 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
   });
   y = doc.autoTable.previous.finalY + 10;
 
+  // --- VERIFICHE INIZIALI (CHECKLIST) ---
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text("Verifiche Iniziali", 20, y);
+  y += 8;
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  
+  const checkboxSize = 4;
+  let checkboxX = 20;
+  const checkboxY = y - 3.5;
+  const textX = checkboxX + checkboxSize + 2;
+
+  // Checkbox 1: Verifica pulizia Locali
+  doc.rect(checkboxX, checkboxY, checkboxSize, checkboxSize);
+  doc.line(checkboxX, checkboxY, checkboxX + checkboxSize, checkboxY + checkboxSize);
+  doc.line(checkboxX, checkboxY + checkboxSize, checkboxX + checkboxSize, checkboxY);
+  doc.text("Verifica pulizia Locali", textX, y);
+
+  // Calcola la nuova posizione X per il secondo item
+  checkboxX = 85; // Posizione orizzontale per il secondo checkbox
+  const textX2 = checkboxX + checkboxSize + 2;
+
+  // Checkbox 2: Verifica pulizia, attrezzatura, etc.
+  doc.rect(checkboxX, checkboxY, checkboxSize, checkboxSize);
+  doc.line(checkboxX, checkboxY, checkboxX + checkboxSize, checkboxY + checkboxSize);
+  doc.line(checkboxX, checkboxY + checkboxSize, checkboxX + checkboxSize, checkboxY);
+  doc.text("Verifica pulizia, attrezzatura, utensili, confezionamento", textX2, y);
+
+  y += 10; // Spazio dopo la riga delle checkbox
+  
   // --- COMPOSITION TABLE ---
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
@@ -83,7 +114,7 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
 
     return [
       ing.name,
-      ing.lot,
+      ing.ni, // Changed from ing.lot
       `${Number(ing.amountUsed).toFixed(ing.isContainer ? 0 : 2)} ${ing.unit}`,
       flags.join(', ')
     ];
@@ -91,7 +122,7 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
 
   doc.autoTable({
     startY: y,
-    head: [['Componente / Contenitore', 'N. Lotto', 'Quantità', 'Note (D=Dopante, S=Stupef., C=Cont.)']],
+    head: [['Componente / Contenitore', 'N.I.', 'Quantità', 'Note (D=Dopante, S=Stupef., C=Cont.)']],
     body: ingredientsBody,
     theme: 'grid',
     headStyles: { fillColor: [230, 230, 230], textColor: 20, fontStyle: 'bold' },

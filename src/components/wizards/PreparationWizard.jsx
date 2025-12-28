@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Euro, Plus, Trash2, Save, FileDown, Pencil, Check, Info, Box, FlaskConical, ClipboardCheck, ListOrdered } from 'lucide-react';
+import { Euro, Plus, Trash2, Save, FileDown, Pencil, Check, Info, Box, FlaskConical, ClipboardCheck, ListOrdered, FileText } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
-import { NATIONAL_TARIFF_FEES, VAT_RATE, ADDITIONAL_FEE } from '../../constants/tariffs';
+import { NATIONAL_TARIFF_FEES, VAT_RATE } from '../../constants/tariffs';
 import { generateWorkSheetPDF } from '../../services/pdfGenerator';
 
 function PreparationWizard({ inventory, preparations, onComplete, initialData, pharmacySettings, initialStep }) {
   const prepType = initialData?.prepType || 'magistrale';
   const isOfficinale = prepType === 'officinale';
-  const totalSteps = isOfficinale ? 5 : 4;
+  const totalSteps = isOfficinale ? 6 : 5;
 
   const [step, setStep] = useState(initialStep || 1);
   const [selectedIngredients, setSelectedIngredients] = useState([]);
@@ -24,146 +24,133 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   
   const [professionalFee, setProfessionalFee] = useState(0);
   const [extraTechOps, setExtraTechOps] = useState(0);
-  const [batches, setBatches] = useState([]); // Stato per i lotti delle officinali
+  const [batches, setBatches] = useState([]); 
 
   useEffect(() => {
     setStep(initialStep || 1);
   }, [initialStep, initialData]);
 
-    const [details, setDetails] = useState({
-      name: '', patient: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
-      expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', warnings: '', recipeDate: '', usage: 'Orale', prepType: 'magistrale'
-    });
-  
-    const getNextPrepNumber = () => {
-      const currentYear = new Date().getFullYear().toString().slice(-2);
-      let maxProg = 0;
-      (preparations || []).forEach(p => {
-          if (p.prepNumber && p.prepNumber.startsWith(`${currentYear}/P`)) {
-              try {
-                  const progNum = parseInt(p.prepNumber.split('/P')[1]);
-                  if (!isNaN(progNum) && progNum > maxProg) maxProg = progNum;
-              } catch (e) { console.error("Could not parse prep number:", p.prepNumber); }
-          }
-      });
-      return `${currentYear}/P${(maxProg + 1).toString().padStart(3, '0')}`;
-    };
-  
-    useEffect(() => {
-      const defaultDetails = {
-        name: '', patient: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
-        expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', warnings: '', recipeDate: '', usage: 'Orale', status: 'Bozza', prepType: 'magistrale', batches: []
-      };
-  
-      if (initialData) {
-          const isDuplicate = initialData.isDuplicate;
-          const isNew = !initialData.id;
-  
-          setDetails({
-              ...defaultDetails, // Start with defaults to ensure all keys exist
-              ...initialData,    // Then spread initialData
-              prepNumber: (isNew || isDuplicate) ? getNextPrepNumber() : initialData.prepNumber,
-              status: initialData.status || 'Bozza'
-          });
-          
-          if (initialData.batches) {
-            setBatches(initialData.batches);
-          }
-  
-          const enrichedIngredients = (initialData.ingredients || []).map(ing => {
-            const inventoryItem = (inventory || []).find(item => item.id === ing.id);
-            if (!inventoryItem) {
-              return { ...ing, securityData: ing.securityData || { pictograms: [] } };
-            }
-            
-            return {
-              id: ing.id,
-              amountUsed: ing.amountUsed,
-              name: inventoryItem.name,
-              ni: inventoryItem.ni,
-              unit: inventoryItem.unit,
-              costPerGram: inventoryItem.costPerGram || 0,
-              isExcipient: inventoryItem.isExcipient || false,
-              isContainer: inventoryItem.isContainer || false,
-              isDoping: inventoryItem.isDoping || false,
-              isNarcotic: inventoryItem.isNarcotic || false,
-              securityData: inventoryItem.securityData || { pictograms: [] }
-            };
-          });
-          setSelectedIngredients(enrichedIngredients);
-      } else {
-        setDetails({ 
-          ...defaultDetails,
-          prepNumber: getNextPrepNumber(), 
-        });
-        setSelectedIngredients([]);
-      }
-    }, [initialData, inventory, preparations]);
-    
-    const calculateComplexFee = () => {
-      const qty = parseFloat(details.quantity) || 0;
-      const form = details.pharmaceuticalForm;
-      let fee = 0;
-      if (form === 'Capsule' || form === 'Cartine') {
-          const BASE_QTY = 120;
-          fee = 22.00;
-          if (qty > BASE_QTY) fee += (Math.ceil((qty - BASE_QTY) / 10) * 2.00);
-          else if (qty < BASE_QTY && qty > 0) fee -= (Math.ceil((BASE_QTY - qty) / 10) * 1.00);
-          
-          const activeSubstancesCount = selectedIngredients.filter(i => !i.isExcipient && !i.isContainer).length;
-          const extraComponents = Math.max(0, activeSubstancesCount - 1);
-          
-          fee += (Math.min(extraComponents, 4) * 0.60);
-          fee += (extraTechOps * 2.30);
-          fee *= 1.40;
-      } else {
-          fee = NATIONAL_TARIFF_FEES[form] || 8.00;
-          fee += (extraTechOps * 2.30);
-      }
-      return fee;
-    };
-  
-    useEffect(() => {
-        setProfessionalFee(calculateComplexFee());
-    }, [details.pharmaceuticalForm, details.quantity, selectedIngredients, extraTechOps]);
-  
-    const handleBatchChange = (containerId, field, value) => {
-      setBatches(prevBatches => {
-        const existingBatchIndex = prevBatches.findIndex(batch => batch.containerId === containerId);
-        const numericValue = parseFloat(value);
-  
-        if (existingBatchIndex > -1) {
-          const updatedBatches = [...prevBatches];
-          updatedBatches[existingBatchIndex] = {
-            ...updatedBatches[existingBatchIndex],
-            [field]: !isNaN(numericValue) ? numericValue : value // Conserva stringa se non numero
-          };
-          return updatedBatches;
-        } else {
-          return [
-            ...prevBatches,
-            {
-              containerId,
-              [field]: !isNaN(numericValue) ? numericValue : value
-            }
-          ];
+  const [details, setDetails] = useState({ 
+    name: '', patient: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
+    expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', warnings: '', recipeDate: '', usage: 'Orale', prepType: 'magistrale'
+  });
+
+  const getNextPrepNumber = () => {
+    const currentYear = new Date().getFullYear().toString().slice(-2);
+    let maxProg = 0;
+    (preparations || []).forEach(p => {
+        if (p.prepNumber && p.prepNumber.startsWith(`${currentYear}/P`)) {
+            try {
+                const progNum = parseInt(p.prepNumber.split('/P')[1]);
+                if (!isNaN(progNum) && progNum > maxProg) maxProg = progNum;
+            } catch (e) { console.error("Could not parse prep number:", p.prepNumber); }
         }
+    });
+    return `${currentYear}/P${(maxProg + 1).toString().padStart(3, '0')}`;
+  };
+
+  useEffect(() => {
+    const defaultDetails = {
+      name: '', patient: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
+      expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', warnings: '', recipeDate: '', usage: 'Orale', status: 'Bozza', prepType: 'magistrale', batches: []
+    };
+
+    if (initialData) {
+        const isDuplicate = initialData.isDuplicate;
+        const isNew = !initialData.id;
+
+        setDetails({
+            ...defaultDetails, 
+            ...initialData,
+            prepNumber: (isNew || isDuplicate) ? getNextPrepNumber() : initialData.prepNumber,
+            status: initialData.status || 'Bozza'
+        });
+        
+        if (initialData.batches) {
+          setBatches(initialData.batches);
+        }
+
+        const enrichedIngredients = (initialData.ingredients || []).map(ing => {
+          const inventoryItem = (inventory || []).find(item => item.id === ing.id);
+          if (!inventoryItem) {
+            return { ...ing, securityData: ing.securityData || { pictograms: [] } };
+          }
+          return {
+            id: ing.id, amountUsed: ing.amountUsed,
+            name: inventoryItem.name, ni: inventoryItem.ni, unit: inventoryItem.unit,
+            costPerGram: inventoryItem.costPerGram || 0,
+            isExcipient: inventoryItem.isExcipient || false, isContainer: inventoryItem.isContainer || false,
+            isDoping: inventoryItem.isDoping || false, isNarcotic: inventoryItem.isNarcotic || false,
+            securityData: inventoryItem.securityData || { pictograms: [] }
+          };
+        });
+        setSelectedIngredients(enrichedIngredients);
+    } else {
+      setDetails({ 
+        ...defaultDetails,
+        prepNumber: getNextPrepNumber(), 
       });
-    };
+      setSelectedIngredients([]);
+    }
+  }, [initialData, inventory, preparations]);
+
+  const calculateComplexFee = () => {
+    const qty = parseFloat(details.quantity) || 0;
+    const form = details.pharmaceuticalForm;
+    let fee = 0;
+    if (form === 'Capsule' || form === 'Cartine') {
+        const BASE_QTY = 120;
+        fee = 22.00;
+        if (qty > BASE_QTY) fee += (Math.ceil((qty - BASE_QTY) / 10) * 2.00);
+        else if (qty < BASE_QTY && qty > 0) fee -= (Math.ceil((BASE_QTY - qty) / 10) * 1.00);
+        
+        const activeSubstancesCount = selectedIngredients.filter(i => !i.isExcipient && !i.isContainer).length;
+        const extraComponents = Math.max(0, activeSubstancesCount - 1);
+        
+        fee += (Math.min(extraComponents, 4) * 0.60);
+        fee += (extraTechOps * 2.30);
+        fee *= 1.40;
+    } else {
+        fee = NATIONAL_TARIFF_FEES[form] || 8.00;
+        fee += (extraTechOps * 2.30);
+    }
+    return fee;
+  };
+
+  useEffect(() => {
+      setProfessionalFee(calculateComplexFee());
+  }, [details.pharmaceuticalForm, details.quantity, selectedIngredients, extraTechOps]);
+
+  const handleBatchChange = (containerId, field, value) => {
+    setBatches(prevBatches => {
+      const existingBatchIndex = prevBatches.findIndex(batch => batch.containerId === containerId);
+      const numericValue = parseFloat(value);
+
+      if (existingBatchIndex > -1) {
+        const updatedBatches = [...prevBatches];
+        updatedBatches[existingBatchIndex] = { ...updatedBatches[existingBatchIndex], [field]: !isNaN(numericValue) ? numericValue : value };
+        return updatedBatches;
+      } else {
+        return [ ...prevBatches, { containerId, [field]: !isNaN(numericValue) ? numericValue : value }];
+      }
+    });
+  };
+
+  const getPrepUnit = (form) => {
+    if (['Crema', 'Gel', 'Unguento', 'Pasta', 'Polvere'].includes(form)) return 'g';
+    if (['Lozione', 'Sciroppo', 'Soluzione Cutanea', 'Soluzione Orale'].includes(form)) return 'ml';
+    if (['Capsule', 'Supposte', 'Ovuli', 'Cartine'].includes(form)) return 'n.'; 
+    return '-';
+  };
+
+  const isStep1Valid = (() => {
+    const baseFields = details.name && details.prepNumber && details.quantity && details.pharmaceuticalForm && details.expiryDate && details.posology && details.warnings && details.usage;
+    if (!baseFields) return false;
+    if (isOfficinale) return true;
+    return !!(details.patient && details.doctor && details.recipeDate);
+  })();
   
-    const getPrepUnit = (form) => {
-      if (['Crema', 'Gel', 'Unguento', 'Pasta', 'Polvere'].includes(form)) return 'g';
-      if (['Lozione', 'Sciroppo', 'Soluzione Cutanea', 'Soluzione Orale'].includes(form)) return 'ml';
-      if (['Capsule', 'Supposte', 'Ovuli', 'Cartine'].includes(form)) return 'n.'; 
-      return '-';
-    };
-  
-      const isStep1Valid = (() => {
-        const baseFields = details.name && details.prepNumber && details.quantity && details.pharmaceuticalForm && details.expiryDate && details.posology && details.warnings && details.usage;
-        if (!baseFields) return false;
-        if (isOfficinale) return true;
-        return !!(details.patient && details.doctor && details.recipeDate);
-      })();  const calculateBatchBalance = () => {
+  const calculateBatchBalance = () => {
     const totalExpected = parseFloat(details.quantity) || 0;
     const totalAllocated = batches.reduce((acc, batch) => {
       const container = selectedIngredients.find(ing => ing.id === batch.containerId);
@@ -242,29 +229,31 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
     setEditingIngredientIndex(null);
   };
 
-    const calculateTotal = () => {
-      const substancesCost = selectedIngredients.reduce((acc, ing) => acc + (ing.costPerGram ? ing.costPerGram * ing.amountUsed : 0), 0);
-      const currentFee = parseFloat(professionalFee);
-      
-          let additional = 0;
-          const hasHighRisk = selectedIngredients.some(ing => 
-            (ing.securityData?.pictograms?.length > 0) && ing.isNarcotic
-          );  
-      if (hasHighRisk) {
-        additional = 5.00;
-      } else {
-        const hasMediumRisk = selectedIngredients.some(ing => 
-          (ing.securityData?.pictograms?.length > 0) || ing.isDoping || ing.isNarcotic
-        );
-        if (hasMediumRisk) {
-          additional = 2.50;
-        }
+  const calculateTotal = () => {
+    const substancesCost = selectedIngredients.reduce((acc, ing) => acc + (ing.costPerGram ? ing.costPerGram * ing.amountUsed : 0), 0);
+    const currentFee = parseFloat(professionalFee);
+    
+    let additional = 0;
+    const hasHighRisk = selectedIngredients.some(ing => 
+      (ing.securityData?.pictograms?.length > 0) && ing.isNarcotic
+    );
+
+    if (hasHighRisk) {
+      additional = 5.00;
+    } else {
+      const hasMediumRisk = selectedIngredients.some(ing => 
+        (ing.securityData?.pictograms?.length > 0) || ing.isDoping || ing.isNarcotic
+      );
+      if (hasMediumRisk) {
+        additional = 2.50;
       }
-  
-      const net = substancesCost + currentFee + additional;
-      const vat = net * VAT_RATE;
-      return { substances: substancesCost, fee: currentFee, disposal: 0, additional, net, vat, final: net + vat };
-    };
+    }
+
+    const net = substancesCost + currentFee + additional;
+    const vat = net * VAT_RATE;
+    return { substances: substancesCost, fee: currentFee, disposal: 0, additional, net, vat, final: net + vat };
+  };
+
   const pricing = calculateTotal();
 
   const handleDownloadWorksheet = () => generateWorkSheetPDF({ details, ingredients: selectedIngredients, pricing }, pharmacySettings);
@@ -298,23 +287,30 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
       if (isOfficinale) {
         if (isStep1Valid && selectedIngredients.length > 0) setStep(4);
       } else {
-        if (isStep1Valid && selectedIngredients.length > 0) setStep(4);
+        if (isStep1Valid && selectedIngredients.length > 0) setStep(4); // Vai a "Foglio Lav."
       }
-    } else if (targetStep === 5 && isOfficinale) {
-      if (isStep1Valid && selectedIngredients.length > 0 && Math.abs(calculateBatchBalance()) < 0.01) setStep(5);
+    } else if (targetStep === 5) {
+      if (isOfficinale) {
+        if (isStep1Valid && selectedIngredients.length > 0 && Math.abs(calculateBatchBalance()) < 0.01) setStep(5);
+      } else {
+        if (isStep1Valid && selectedIngredients.length > 0) setStep(5); // Vai a "Conferma"
+      }
+    } else if (targetStep === 6 && isOfficinale) {
+        if (isStep1Valid && selectedIngredients.length > 0) setStep(6);
     }
   };
 
   const getStepLabels = () => {
     const base = ["Anagrafica", "Componenti", "Tariffa"];
     if (isOfficinale) {
-      return [...base, "Lotti", "Conferma"];
+      return [...base, "Lotti", "Foglio Lav.", "Conferma"];
     }
-    return [...base, "Conferma"];
+    return [...base, "Foglio Lav.", "Conferma"];
   };
   const stepLabels = getStepLabels();
 
   const pharmaForms = ['Capsule', 'Crema', 'Gel', 'Unguento', 'Pasta', 'Lozione', 'Sciroppo', 'Soluzione Cutanea', 'Soluzione Orale', 'Polvere', 'Supposte', 'Ovuli', 'Cartine'];
+  const usageOptions = ['Orale', 'Topica', 'Sublinguale', 'Buccale', 'Rettale', 'Inalatoria', 'Transdermica', 'Vaginale', 'Parenterale'];
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -369,7 +365,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                 <h2 className="text-xl font-bold text-slate-800">Anagrafica Ricetta</h2>
                 <div className="grid grid-cols-2 gap-4 pt-4">
                     <div className="col-span-2"><label className="block text-sm font-bold">Nome *</label><input className="w-full border p-3 rounded-md outline-none focus:ring-2 ring-teal-500" value={details.name} onChange={e => setDetails({...details, name: e.target.value})} /></div>
-                    <div><label className="block text-sm font-bold">N.P. *</label><input className="w-full border p-3 rounded-md outline-none bg-slate-50 font-mono" value={details.prepNumber} onChange={e => setDetails({...details, prepNumber: e.target.value})} /></div>
+                    <div><label className="block text-sm font-bold">N.P. *</label><input className="w-full border p-3 rounded-md outline-none bg-slate-50 font-mono" value={details.prepNumber} readOnly /></div>
                     <div><label className="block text-sm font-bold">Forma *</label><select className="w-full border p-3 rounded-md outline-none bg-white" value={details.pharmaceuticalForm} onChange={e => setDetails({...details, pharmaceuticalForm: e.target.value})}>{pharmaForms.map(f => <option key={f} value={f}>{f}</option>)}</select></div>
                     <div><label className="block text-sm font-bold">Q.tà Totale ({getPrepUnit(details.pharmaceuticalForm)}) *</label><input type="number" step="0.01" className="w-full border p-3 rounded-md outline-none" value={details.quantity} onChange={e => setDetails({...details, quantity: e.target.value})} /></div>
                     <div><label className="block text-sm font-bold">Scadenza *</label><input type="date" className="w-full border p-3 rounded-md outline-none" value={details.expiryDate} onChange={e => setDetails({...details, expiryDate: e.target.value})} /></div>
@@ -380,13 +376,12 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                         <div><label className="block text-sm font-bold">Data Ricetta *</label><input type="date" className="w-full border p-3 rounded-md outline-none" value={details.recipeDate} onChange={e => setDetails({...details, recipeDate: e.target.value})} /></div>
                       </>
                     )}
-                    <div className="col-span-2"><label className="block text-sm font-bold">Posologia *</label><textarea className="w-full border p-3 rounded-md outline-none h-20 resize-none" value={details.posology} onChange={e => setDetails({...details, posology: e.target.value})} /></div>
-                    <div className="col-span-2">
-                      <label className="block text-sm font-bold mb-1">Uso *</label>
+                    <div className="col-span-2"><label className="block text-sm font-bold">Uso *</label>
                       <select className="w-full border p-3 rounded-md outline-none bg-white" value={details.usage} onChange={e => setDetails({...details, usage: e.target.value})}>
-                        {['Orale', 'Topica', 'Sublinguale', 'Buccale', 'Rettale', 'Inalatoria', 'Transdermica', 'Vaginale', 'Parenterale'].map(u => <option key={u} value={u}>{u}</option>)}
+                        {usageOptions.map(u => <option key={u} value={u}>{u}</option>)}
                       </select>
                     </div>
+                    <div className="col-span-2"><label className="block text-sm font-bold">Posologia *</label><textarea className="w-full border p-3 rounded-md outline-none h-20 resize-none" value={details.posology} onChange={e => setDetails({...details, posology: e.target.value})} /></div>
                     <div className="col-span-2"><label className="block text-sm font-bold">Avvertenze *</label><textarea className="w-full border p-3 rounded-md outline-none h-20 resize-none" value={details.warnings} onChange={e => setDetails({...details, warnings: e.target.value})} /></div>
                 </div>
                 <div className="flex justify-end pt-4"><button disabled={!isStep1Valid} onClick={() => setStep(2)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 disabled:opacity-50">Avanti</button></div>
@@ -490,7 +485,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                                 <div className="w-full flex justify-between text-sm text-teal-800 mb-1"><span>Totale Netto</span><span>€ {pricing.net.toFixed(2)}</span></div>
                                 <div className="w-full flex justify-between text-sm text-teal-800 mb-2 border-b border-teal-200 pb-2"><span>IVA (10%)</span><span>€ {pricing.vat.toFixed(2)}</span></div>
                                 <div className="flex items-baseline gap-4"><span className="text-lg font-bold text-teal-900">PREZZO FINALE</span><span className="text-3xl font-bold text-teal-700">€ {pricing.final.toFixed(2)}</span></div>
-                              </div>              <div className="pt-4 flex justify-between"><button onClick={() => setStep(2)} className="text-slate-500 hover:underline">Indietro</button><button onClick={() => setStep(4)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700">Avanti a {isOfficinale ? "Lotti" : "Conferma"}</button></div>
+                              </div>              <div className="pt-4 flex justify-between"><button onClick={() => setStep(2)} className="text-slate-500 hover:underline">Indietro</button><button onClick={() => setStep(isOfficinale ? 4 : 5)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700">Avanti a {isOfficinale ? "Lotti" : "Foglio Lav."}</button></div>
           </div>
         )}
 
@@ -498,7 +493,6 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
           <div className="space-y-6 animate-in fade-in">
             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 pt-4"><ListOrdered size={24} className="text-blue-600"/> Gestione Lotti e Prezzi</h2>
             
-            {/* Calcolo Bilancio in tempo reale */}
             {(() => {
               const totalExpected = parseFloat(details.quantity) || 0;
               const totalAllocated = batches.reduce((acc, batch) => {
@@ -576,20 +570,26 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
               )}
             </div>
 
-            <div className="pt-4 flex justify-between">
-              <button onClick={() => setStep(3)} className="text-slate-500 hover:underline">Indietro</button>
-              <button 
+            <div className="pt-4 flex justify-between"><button onClick={() => setStep(3)} className="text-slate-500 hover:underline">Indietro</button><button 
                 disabled={Math.abs(calculateBatchBalance()) >= 0.01}
                 onClick={() => setStep(5)} 
                 className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Avanti a Conferma
-              </button>
-            </div>
+                Avanti a Foglio Lav.
+              </button></div>
+          </div>
+        )}
+        
+        {((isOfficinale && step === 5) || (!isOfficinale && step === 4)) && (
+          <div className="space-y-6 animate-in fade-in">
+            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 pt-4"><FileText size={24} /> Personalizzazione Foglio di Lavorazione</h2>
+            <div className="bg-blue-50 p-4 rounded-md border border-blue-100 text-sm text-blue-800 mb-4"><p>Aggiungi dettagli o modifica le sezioni che appariranno nel PDF finale.</p></div>
+            <p className="text-center text-slate-500 italic py-12">Work in Progress: qui verranno inseriti i campi per la personalizzazione.</p>
+            <div className="pt-4 flex justify-between"><button onClick={() => setStep(isOfficinale ? 4 : 3)} className="text-slate-500 hover:underline">Indietro</button><button onClick={() => setStep(isOfficinale ? 6 : 5)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700">Avanti a Conferma</button></div>
           </div>
         )}
 
-        {((isOfficinale && step === 5) || (!isOfficinale && step === 4)) && (
+        {((isOfficinale && step === 6) || (!isOfficinale && step === 5)) && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="text-center">
                   <h2 className="text-xl font-bold text-slate-800 pt-4 flex items-center justify-center gap-2"><ClipboardCheck size={24} />Conferma Finale</h2>
@@ -629,7 +629,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                   </div>
                 )}
                 <div className="pt-4 flex justify-between border-t border-slate-100">
-                  <button onClick={() => setStep(isOfficinale ? 4 : 3)} className="text-slate-500 hover:underline">Indietro</button>
+                  <button onClick={() => setStep(isOfficinale ? 5 : 4)} className="text-slate-500 hover:underline">Indietro</button>
                   <div className="flex items-center gap-3">
                     <button onClick={handleDownloadWorksheet} className="bg-slate-600 text-white px-6 py-2 rounded-md hover:bg-slate-700 flex items-center gap-2">
                         <FileDown size={18}/> Scarica Foglio
