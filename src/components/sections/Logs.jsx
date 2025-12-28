@@ -58,8 +58,11 @@ const Logs = ({ logs, preparations, handleShowPreparation }) => {
                   <td className="px-6 py-3 whitespace-nowrap font-medium text-slate-800">{log.substance}</td>
                   <td className="px-6 py-3 font-mono text-xs whitespace-nowrap">{log.ni}</td>
                   <td className={`px-6 py-3 text-right font-mono font-bold whitespace-nowrap ${(log.type === 'CARICO' || log.type === 'ANNULLAMENTO') ? 'text-green-600' : 'text-red-600'}`}>
-                    {(log.type === 'CARICO' || log.type === 'ANNULLAMENTO') ? '+' : '-'}
-                    {Number(log.quantity).toFixed(2)} {log.unit}
+                    {log.quantity !== null ? (
+                      <>{(log.type === 'CARICO' || log.type === 'ANNULLAMENTO') ? '+' : '-'}{Number(log.quantity).toFixed(2)} {log.unit}</>
+                    ) : (
+                      '-'
+                    )}
                   </td>
                   <td className="px-6 py-3 text-slate-500 text-xs whitespace-nowrap">{renderNote(log.notes)}</td>
                 </tr>

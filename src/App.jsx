@@ -395,24 +395,62 @@ export default function GalenicoApp() {
 
   const handleAddOrUpdateSubstance = (e) => {
     e.preventDefault();
-    let updatedInventory;
-    let newLog;
-
+    
     const formatToNumber = (val) => val ? parseFloat(parseFloat(val).toFixed(2)) : 0;
     
     const substanceToSave = {
       ...newSubstance,
       quantity: formatToNumber(newSubstance.quantity),
-      costPerGram: newSubstance.costPerGram ? parseFloat(parseFloat(newSubstance.costPerGram).toFixed(4)) : 0, // Manteniamo più precisione per il costo/g
+      costPerGram: newSubstance.costPerGram ? parseFloat(parseFloat(newSubstance.costPerGram).toFixed(4)) : 0,
       totalCost: formatToNumber(newSubstance.totalCost)
     };
 
+    let updatedInventory;
+    let newLogs = [...logs];
+
     if (editingSubstance) {
-      updatedInventory = inventory.map(item => item.id === editingSubstance.id ? {
-        ...item,
-        ...substanceToSave
-      } : item);
-      newLog = { id: Date.now(), date: new Date().toISOString().split('T')[0], type: 'RETTIFICA', substance: newSubstance.name, ni: newSubstance.ni, lot: newSubstance.lot, quantity: substanceToSave.quantity, unit: newSubstance.unit, operator: 'Sessione Corrente', notes: `Aggiornamento Anagrafica N.I. ${newSubstance.ni}` };
+      const oldItem = inventory.find(i => i.id === editingSubstance.id);
+      
+      let logShouldBeGenerated = true;
+      
+      // Semplifica gli oggetti per il confronto, ignorando chiavi non pertinenti
+      const cleanObject = (obj) => {
+          if (!obj) return null;
+          const { id, firstUseDate, endUseDate, disposed, usageCount, ...rest } = obj;
+          return rest;
+      };
+
+      if (oldItem && JSON.stringify(cleanObject(oldItem)) === JSON.stringify(cleanObject(substanceToSave))) {
+        logShouldBeGenerated = false; // Non è cambiato nulla, nessun log.
+      }
+      
+      if (logShouldBeGenerated) {
+        let logEntryQuantity = null;
+        let logEntryNotes = `Aggiornamento Anagrafica N.I. ${newSubstance.ni}`;
+
+        if (oldItem && oldItem.quantity !== substanceToSave.quantity) {
+          logEntryQuantity = substanceToSave.quantity;
+          logEntryNotes = `Rettifica Quantità N.I. ${newSubstance.ni}`;
+        }
+        
+        const newLog = { 
+          id: Date.now(), 
+          date: new Date().toISOString().split('T')[0], 
+          type: 'RETTIFICA', 
+          substance: newSubstance.name, 
+          ni: newSubstance.ni, 
+          lot: newSubstance.lot, 
+          quantity: logEntryQuantity,
+          unit: newSubstance.unit, 
+          operator: 'Sessione Corrente', 
+          notes: logEntryNotes 
+        };
+        newLogs.unshift(newLog);
+      }
+
+      updatedInventory = inventory.map(item => item.id === editingSubstance.id ? substanceToSave : item);
+      saveData(updatedInventory, newLogs);
+      
     } else {
       const newItem = {
         id: Date.now(),
@@ -421,10 +459,11 @@ export default function GalenicoApp() {
         disposed: false
       };
       updatedInventory = [...inventory, newItem];
-      newLog = { id: Date.now() + 1, date: new Date().toISOString().split('T')[0], type: 'CARICO', substance: newItem.name, ni: newItem.ni, lot: newItem.lot, quantity: newItem.quantity, unit: newItem.unit, operator: 'Sessione Corrente', notes: `Nuovo Carico - N.I. ${newItem.ni}` };
+      const newLog = { id: Date.now() + 1, date: new Date().toISOString().split('T')[0], type: 'CARICO', substance: newItem.name, ni: newItem.ni, lot: newItem.lot, quantity: newItem.quantity, unit: newItem.unit, operator: 'Sessione Corrente', notes: `Nuovo Carico - N.I. ${newItem.ni}` };
+      newLogs.unshift(newLog);
+      saveData(updatedInventory, newLogs);
     }
-
-    saveData(updatedInventory, [newLog, ...logs]);
+    
     setIsAddModalOpen(false);
   };
 
