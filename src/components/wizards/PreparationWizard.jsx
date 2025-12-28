@@ -32,7 +32,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
     const [details, setDetails] = useState({
       name: '', patient: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
-      expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', warnings: '', prepType: 'magistrale'
+      expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', warnings: '', recipeDate: '', usage: 'Orale', prepType: 'magistrale'
     });
   
     const getNextPrepNumber = () => {
@@ -52,7 +52,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
     useEffect(() => {
       const defaultDetails = {
         name: '', patient: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
-        expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', status: 'Bozza', prepType: 'magistrale', batches: []
+        expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', warnings: '', recipeDate: '', usage: 'Orale', status: 'Bozza', prepType: 'magistrale', batches: []
       };
   
       if (initialData) {
@@ -158,13 +158,12 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
       return '-';
     };
   
-    const isStep1Valid = (() => {
-      const baseFields = details.name && details.prepNumber && details.quantity && details.pharmaceuticalForm && details.expiryDate && details.posology && details.warnings;
-      if (!baseFields) return false;
-      if (isOfficinale) return true;
-      return !!(details.patient && details.doctor);
-    })();  
-  const calculateBatchBalance = () => {
+      const isStep1Valid = (() => {
+        const baseFields = details.name && details.prepNumber && details.quantity && details.pharmaceuticalForm && details.expiryDate && details.posology && details.warnings && details.usage;
+        if (!baseFields) return false;
+        if (isOfficinale) return true;
+        return !!(details.patient && details.doctor && details.recipeDate);
+      })();  const calculateBatchBalance = () => {
     const totalExpected = parseFloat(details.quantity) || 0;
     const totalAllocated = batches.reduce((acc, batch) => {
       const container = selectedIngredients.find(ing => ing.id === batch.containerId);
@@ -378,9 +377,16 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                       <>
                         <div><label className="block text-sm font-bold">Paziente *</label><input className="w-full border p-3 rounded-md outline-none" value={details.patient} onChange={e => setDetails({...details, patient: e.target.value})} /></div>
                         <div><label className="block text-sm font-bold">Medico *</label><input className="w-full border p-3 rounded-md outline-none" value={details.doctor} onChange={e => setDetails({...details, doctor: e.target.value})} /></div>
+                        <div><label className="block text-sm font-bold">Data Ricetta *</label><input type="date" className="w-full border p-3 rounded-md outline-none" value={details.recipeDate} onChange={e => setDetails({...details, recipeDate: e.target.value})} /></div>
                       </>
                     )}
                     <div className="col-span-2"><label className="block text-sm font-bold">Posologia *</label><textarea className="w-full border p-3 rounded-md outline-none h-20 resize-none" value={details.posology} onChange={e => setDetails({...details, posology: e.target.value})} /></div>
+                    <div className="col-span-2">
+                      <label className="block text-sm font-bold mb-1">Uso *</label>
+                      <select className="w-full border p-3 rounded-md outline-none bg-white" value={details.usage} onChange={e => setDetails({...details, usage: e.target.value})}>
+                        {['Orale', 'Topica', 'Sublinguale', 'Buccale', 'Rettale', 'Inalatoria', 'Transdermica', 'Vaginale', 'Parenterale'].map(u => <option key={u} value={u}>{u}</option>)}
+                      </select>
+                    </div>
                     <div className="col-span-2"><label className="block text-sm font-bold">Avvertenze *</label><textarea className="w-full border p-3 rounded-md outline-none h-20 resize-none" value={details.warnings} onChange={e => setDetails({...details, warnings: e.target.value})} /></div>
                 </div>
                 <div className="flex justify-end pt-4"><button disabled={!isStep1Valid} onClick={() => setStep(2)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 disabled:opacity-50">Avanti</button></div>
