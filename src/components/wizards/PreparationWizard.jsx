@@ -25,6 +25,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   const [professionalFee, setProfessionalFee] = useState(0);
   const [extraTechOps, setExtraTechOps] = useState(0);
   const [batches, setBatches] = useState([]); 
+  const [worksheetItems, setWorksheetItems] = useState([]);
 
   useEffect(() => {
     setStep(initialStep || 1);
@@ -52,7 +53,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   useEffect(() => {
     const defaultDetails = {
       name: '', patient: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
-      expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', warnings: '', recipeDate: '', usage: 'Orale', operatingProcedures: '', status: 'Bozza', prepType: 'magistrale', batches: []
+      expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', warnings: '', recipeDate: '', usage: 'Orale', operatingProcedures: '', status: 'Bozza', prepType: 'magistrale', batches: [], worksheetItems: []
     };
 
     if (initialData) {
@@ -68,6 +69,19 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
         
         if (initialData.batches) {
           setBatches(initialData.batches);
+        }
+        if (initialData.worksheetItems && initialData.worksheetItems.length > 0) {
+          setWorksheetItems(initialData.worksheetItems);
+        } else {
+          setWorksheetItems([
+            { text: 'Verifica fonti documentali e calcoli', checked: true },
+            { text: 'Controllo corrispondenza materie prime', checked: true },
+            { text: 'Pesata/misura dei componenti', checked: true },
+            { text: 'Miscelazione / Lavorazione', checked: true },
+            { text: 'Allestimento / Incapsulamento / Ripartizione', checked: true },
+            { text: 'Controllo di uniformità e aspetto', checked: true },
+            { text: 'Etichettatura e confezionamento', checked: true }
+          ]);
         }
 
         const enrichedIngredients = (initialData.ingredients || []).map(ing => {
@@ -91,6 +105,15 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
         prepNumber: getNextPrepNumber(), 
       });
       setSelectedIngredients([]);
+       setWorksheetItems([
+        { text: 'Verifica fonti documentali e calcoli', checked: true },
+        { text: 'Controllo corrispondenza materie prime', checked: true },
+        { text: 'Pesata/misura dei componenti', checked: true },
+        { text: 'Miscelazione / Lavorazione', checked: true },
+        { text: 'Allestimento / Incapsulamento / Ripartizione', checked: true },
+        { text: 'Controllo di uniformità e aspetto', checked: true },
+        { text: 'Etichettatura e confezionamento', checked: true }
+      ]);
     }
   }, [initialData, inventory, preparations]);
 
@@ -134,6 +157,12 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
         return [ ...prevBatches, { containerId, [field]: !isNaN(numericValue) ? numericValue : value }];
       }
     });
+  };
+  
+  const handleWorksheetItemChange = (index) => {
+    const newItems = [...worksheetItems];
+    newItems[index].checked = !newItems[index].checked;
+    setWorksheetItems(newItems);
   };
 
   const getPrepUnit = (form) => {
@@ -256,11 +285,11 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
   const pricing = calculateTotal();
 
-  const handleDownloadWorksheet = () => generateWorkSheetPDF({ details, ingredients: selectedIngredients, pricing }, pharmacySettings);
+  const handleDownloadWorksheet = () => generateWorkSheetPDF({ details: { ...details, worksheetItems }, ingredients: selectedIngredients, pricing }, pharmacySettings);
 
   const handleFinalSave = () => {
     if (details.name && selectedIngredients.length > 0) {
-      onComplete(selectedIngredients, { ...details, prepUnit: getPrepUnit(details.pharmaceuticalForm), totalPrice: pricing.final, batches }, false);
+      onComplete(selectedIngredients, { ...details, prepUnit: getPrepUnit(details.pharmaceuticalForm), totalPrice: pricing.final, batches, worksheetItems }, false);
     }
   };
 
@@ -269,7 +298,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
       alert("Per salvare una bozza, il nome della preparazione è obbligatorio.");
       return;
     }
-    onComplete(selectedIngredients, { ...details, prepUnit: getPrepUnit(details.pharmaceuticalForm), totalPrice: pricing.final, batches }, true);
+    onComplete(selectedIngredients, { ...details, prepUnit: getPrepUnit(details.pharmaceuticalForm), totalPrice: pricing.final, batches, worksheetItems }, true);
   };
 
   const handleStepClick = (targetStep) => {
@@ -485,7 +514,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                                 <div className="w-full flex justify-between text-sm text-teal-800 mb-1"><span>Totale Netto</span><span>€ {pricing.net.toFixed(2)}</span></div>
                                 <div className="w-full flex justify-between text-sm text-teal-800 mb-2 border-b border-teal-200 pb-2"><span>IVA (10%)</span><span>€ {pricing.vat.toFixed(2)}</span></div>
                                 <div className="flex items-baseline gap-4"><span className="text-lg font-bold text-teal-900">PREZZO FINALE</span><span className="text-3xl font-bold text-teal-700">€ {pricing.final.toFixed(2)}</span></div>
-                              </div>              <div className="pt-4 flex justify-between"><button onClick={() => setStep(2)} className="text-slate-500 hover:underline">Indietro</button><button onClick={() => { console.log('Step 3 Next clicked. Going to step 4. isOfficinale:', isOfficinale); setStep(4); }} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700">Avanti a {isOfficinale ? "Lotti" : "Foglio Lav."}</button></div>
+                              </div>              <div className="pt-4 flex justify-between"><button onClick={() => setStep(2)} className="text-slate-500 hover:underline">Indietro</button><button onClick={() => setStep(4)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700">Avanti a {isOfficinale ? "Lotti" : "Foglio Lav."}</button></div>
           </div>
         )}
 
@@ -583,16 +612,32 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
         {((isOfficinale && step === 5) || (!isOfficinale && step === 4)) && (
           <div className="space-y-6 animate-in fade-in">
             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 pt-4"><FileText size={24} /> Personalizzazione Foglio di Lavorazione</h2>
-            <div className="bg-blue-50 p-4 rounded-md border border-blue-100 text-sm text-blue-800 mb-4"><p>Aggiungi dettagli o modifica le sezioni che appariranno nel PDF finale.</p></div>
             
             <div className="space-y-2">
-              <label className="block text-sm font-bold text-slate-700 uppercase tracking-wide">Procedure operative ed eventuali integrazioni</label>
+              <label className="block text-sm font-bold text-slate-700">Procedure operative ed eventuali integrazioni</label>
               <textarea 
-                className="w-full border p-3 rounded-md outline-none h-48 resize-y focus:ring-2 ring-teal-500 text-sm" 
-                value={details.operatingProcedures} 
+                className="w-full border p-3 rounded-md outline-none h-40 resize-y focus:ring-2 ring-teal-500" 
+                value={details.operatingProcedures || ''} 
                 onChange={e => setDetails({...details, operatingProcedures: e.target.value})} 
-                placeholder="Inserisci qui le fasi di lavorazione, istruzioni specifiche o note tecniche per il foglio di lavorazione..."
+                placeholder="Es. Miscelare le polveri in progressione geometrica..."
               />
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-bold text-slate-700">Fasi di lavorazione e controlli (per il PDF)</label>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 p-4 border rounded-md">
+                {worksheetItems.map((item, index) => (
+                  <label key={index} className="flex items-center gap-2 text-sm">
+                    <input 
+                      type="checkbox"
+                      checked={item.checked}
+                      onChange={() => handleWorksheetItemChange(index)}
+                      className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                    />
+                    <span>{item.text}</span>
+                  </label>
+                ))}
+              </div>
             </div>
 
             <div className="pt-4 flex justify-between"><button onClick={() => setStep(isOfficinale ? 4 : 3)} className="text-slate-500 hover:underline">Indietro</button><button onClick={() => setStep(isOfficinale ? 6 : 5)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700">Avanti a Conferma</button></div>

@@ -135,21 +135,34 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
   doc.text("Fasi di Lavorazione e Controlli", 20, y);
   y += 8;
 
-  const checklistItems = [
-    'Verifica fonti documentali e calcoli',
-    'Controllo corrispondenza materie prime',
-    'Pesata/misura dei componenti',
-    'Miscelazione / Lavorazione',
-    'Allestimento / Incapsulamento / Ripartizione',
-    'Controllo di uniformità e aspetto',
-    'Etichettatura e confezionamento'
-  ];
+  let finalChecklistItems = [];
+  if (details.worksheetItems && details.worksheetItems.length > 0) {
+    finalChecklistItems = details.worksheetItems
+      .filter(item => item.checked)
+      .map(item => item.text);
+  } else {
+    // Fallback per compatibilità con vecchie preparazioni o se non impostato
+    finalChecklistItems = [
+      'Verifica fonti documentali e calcoli',
+      'Controllo corrispondenza materie prime',
+      'Pesata/misura dei componenti',
+      'Miscelazione / Lavorazione',
+      'Allestimento / Incapsulamento / Ripartizione',
+      'Controllo di uniformità e aspetto',
+      'Etichettatura e confezionamento'
+    ];
+  }
 
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  checklistItems.forEach(item => {
-    doc.rect(20, y - 3.5, 4, 4); // Disegna un rettangolo per la checkbox
-    doc.text(item, 30, y);
+  finalChecklistItems.forEach(item => {
+    const checkboxX = 20;
+    const checkboxY = y - 3.5;
+    const checkboxSize = 4;
+    doc.rect(checkboxX, checkboxY, checkboxSize, checkboxSize); // Draw box
+    doc.line(checkboxX, checkboxY, checkboxX + checkboxSize, checkboxY + checkboxSize); // Draw X
+    doc.line(checkboxX, checkboxY + checkboxSize, checkboxX + checkboxSize, checkboxY); // Draw X
+    doc.text(item, checkboxX + checkboxSize + 5, y);
     y += 7;
   });
   y+= 5;
