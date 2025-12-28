@@ -125,15 +125,26 @@ export default function GalenicoApp() {
     localStorage.setItem('galenico_settings', JSON.stringify(pharmacySettings));
   }, [pharmacySettings]);
 
+  const handleTabChange = (tab) => {
+    if (activeTab === 'preparation') {
+      if (window.confirm('Sei sicuro di voler uscire? Le modifiche non salvate andranno perse.')) {
+        setEditingPrep(null); // Deseleziona la preparazione in modifica
+        setActiveTab(tab);
+      }
+    } else {
+      setActiveTab(tab);
+    }
+  };
+
   const handleShowPreparation = (prepId) => {
     setPreparationLogFilter(prepId);
-    setActiveTab('preparations_log');
+    handleTabChange('preparations_log');
     setIsAddModalOpen(false);
   };
 
   const handleShowSubstanceInInventory = (substanceId) => {
     setInventoryFilterSubstance(substanceId);
-    setActiveTab('inventory');
+    handleTabChange('inventory');
     setIsAddModalOpen(false);
   };
   
@@ -322,8 +333,8 @@ export default function GalenicoApp() {
             if (typeof bVal === 'string') bVal = bVal.toLowerCase();
         }
 
-        if (aVal < bVal) return prepSortConfig.direction === 'asc' ? -1 : 1;
-        if (aVal > bVal) return prepSortConfig.direction === 'asc' ? 1 : -1;
+        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
       });
     }
@@ -627,21 +638,17 @@ export default function GalenicoApp() {
   
 
       const handleNewPreparation = () => {
-
-  
-
-        setEditingPrep(null); // Resetta eventuale prep in modifica
-
-  
-
-        setInitialWizardStep(1);
-
-  
-
-        setIsPrepTypeModalOpen(true); // Apre la modale di selezione tipo
-
-  
-
+        if (activeTab === 'preparation') {
+            if (window.confirm('Sei sicuro di voler iniziare una nuova preparazione? Le modifiche non salvate andranno perse.')) {
+                setEditingPrep(null);
+                setInitialWizardStep(1);
+                setIsPrepTypeModalOpen(true);
+            }
+        } else {
+            setEditingPrep(null);
+            setInitialWizardStep(1);
+            setIsPrepTypeModalOpen(true);
+        }
       };
 
   
@@ -690,7 +697,7 @@ export default function GalenicoApp() {
 
                     preparations={preparations}
 
-                    setActiveTab={setActiveTab} 
+                    setActiveTab={handleTabChange} 
 
                     setInventoryFilter={setInventoryFilter} 
 
@@ -805,14 +812,14 @@ export default function GalenicoApp() {
           <p className="text-xs text-slate-500">Gestione Norme NBP</p>
         </div>
         <nav className="flex-1 p-4 space-y-2">
-          <SidebarItem icon={<ClipboardList size={20} />} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
-          <SidebarItem icon={<Package size={20} />} label="Magazzino Sostanze" active={activeTab === 'inventory'} onClick={() => { setInventoryFilter('all'); setActiveTab('inventory'); }} />
+          <SidebarItem icon={<ClipboardList size={20} />} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => handleTabChange('dashboard')} />
+          <SidebarItem icon={<Package size={20} />} label="Magazzino Sostanze" active={activeTab === 'inventory'} onClick={() => { setInventoryFilter('all'); handleTabChange('inventory'); }} />
           <SidebarItem icon={<Pill size={20} />} label={editingPrep ? "Modifica Prep." : "Nuova Prep."} active={activeTab === 'preparation'} onClick={handleNewPreparation} />
-          <SidebarItem icon={<LayoutList size={20} />} label="Registro Preparazioni" active={activeTab === 'preparations_log'} onClick={() => setActiveTab('preparations_log')} />
-          <SidebarItem icon={<History size={20} />} label="Registro Movimenti" active={activeTab === 'logs'} onClick={() => setActiveTab('logs')} />
+          <SidebarItem icon={<LayoutList size={20} />} label="Registro Preparazioni" active={activeTab === 'preparations_log'} onClick={() => handleTabChange('preparations_log')} />
+          <SidebarItem icon={<History size={20} />} label="Registro Movimenti" active={activeTab === 'logs'} onClick={() => handleTabChange('logs')} />
           <div className="pt-4 mt-4 border-t border-slate-700">
-            <SidebarItem icon={<Sparkles size={20} className="text-purple-400" />} label="Assistente IA" active={activeTab === 'ai-assistant'} onClick={() => setActiveTab('ai-assistant')} />
-            <SidebarItem icon={<Settings size={20} />} label="Impostazioni" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
+            <SidebarItem icon={<Sparkles size={20} className="text-purple-400" />} label="Assistente IA" active={activeTab === 'ai-assistant'} onClick={() => handleTabChange('ai-assistant')} />
+            <SidebarItem icon={<Settings size={20} />} label="Impostazioni" active={activeTab === 'settings'} onClick={() => handleTabChange('settings')} />
           </div>
         </nav>
         <div className="p-4 border-t border-slate-800"><div className="flex items-center gap-2 mb-2 text-xs">{isOnline ? <span className="flex items-center gap-1 text-green-400"><Wifi size={12} /> Online</span> : <span className="flex items-center gap-1 text-slate-500"><WifiOff size={12} /> Locale</span>}</div><p className="text-xs text-slate-500">Utente: Dr. Farmacista</p></div>

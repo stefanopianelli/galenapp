@@ -34,46 +34,97 @@ export const MOCK_INVENTORY = [
 ];
 
 export const MOCK_PREPARATIONS = [
-  { id: 201, prepNumber: '25/P001', name: 'Melatonina 5mg', pharmaceuticalForm: 'Capsule', quantity: 120, prepUnit: 'n.', expiryDate: '2026-06-15', posology: '1 caps 30 min prima di coricarsi', date: '2025-12-10', patient: 'Laura Neri', doctor: 'Dr. Rossi', status: 'Completata', totalPrice: 32.50, prepType: 'magistrale', ingredients: [
-    { id: 2, name: 'Melatonina', ni: '25/S102', lot: 'MEL-332', amountUsed: 0.6, unit: 'g' },
-    { id: 11, name: 'Lattosio Monoidrato', ni: '25/E001', lot: 'LAC-001', amountUsed: 35.4, unit: 'g' }
-  ]},
-  { id: 202, prepNumber: '25/P002', name: 'Finasteride 1mg', pharmaceuticalForm: 'Capsule', quantity: 90, prepUnit: 'n.', expiryDate: '2026-06-12', posology: '1 caps al giorno', date: '2025-12-12', patient: 'Marco Verdi', doctor: 'Dr. Gialli', status: 'Completata', totalPrice: 38.00, prepType: 'magistrale', ingredients: [
-    { id: 3, name: 'Finasteride', ni: '25/S103', lot: 'FIN-A55', amountUsed: 0.09, unit: 'g' },
-    { id: 12, name: 'Cellulosa Microcristallina PH 102', ni: '25/E002', lot: 'CMC-102', amountUsed: 26.91, unit: 'g' }
-  ]},
-  { id: 203, prepNumber: '25/P003', name: 'Tadalafil 20mg', pharmaceuticalForm: 'Capsule', quantity: 30, prepUnit: 'n.', expiryDate: '2026-06-08', posology: '1 caps al bisogno', date: '2025-12-08', patient: 'Paolo Bianchi', doctor: 'Dr. Blu', status: 'Completata', totalPrice: 45.10, prepType: 'magistrale', ingredients: [
-    { id: 4, name: 'Tadalafil', ni: '25/S104', lot: 'TAD-B01', amountUsed: 0.6, unit: 'g' },
-    { id: 12, name: 'Cellulosa Microcristallina PH 102', ni: '25/E002', lot: 'CMC-102', amountUsed: 8.4, unit: 'g' }
-  ]},
-  { id: 204, prepNumber: '25/P004', name: 'Caffeina 100mg', pharmaceuticalForm: 'Capsule', quantity: 60, prepUnit: 'n.', expiryDate: '2026-06-14', posology: '1 caps al mattino', date: '2025-12-14', patient: 'Chiara Rossi', doctor: 'Dr. Neri', status: 'Completata', totalPrice: 28.75, prepType: 'magistrale', ingredients: [
-    { id: 7, name: 'Caffeina Anidra', ni: '25/S107', lot: 'CAF-007', amountUsed: 6, unit: 'g' },
-    { id: 11, name: 'Lattosio Monoidrato', ni: '25/E001', lot: 'LAC-001', amountUsed: 17.4, unit: 'g' }
-  ]},
-  { id: 205, prepNumber: '25/P005', name: 'Paracetamolo 500mg', pharmaceuticalForm: 'Capsule', quantity: 20, prepUnit: 'n.', expiryDate: '2026-06-01', posology: '1 caps ogni 6 ore al bisogno', date: '2025-12-01', patient: 'Luca Gialli', doctor: 'Dr. Verdi', status: 'Completata', totalPrice: 21.00, prepType: 'magistrale', ingredients: [
-    { id: 1, name: 'Paracetamolo Polvere', ni: '25/S101', lot: 'PAR-001', amountUsed: 10, unit: 'g' },
-    { id: 13, name: 'Magnesio Stearato Vegetale', ni: '25/E003', lot: 'MG-ST-V', amountUsed: 0.2, unit: 'g' }
-  ]},
-  { id: 206, prepNumber: '25/P006', name: 'Minoxidil 2.5mg', pharmaceuticalForm: 'Capsule', quantity: 100, prepUnit: 'n.', expiryDate: '2026-06-15', posology: '1 caps al giorno', date: '2025-12-15', patient: 'Giuseppe Rosato', doctor: 'Dr. Bruni', status: 'Completata', totalPrice: 30.00, prepType: 'magistrale', ingredients: [
-    { id: 8, name: 'Minoxidil Base', ni: '25/S108', lot: 'MNX-A11', amountUsed: 0.25, unit: 'g' },
-    { id: 12, name: 'Cellulosa Microcristallina PH 102', ni: '25/E002', lot: 'CMC-102', amountUsed: 29.75, unit: 'g' }
-  ]},
-  { id: 207, prepNumber: '25/P007', name: 'Coenzima Q10 100mg', pharmaceuticalForm: 'Capsule', quantity: 60, prepUnit: 'n.', expiryDate: '2026-02-20', posology: '1 caps die', date: '2025-11-20', patient: 'Maria Ciano', doctor: 'Dr. Oliva', status: 'Completata', totalPrice: 35.20, prepType: 'magistrale', ingredients: [
-    { id: 10, name: 'Coenzima Q10', ni: '25/S110', lot: 'Q10-Z01', amountUsed: 6, unit: 'g' },
-    { id: 11, name: 'Lattosio Monoidrato', ni: '25/E001', lot: 'LAC-001', amountUsed: 18, unit: 'g' }
-  ]},
-  { id: 208, prepNumber: '25/P008', name: 'Curcumina 500mg', pharmaceuticalForm: 'Capsule', quantity: 90, prepUnit: 'n.', expiryDate: '2026-06-13', posology: '2 cps die', date: '2025-12-13', patient: 'Fabio Magenta', doctor: 'Dr. Viola', status: 'Completata', totalPrice: 31.80, prepType: 'magistrale', ingredients: [
-    { id: 5, name: 'Curcumina Estr. Secco', ni: '25/S105', lot: 'CUR-95C', amountUsed: 45, unit: 'g' },
-    { id: 13, name: 'Magnesio Stearato Vegetale', ni: '25/E003', lot: 'MG-ST-V', amountUsed: 0.9, unit: 'g' }
-  ]},
-  { id: 209, prepNumber: '25/P009', name: 'Diltiazem 60mg', pharmaceuticalForm: 'Capsule', quantity: 100, prepUnit: 'n.', expiryDate: '2026-05-10', posology: '1 caps x 3/die', date: '2025-11-10', patient: 'Anna Arancio', doctor: 'Dr. Sole', status: 'Completata', totalPrice: 39.50, prepType: 'magistrale', ingredients: [
-    { id: 9, name: 'Diltiazem Cloridrato', ni: '25/S109', lot: 'DIL-X09', amountUsed: 6, unit: 'g' },
-    { id: 11, name: 'Lattosio Monoidrato', ni: '25/E001', lot: 'LAC-001', amountUsed: 24, unit: 'g' }
-  ]},
-  { id: 210, prepNumber: '25/P010', name: 'Vitamina D3 5000 UI', pharmaceuticalForm: 'Capsule', quantity: 120, prepUnit: 'n.', expiryDate: '2026-06-11', posology: '1 caps a settimana', date: '2025-12-11', patient: 'Mario Marrone', doctor: 'Dr. Bosco', status: 'Completata', totalPrice: 30.15, prepType: 'magistrale', ingredients: [
-    { id: 6, name: 'Vitamina D3 100.000 UI/g', ni: '25/S106', lot: 'VD3-C01', amountUsed: 6, unit: 'g' },
-    { id: 12, name: 'Cellulosa Microcristallina PH 102', ni: '25/E002', lot: 'CMC-102', amountUsed: 30, unit: 'g' }
-  ]}
+  { 
+    id: 201, prepNumber: '25/P001', name: 'Melatonina 5mg', 
+    pharmaceuticalForm: 'Capsule', quantity: 120, prepUnit: 'n.', 
+    expiryDate: '2026-06-15', date: '2025-12-10', 
+    prepType: 'magistrale', status: 'Completata',
+    patient: 'Laura Neri', doctor: 'Dr. Rossi', recipeDate: '2025-12-09',
+    posology: '1 caps 30 min prima di coricarsi', 
+    usage: 'Orale',
+    warnings: 'Può causare sonnolenza. Non guidare dopo l\'assunzione.',
+    operatingProcedures: '',
+    worksheetItems: [],
+    ingredients: [
+      { id: 2, name: 'Melatonina', amountUsed: 0.6, unit: 'g' },
+      { id: 11, name: 'Lattosio Monoidrato', amountUsed: 35.4, unit: 'g' },
+      { id: 104, name: 'Scatola Capsule (100 posti)', amountUsed: 2, unit: 'n.'},
+    ],
+    totalPrice: 32.50
+  },
+  { 
+    id: 202, prepNumber: '25/P002', name: 'Finasteride 1mg', 
+    pharmaceuticalForm: 'Capsule', quantity: 90, prepUnit: 'n.', 
+    expiryDate: '2026-06-12', date: '2025-12-12', 
+    prepType: 'magistrale', status: 'Completata',
+    patient: 'Marco Verdi', doctor: 'Dr. Gialli', recipeDate: '2025-12-10',
+    posology: '1 caps al giorno', 
+    usage: 'Orale',
+    warnings: 'Non maneggiare se in stato di gravidanza.',
+    operatingProcedures: 'Miscelazione in progressione geometrica delle polveri.',
+    worksheetItems: [
+        { text: 'Verifica fonti documentali e calcoli', checked: true },
+        { text: 'Controllo corrispondenza materie prime', checked: true },
+        { text: 'Pesata/misura dei componenti', checked: true },
+        { text: 'Miscelazione / Lavorazione', checked: true },
+        { text: 'Allestimento / Incapsulamento / Ripartizione', checked: true },
+        { text: 'Controllo di uniformità e aspetto', checked: true },
+        { text: 'Etichettatura e confezionamento', checked: true }
+    ],
+    ingredients: [
+      { id: 3, name: 'Finasteride', amountUsed: 0.09, unit: 'g' },
+      { id: 12, name: 'Cellulosa Microcristallina PH 102', amountUsed: 26.91, unit: 'g' },
+      { id: 104, name: 'Scatola Capsule (100 posti)', amountUsed: 1, unit: 'n.'},
+    ],
+    totalPrice: 38.00
+  },
+  { 
+    id: 301, prepNumber: '25/P003', name: 'Minoxidil Base 5% Lozione', 
+    pharmaceuticalForm: 'Lozione', quantity: 100, prepUnit: 'ml', 
+    expiryDate: '2026-02-28', date: '2025-12-14',
+    prepType: 'officinale', status: 'Completata',
+    patient: '', doctor: '', recipeDate: '',
+    posology: 'Applicare 1ml (20 gocce) sul cuoio capelluto asciutto 1-2 volte al giorno.',
+    usage: 'Topica',
+    warnings: 'Uso esterno. Infiammabile. Evitare il contatto con gli occhi.',
+    operatingProcedures: '1. Solubilizzare minoxidil in etanolo 96°.\n2. Aggiungere il glicole propilenico.\n3. Portare a volume con acqua depurata sotto agitazione.',
+    ingredients: [
+      { id: 8, name: 'Minoxidil Base', amountUsed: 5, unit: 'g' },
+      // Ipotizziamo che Glicole ed Etanolo siano in magazzino
+      // { id: 16, name: 'Glicole Propilenico', amountUsed: 20, unit: 'ml' }, 
+      // { id: 17, name: 'Etanolo 96°', amountUsed: 50, unit: 'ml' },
+      { id: 101, name: 'Flacone Vetro Scuro 100ml', amountUsed: 1, unit: 'n.'},
+    ],
+    batches: [
+      { containerId: 101, productQuantity: 100, unitPrice: 25.00 }
+    ],
+    worksheetItems: [
+        { text: 'Verifica fonti documentali e calcoli', checked: true },
+        { text: 'Controllo corrispondenza materie prime', checked: true },
+        { text: 'Misurazione volumi', checked: true },
+        { text: 'Solubilizzazione', checked: true },
+        { text: 'Controllo di aspetto e limpidezza', checked: true },
+        { text: 'Etichettatura e confezionamento', checked: true }
+    ],
+    totalPrice: '28.50'
+  },
+  { 
+    id: 302, prepNumber: '25/P004', name: 'Crema Base Idratante', 
+    pharmaceuticalForm: 'Crema', quantity: 200, prepUnit: 'g', 
+    expiryDate: '2026-03-15', date: '2025-12-15',
+    prepType: 'officinale', status: 'Bozza',
+    patient: '', doctor: '', recipeDate: '',
+    posology: 'Applicare sulla zona interessata più volte al giorno.',
+    usage: 'Topica',
+    warnings: 'Conservare in luogo fresco e asciutto.',
+    operatingProcedures: '',
+    ingredients: [
+      { id: 102, name: 'Barattolo Plastica 50g', amountUsed: 4, unit: 'n.'},
+    ],
+    batches: [],
+    worksheetItems: [],
+    totalPrice: '0.00'
+  }
 ];
 
 
