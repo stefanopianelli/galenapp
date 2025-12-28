@@ -32,7 +32,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
   const [details, setDetails] = useState({ 
     name: '', patient: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
-    expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', warnings: '', recipeDate: '', usage: 'Orale', prepType: 'magistrale'
+    expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', warnings: '', recipeDate: '', usage: 'Orale', operatingProcedures: '', prepType: 'magistrale'
   });
 
   const getNextPrepNumber = () => {
@@ -52,7 +52,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   useEffect(() => {
     const defaultDetails = {
       name: '', patient: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
-      expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', warnings: '', recipeDate: '', usage: 'Orale', status: 'Bozza', prepType: 'magistrale', batches: []
+      expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', warnings: '', recipeDate: '', usage: 'Orale', operatingProcedures: '', status: 'Bozza', prepType: 'magistrale', batches: []
     };
 
     if (initialData) {
@@ -485,7 +485,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                                 <div className="w-full flex justify-between text-sm text-teal-800 mb-1"><span>Totale Netto</span><span>€ {pricing.net.toFixed(2)}</span></div>
                                 <div className="w-full flex justify-between text-sm text-teal-800 mb-2 border-b border-teal-200 pb-2"><span>IVA (10%)</span><span>€ {pricing.vat.toFixed(2)}</span></div>
                                 <div className="flex items-baseline gap-4"><span className="text-lg font-bold text-teal-900">PREZZO FINALE</span><span className="text-3xl font-bold text-teal-700">€ {pricing.final.toFixed(2)}</span></div>
-                              </div>              <div className="pt-4 flex justify-between"><button onClick={() => setStep(2)} className="text-slate-500 hover:underline">Indietro</button><button onClick={() => setStep(isOfficinale ? 4 : 5)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700">Avanti a {isOfficinale ? "Lotti" : "Foglio Lav."}</button></div>
+                              </div>              <div className="pt-4 flex justify-between"><button onClick={() => setStep(2)} className="text-slate-500 hover:underline">Indietro</button><button onClick={() => { console.log('Step 3 Next clicked. Going to step 4. isOfficinale:', isOfficinale); setStep(4); }} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700">Avanti a {isOfficinale ? "Lotti" : "Foglio Lav."}</button></div>
           </div>
         )}
 
@@ -584,7 +584,17 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
           <div className="space-y-6 animate-in fade-in">
             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 pt-4"><FileText size={24} /> Personalizzazione Foglio di Lavorazione</h2>
             <div className="bg-blue-50 p-4 rounded-md border border-blue-100 text-sm text-blue-800 mb-4"><p>Aggiungi dettagli o modifica le sezioni che appariranno nel PDF finale.</p></div>
-            <p className="text-center text-slate-500 italic py-12">Work in Progress: qui verranno inseriti i campi per la personalizzazione.</p>
+            
+            <div className="space-y-2">
+              <label className="block text-sm font-bold text-slate-700 uppercase tracking-wide">Procedure operative ed eventuali integrazioni</label>
+              <textarea 
+                className="w-full border p-3 rounded-md outline-none h-48 resize-y focus:ring-2 ring-teal-500 text-sm" 
+                value={details.operatingProcedures} 
+                onChange={e => setDetails({...details, operatingProcedures: e.target.value})} 
+                placeholder="Inserisci qui le fasi di lavorazione, istruzioni specifiche o note tecniche per il foglio di lavorazione..."
+              />
+            </div>
+
             <div className="pt-4 flex justify-between"><button onClick={() => setStep(isOfficinale ? 4 : 3)} className="text-slate-500 hover:underline">Indietro</button><button onClick={() => setStep(isOfficinale ? 6 : 5)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700">Avanti a Conferma</button></div>
           </div>
         )}
