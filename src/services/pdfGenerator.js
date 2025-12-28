@@ -163,7 +163,45 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
     }
   });
   
-  y = doc.lastAutoTable.finalY + 10;
+  y = doc.lastAutoTable.finalY + 5;
+
+  // --- TABELLA LOTTI (Solo Officinali) ---
+  if(isOfficinale && details.batches && details.batches.length > 0) {
+    y += 5;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+    doc.text("DETTAGLIO LOTTIZZAZIONE", 14, y);
+    y += 2;
+
+    const batchesBody = details.batches.map(batch => {
+      const container = ingredients.find(ing => ing.id === batch.containerId);
+      return [
+        container ? container.name : `ID: ${batch.containerId}`,
+        Number(container ? container.amountUsed : 0).toFixed(0),
+        batch.productQuantity,
+        `€ ${parseFloat(batch.unitPrice || 0).toFixed(2)}`
+      ];
+    });
+
+    doc.autoTable({
+      startY: y,
+      head: [['CONTENITORE', 'N. CONFEZIONI', 'Q.TÀ / CONF.', 'PREZZO UNITARIO']],
+      body: batchesBody,
+      theme: 'grid',
+      headStyles: { fillColor: COLORS.background, textColor: COLORS.secondary, fontStyle: 'bold', lineColor: COLORS.secondary, lineWidth: 0.1 },
+      styles: { fontSize: 9, cellPadding: 2, textColor: COLORS.text, lineColor: COLORS.border },
+      columnStyles: {
+        0: { cellWidth: 80 },
+        1: { cellWidth: 30, halign: 'center' },
+        2: { cellWidth: 30, halign: 'center' },
+        3: { cellWidth: 'auto', halign: 'right' }
+      }
+    });
+    y = doc.lastAutoTable.finalY + 5;
+  }
+
+  y += 5; // Extra spacing before next section
 
   // Check spazio pagina
   if (y > 220) { doc.addPage(); y = 20; }
@@ -219,9 +257,8 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
     return y + 6;
   };
 
-  y = drawCheckbox("Pulizia Locali e Attrezzature", true, 14, y);
-  y = drawCheckbox("Idoneità Personale", true, 14, y);
-  y = drawCheckbox("Corrispondenza Materie Prime", true, 14, y);
+  y = drawCheckbox("Verifica Pulizia Locali, Puliti", true, 14, y);
+  y = drawCheckbox("Verifica Pulizia Attrezzatura, Utensili, Confezionamento, Puliti", true, 14, y);
 
   // Procedure (Right column text area look)
   if (details.operatingProcedures) {
@@ -371,10 +408,17 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]);
   
-  const signY = y + 15;
+  let signY = y + 15;
+  // Firma 1: Preparatore
   doc.line(14, signY, 80, signY);
   doc.text("Il Farmacista Preparatore", 14, signY + 5);
+  doc.line(90, signY, 120, signY);
+  doc.text("Data", 90, signY + 5);
 
+  signY += 15;
+  // Firma 2: Direttore
+  doc.line(14, signY, 80, signY);
+  doc.text("Il Direttore Responsabile", 14, signY + 5);
   doc.line(90, signY, 120, signY);
   doc.text("Data", 90, signY + 5);
 
