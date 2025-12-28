@@ -132,38 +132,59 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
   // --- COMPOSIZIONE ---
   y = drawSectionHeader("Formula e Composizione", y);
 
-  const ingredientsBody = ingredients.map(ing => {
-    let flags = [];
-    if(ing.isDoping) flags.push("Doping");
-    if(ing.isNarcotic) flags.push("Stupefacente");
-    
-    // Gestione visualizzazione lotti
-    const identifier = ing.lot || ing.ni || '-';
+  const substances = ingredients.filter(ing => !ing.isContainer);
+  const containers = ingredients.filter(ing => ing.isContainer);
 
-    return [
-      { content: ing.name, styles: { fontStyle: 'bold' } },
-      identifier,
-      { content: `${Number(ing.amountUsed).toFixed(ing.isContainer ? 0 : 2)} ${ing.unit}`, styles: { halign: 'right' } },
-      flags.join(', ')
-    ];
-  });
+  if (substances.length > 0) {
+    const substancesBody = substances.map(ing => {
+      let flags = [];
+      if(ing.isDoping) flags.push("Doping");
+      if(ing.isNarcotic) flags.push("Stupefacente");
+      const identifier = ing.lot || ing.ni || '-';
+      return [
+        { content: ing.name, styles: { fontStyle: 'bold' } },
+        identifier,
+        { content: `${Number(ing.amountUsed).toFixed(2)} ${ing.unit}`, styles: { halign: 'right' } },
+        flags.join(', ')
+      ];
+    });
 
-  doc.autoTable({
-    startY: y,
-    head: [['SOSTANZA / COMPONENTE', 'LOTTO / N.I.', 'QUANTITÀ', 'NOTE']],
-    body: ingredientsBody,
-    theme: 'grid',
-    headStyles: { fillColor: COLORS.background, textColor: COLORS.primary, fontStyle: 'bold', lineColor: COLORS.primary, lineWidth: 0.1 },
-    styles: { fontSize: 9, cellPadding: 2, textColor: COLORS.text, lineColor: COLORS.border },
-    columnStyles: {
-      0: { cellWidth: 80 },
-      1: { cellWidth: 40 },
-      2: { cellWidth: 30 },
-      3: { cellWidth: 'auto' }
-    }
-  });
-  
-  y = doc.lastAutoTable.finalY + 5;
+    doc.autoTable({
+      startY: y,
+      head: [['SOSTANZA', 'LOTTO / N.I.', 'QUANTITÀ', 'NOTE']],
+      body: substancesBody,
+      theme: 'grid',
+      headStyles: { fillColor: COLORS.background, textColor: COLORS.primary, fontStyle: 'bold', lineColor: COLORS.primary, lineWidth: 0.1 },
+      styles: { fontSize: 9, cellPadding: 2, textColor: COLORS.text, lineColor: COLORS.border },
+      columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 40 }, 2: { cellWidth: 30 }, 3: { cellWidth: 'auto' } }
+    });
+    y = doc.lastAutoTable.finalY + 5;
+  }
+
+  if (containers.length > 0) {
+    y += 5; // Spaziatura tra le tabelle
+
+    const containersBody = containers.map(ing => {
+      const identifier = ing.lot || ing.ni || '-';
+      return [
+        { content: ing.name, styles: { fontStyle: 'bold' } },
+        identifier,
+        { content: `${Number(ing.amountUsed).toFixed(0)} ${ing.unit}`, styles: { halign: 'right' } },
+        ''
+      ];
+    });
+
+    doc.autoTable({
+      startY: y,
+      head: [['CONTENITORE', 'LOTTO / N.I.', 'QUANTITÀ', 'NOTE']],
+      body: containersBody,
+      theme: 'grid',
+      headStyles: { fillColor: COLORS.background, textColor: COLORS.secondary, fontStyle: 'bold', lineColor: COLORS.secondary, lineWidth: 0.1 },
+      styles: { fontSize: 9, cellPadding: 2, textColor: COLORS.text, lineColor: COLORS.border },
+      columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 40 }, 2: { cellWidth: 30 }, 3: { cellWidth: 'auto' } }
+    });
+    y = doc.lastAutoTable.finalY + 5;
+  }
 
   // --- TABELLA LOTTI (Solo Officinali) ---
   if(isOfficinale && details.batches && details.batches.length > 0) {
@@ -264,7 +285,7 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
   if (details.operatingProcedures) {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text("Procedure Operative:", 100, startYChecks);
+    doc.text("Procedure operative ed eventuali integrazioni:", 100, startYChecks);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]);
