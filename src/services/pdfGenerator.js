@@ -308,8 +308,9 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
     : ['Verifica calcoli', 'Pesata componenti', 'Miscelazione', 'Confezionamento', 'Controllo Aspetto'];
 
   let col = 0; let startYList = y;
+  let maxY = y; // Track max height to avoid overlap
   finalChecklistItems.forEach((item, i) => {
-    if (y > 270) { doc.addPage(); y = 20; startYList = 20; }
+    if (y > 270) { doc.addPage(); y = 20; startYList = 20; maxY = 20; }
     const xPos = col === 0 ? 14 : 110;
     doc.setDrawColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]);
     doc.rect(xPos, y - 3, 4, 4);
@@ -318,10 +319,11 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
     doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]);
     doc.text(item, xPos + 7, y);
     y += 6;
+    if (y > maxY) maxY = y;
     if (y > startYList + 30 && col === 0) { y = startYList; col = 1; }
   });
 
-  y = Math.max(y, startYList + 6) + 10;
+  y = maxY + 10;
 
   // --- DETTAGLIO COSTI ---
   if (y > 200) { doc.addPage(); y = 20; }
