@@ -33,7 +33,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
   const [details, setDetails] = useState({ 
     name: '', patient: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
-    expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', warnings: '', recipeDate: '', usage: 'Orale', operatingProcedures: '', prepType: 'magistrale'
+    expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', warnings: '', recipeDate: '', usage: 'Orale', operatingProcedures: '', prepType: 'magistrale', labelWarnings: []
   });
 
   const getNextPrepNumber = () => {
@@ -53,7 +53,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   useEffect(() => {
     const defaultDetails = {
       name: '', patient: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
-      expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', warnings: '', recipeDate: '', usage: 'Orale', operatingProcedures: '', status: 'Bozza', prepType: 'magistrale', batches: [], worksheetItems: []
+      expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', warnings: '', recipeDate: '', usage: 'Orale', operatingProcedures: '', status: 'Bozza', prepType: 'magistrale', batches: [], worksheetItems: [], labelWarnings: []
     };
 
     if (initialData) {
@@ -164,6 +164,20 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
     newItems[index].checked = !newItems[index].checked;
     setWorksheetItems(newItems);
   };
+
+  const handleLabelWarningChange = (warning) => {
+    setDetails(prev => {
+      const current = prev.labelWarnings || [];
+      if (current.includes(warning)) {
+        return { ...prev, labelWarnings: current.filter(w => w !== warning) };
+      } else {
+        return { ...prev, labelWarnings: [...current, warning] };
+      }
+    });
+  };
+
+  const hasDopingIngredient = selectedIngredients.some(ing => ing.isDoping);
+  const dopingWarning = "Per chi svolge attività sportiva: l’uso del farmaco senza necessità terapeutica costituisce doping e può determinare comunque positività ai test antidoping.";
 
   const getPrepUnit = (form) => {
     if (['Crema', 'Gel', 'Unguento', 'Pasta', 'Polvere'].includes(form)) return 'g';
@@ -514,7 +528,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                                 <div className="w-full flex justify-between text-sm text-teal-800 mb-1"><span>Totale Netto</span><span>€ {pricing.net.toFixed(2)}</span></div>
                                 <div className="w-full flex justify-between text-sm text-teal-800 mb-2 border-b border-teal-200 pb-2"><span>IVA (10%)</span><span>€ {pricing.vat.toFixed(2)}</span></div>
                                 <div className="flex items-baseline gap-4"><span className="text-lg font-bold text-teal-900">PREZZO FINALE</span><span className="text-3xl font-bold text-teal-700">€ {pricing.final.toFixed(2)}</span></div>
-                              </div>              <div className="pt-4 flex justify-between"><button onClick={() => setStep(2)} className="text-slate-500 hover:underline">Indietro</button><button onClick={() => setStep(4)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700">Avanti a {isOfficinale ? "Lotti" : "Foglio Lav."}</button></div>
+                              </div>              <div className="pt-4 flex justify-between"><button onClick={() => setStep(2)} className="text-slate-500 hover:underline">Indietro</button><button onClick={() => setStep(4)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700">VAI ALLO STEP 4</button></div>
           </div>
         )}
 
@@ -614,7 +628,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 pt-4"><FileText size={24} /> Personalizzazione Foglio di Lavorazione</h2>
             
             <div className="space-y-2">
-              <label className="block text-sm font-bold text-slate-700">Procedure operative ed eventuali integrazioni</label>
+              <label className="block text-sm font-bold text-slate-700 uppercase tracking-wide">Procedure operative ed eventuali integrazioni</label>
               <textarea 
                 className="w-full border p-3 rounded-md outline-none h-40 resize-y focus:ring-2 ring-teal-500" 
                 value={details.operatingProcedures || ''} 
@@ -624,19 +638,47 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-bold text-slate-700">Fasi di lavorazione e controlli (per il PDF)</label>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 p-4 border rounded-md">
+              <label className="block text-sm font-bold text-slate-700 uppercase tracking-wide">Fasi di lavorazione e controlli (per il PDF)</label>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 p-4 border rounded-md bg-white">
                 {worksheetItems.map((item, index) => (
-                  <label key={index} className="flex items-center gap-2 text-sm">
+                  <label key={index} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded">
                     <input 
                       type="checkbox"
                       checked={item.checked}
                       onChange={() => handleWorksheetItemChange(index)}
-                      className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                      className="mt-0.5 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
                     />
-                    <span>{item.text}</span>
+                    <span className="text-slate-700">{item.text}</span>
                   </label>
                 ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-bold text-slate-700 uppercase tracking-wide">Frasi ed avvertenze da riportare in etichetta</label>
+              <div className="space-y-2 p-4 border rounded-md bg-white">
+                {["Tenere fuori dalla portata dei bambini", "Tenere al riparo da luce e fonti di calore"].map((warning, i) => (
+                  <label key={i} className="flex items-start gap-2 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded">
+                    <input 
+                      type="checkbox" 
+                      checked={(details.labelWarnings || []).includes(warning)} 
+                      onChange={() => handleLabelWarningChange(warning)}
+                      className="mt-0.5 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                    />
+                    <span className="text-slate-700">{warning}</span>
+                  </label>
+                ))}
+                {hasDopingIngredient && (
+                  <label className="flex items-start gap-2 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded">
+                    <input 
+                      type="checkbox" 
+                      checked={(details.labelWarnings || []).includes(dopingWarning)} 
+                      onChange={() => handleLabelWarningChange(dopingWarning)}
+                      className="mt-0.5 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                    />
+                    <span className="text-slate-700 font-bold text-red-600">{dopingWarning}</span>
+                  </label>
+                )}
               </div>
             </div>
 

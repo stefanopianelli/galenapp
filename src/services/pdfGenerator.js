@@ -20,9 +20,6 @@ const COLORS = {
   border: [209, 213, 219] // Gray-300
 };
 
-// Helper per estrarre i colori
-const getRGB = (colorArr) => [colorArr[0], colorArr[1], colorArr[2]];
-
 export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
   const doc = new jsPDF();
   
@@ -43,12 +40,28 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.text(text.toUpperCase(), 16, yPos);
-    doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]); // Reset text color
+    doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]);
     return yPos + 10;
   };
 
+  // Helper per checkbox
+  const drawCheckbox = (text, checked, x, y) => {
+    doc.setDrawColor(COLORS.textLight[0], COLORS.textLight[1], COLORS.textLight[2]);
+    doc.rect(x, y - 3, 4, 4);
+    if (checked) {
+      doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      doc.setLineWidth(0.4);
+      doc.line(x, y - 3, x + 4, y + 1);
+      doc.line(x, y + 1, x + 4, y - 3);
+    }
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]);
+    doc.text(text, x + 6, y);
+    return x + doc.getTextWidth(text) + 15;
+  };
+
   // --- HEADER ---
-  
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
@@ -73,7 +86,6 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
   let y = 55;
 
   // --- INFO BOX ---
-  // Usiamo autotable per creare una griglia ordinata per i dati principali
   const infoData = [
     [
       { content: 'N. PREPARAZIONE:', styles: { fontStyle: 'bold', textColor: COLORS.primary } }, 
@@ -118,19 +130,23 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
     body: infoData,
     theme: 'plain',
     styles: { cellPadding: 1.5, fontSize: 9, textColor: COLORS.text },
-    columnStyles: {
-      0: { cellWidth: 35 },
-      1: { cellWidth: 55 },
-      2: { cellWidth: 35 },
-      3: { cellWidth: 55 }
-    },
-    didDrawPage: (d) => y = d.cursor.y + 5 // Aggiorna y
+    columnStyles: { 0: { cellWidth: 35 }, 1: { cellWidth: 55 }, 2: { cellWidth: 35 }, 3: { cellWidth: 55 } }
   });
 
-  y = doc.lastAutoTable.finalY + 5;
+  y = doc.lastAutoTable.finalY + 10;
+
+  // --- VERIFICHE PRELIMINARI (Nuova posizione) ---
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+  doc.text("VERIFICHE PRELIMINARI:", 14, y);
+  y += 5;
+  let nextX = drawCheckbox("Verifica Pulizia Locali, Puliti", true, 14, y);
+  drawCheckbox("Verifica Pulizia Attrezzatura, Utensili, Confezionamento, Puliti", true, nextX, y);
+  y += 15; // Spazio aumentato come richiesto
 
   // --- COMPOSIZIONE ---
-  y = drawSectionHeader("Formula e Composizione", y);
+  y = drawSectionHeader("Composizione", y);
 
   const substances = ingredients.filter(ing => !ing.isContainer);
   const containers = ingredients.filter(ing => ing.isContainer);
@@ -150,7 +166,7 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
     });
 
     doc.autoTable({
-      startY: y,
+      startY: y - 7, // Minima distanza dal titolo
       head: [['SOSTANZA', 'LOTTO / N.I.', 'QUANTITÀ', 'NOTE']],
       body: substancesBody,
       theme: 'grid',
@@ -158,12 +174,10 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
       styles: { fontSize: 9, cellPadding: 2, textColor: COLORS.text, lineColor: COLORS.border },
       columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 40 }, 2: { cellWidth: 30 }, 3: { cellWidth: 'auto' } }
     });
-    y = doc.lastAutoTable.finalY + 5;
+    y = doc.lastAutoTable.finalY; // Reset Y per attaccare la prossima tabella
   }
 
   if (containers.length > 0) {
-    y += 5; // Spaziatura tra le tabelle
-
     const containersBody = containers.map(ing => {
       const identifier = ing.lot || ing.ni || '-';
       return [
@@ -175,7 +189,7 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
     });
 
     doc.autoTable({
-      startY: y,
+      startY: y, // Attaccata alla precedente
       head: [['CONTENITORE', 'LOTTO / N.I.', 'QUANTITÀ', 'NOTE']],
       body: containersBody,
       theme: 'grid',
@@ -186,265 +200,177 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
     y = doc.lastAutoTable.finalY + 5;
   }
 
-  // --- TABELLA LOTTI (Solo Officinali) ---
   if(isOfficinale && details.batches && details.batches.length > 0) {
     y += 5;
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9); doc.setFont('helvetica', 'bold');
     doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
     doc.text("DETTAGLIO LOTTIZZAZIONE", 14, y);
     y += 2;
-
     const batchesBody = details.batches.map(batch => {
       const container = ingredients.find(ing => ing.id === batch.containerId);
-      return [
-        container ? container.name : `ID: ${batch.containerId}`,
-        Number(container ? container.amountUsed : 0).toFixed(0),
-        batch.productQuantity,
-        `€ ${parseFloat(batch.unitPrice || 0).toFixed(2)}`
-      ];
+      return [container ? container.name : `ID: ${batch.containerId}`, Number(container ? container.amountUsed : 0).toFixed(0), batch.productQuantity, `€ ${parseFloat(batch.unitPrice || 0).toFixed(2)}` ];
     });
-
     doc.autoTable({
-      startY: y,
-      head: [['CONTENITORE', 'N. CONFEZIONI', 'Q.TÀ / CONF.', 'PREZZO UNITARIO']],
-      body: batchesBody,
-      theme: 'grid',
+      startY: y, head: [['CONTENITORE', 'N. CONFEZIONI', 'Q.TÀ / CONF.', 'PREZZO UNITARIO']], body: batchesBody, theme: 'grid',
       headStyles: { fillColor: COLORS.background, textColor: COLORS.secondary, fontStyle: 'bold', lineColor: COLORS.secondary, lineWidth: 0.1 },
       styles: { fontSize: 9, cellPadding: 2, textColor: COLORS.text, lineColor: COLORS.border },
-      columnStyles: {
-        0: { cellWidth: 80 },
-        1: { cellWidth: 30, halign: 'center' },
-        2: { cellWidth: 30, halign: 'center' },
-        3: { cellWidth: 'auto', halign: 'right' }
-      }
+      columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 30, halign: 'center' }, 2: { cellWidth: 30, halign: 'center' }, 3: { cellWidth: 'auto', halign: 'right' } }
     });
     y = doc.lastAutoTable.finalY + 5;
   }
 
-  y += 5; // Extra spacing before next section
-
-  // Check spazio pagina
+  y += 5;
   if (y > 220) { doc.addPage(); y = 20; }
 
-  // --- POSOLOGIA & AVVERTENZE (Compact) ---
+  // --- POSOLOGIA & AVVERTENZE (Altezza dinamica) ---
+  doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+  const posologyLines = doc.splitTextToSize(details.posology || '-', 150);
+  const warningsLines = doc.splitTextToSize(details.warnings || '-', 150);
+  
+  const posologyHeight = posologyLines.length * 4;
+  const warningsHeight = warningsLines.length * 4;
+  const boxHeight = 10 + posologyHeight + 5 + warningsHeight + 5; // Padding + content + gaps
+
   doc.setDrawColor(COLORS.secondary[0], COLORS.secondary[1], COLORS.secondary[2]);
   doc.setLineWidth(0.5);
-  doc.roundedRect(14, y, 182, 25, 2, 2);
+  doc.roundedRect(14, y, 182, boxHeight, 2, 2);
   
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-  doc.text("POSOLOGIA:", 17, y + 5);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]);
-  doc.text(details.posology || '-', 40, y + 5, { maxWidth: 150 });
-
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-  doc.text("AVVERTENZE:", 17, y + 15);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]);
-  doc.text(details.warnings || '-', 40, y + 15, { maxWidth: 150 });
-
-  y += 35;
-
-  // Check spazio pagina
-  if (y > 220) { doc.addPage(); y = 20; }
-
-  // --- VERIFICHE & FASI ---
-  y = drawSectionHeader("Controlli e Fasi Operative", y);
-
-  // Verifiche Iniziali (Left column)
-  const startYChecks = y;
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text("Verifiche Preliminari", 14, y);
-  y += 6;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
+  let textY = y + 5;
+  doc.setFont('helvetica', 'bold'); doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+  doc.text("POSOLOGIA:", 17, textY);
+  doc.setFont('helvetica', 'normal'); doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]);
+  doc.text(posologyLines, 40, textY);
   
-  const drawCheckbox = (text, checked, x, y) => {
-    doc.setDrawColor(COLORS.textLight[0], COLORS.textLight[1], COLORS.textLight[2]);
-    doc.rect(x, y - 3, 4, 4);
-    if (checked) {
-      doc.setFont('zapfdingbats');
-      doc.setFontSize(10);
-      doc.text('4', x + 0.5, y); // '4' in zapfdingbats is a checkmark
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-    }
-    doc.text(text, x + 7, y);
-    return y + 6;
-  };
+  textY += Math.max(posologyHeight, 5) + 5;
+  
+  doc.setFont('helvetica', 'bold'); doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+  doc.text("AVVERTENZE:", 17, textY);
+  doc.setFont('helvetica', 'normal'); doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]);
+  doc.text(warningsLines, 40, textY);
 
-  y = drawCheckbox("Verifica Pulizia Locali, Puliti", true, 14, y);
-  y = drawCheckbox("Verifica Pulizia Attrezzatura, Utensili, Confezionamento, Puliti", true, 14, y);
+  y += boxHeight + 10;
 
-  // Procedure (Right column text area look)
-  if (details.operatingProcedures) {
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.text("Procedure operative ed eventuali integrazioni:", 100, startYChecks);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]);
-    const splitText = doc.splitTextToSize(details.operatingProcedures, 90);
-    doc.text(splitText, 100, startYChecks + 6);
+  // --- FRASI ED AVVERTENZE DA RIPORTARE IN ETICHETTA (Altezza dinamica) ---
+  if (details.labelWarnings && details.labelWarnings.length > 0) {
+    if (y > 220) { doc.addPage(); y = 20; }
+    
+    doc.setFont('helvetica', 'italic'); doc.setFontSize(9);
+    let totalWarnHeight = 0;
+    const processedWarnings = details.labelWarnings.map(warn => {
+      const lines = doc.splitTextToSize(`• ${warn}`, 170);
+      const height = lines.length * 4;
+      totalWarnHeight += height + 2;
+      return { lines, height };
+    });
+
+    const labelBoxHeight = 10 + totalWarnHeight;
+    
+    doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+    doc.setFillColor(COLORS.background[0], COLORS.background[1], COLORS.background[2]);
+    doc.roundedRect(14, y, 182, labelBoxHeight, 1, 1, 'FD');
+    
+    doc.setFont('helvetica', 'bold'); doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+    doc.text("FRASI ED AVVERTENZE DA RIPORTARE IN ETICHETTA:", 17, y + 6);
+    
+    doc.setFont('helvetica', 'italic'); doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]);
+    
+    let currentWarnY = y + 12;
+    processedWarnings.forEach(item => {
+      doc.text(item.lines, 20, currentWarnY);
+      currentWarnY += item.height + 2;
+    });
+    
+    y += labelBoxHeight + 10;
   }
 
-  y = Math.max(y, startYChecks + 25) + 5;
+  if (y > 220) { doc.addPage(); y = 20; }
 
-  // --- CHECKLIST DINAMICA ---
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
+  // --- CONTROLLI E FASI ---
+  y = drawSectionHeader("Controlli e Fasi Operative", y);
+
+  if (details.operatingProcedures) {
+    doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+    doc.text("Procedure operative ed eventuali integrazioni:", 14, y);
+    y += 6;
+    doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]);
+    const splitText = doc.splitTextToSize(details.operatingProcedures, 180);
+    doc.text(splitText, 14, y);
+    y += (splitText.length * 4) + 10;
+  }
+
+  doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+  doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
   doc.text("Fasi Eseguite", 14, y);
   y += 6;
   
-  let finalChecklistItems = [];
-  if (details.worksheetItems && details.worksheetItems.length > 0) {
-    finalChecklistItems = details.worksheetItems
-      .filter(item => item.checked)
-      .map(item => item.text);
-  } else {
-    finalChecklistItems = [
-      'Verifica calcoli', 'Pesata componenti', 'Miscelazione', 'Confezionamento', 'Controllo Aspetto'
-    ];
-  }
+  let finalChecklistItems = (details.worksheetItems && details.worksheetItems.length > 0) 
+    ? details.worksheetItems.filter(item => item.checked).map(item => item.text)
+    : ['Verifica calcoli', 'Pesata componenti', 'Miscelazione', 'Confezionamento', 'Controllo Aspetto'];
 
-  // Stampiamo le fasi su due colonne per risparmiare spazio
-  let col = 0;
-  let startYList = y;
+  let col = 0; let startYList = y;
   finalChecklistItems.forEach((item, i) => {
-    if (y > 270) { doc.addPage(); y = 20; startYList = 20; } // Gestione pagina
-    
-    // Disegna checkbox "spuntata"
+    if (y > 270) { doc.addPage(); y = 20; startYList = 20; }
     const xPos = col === 0 ? 14 : 110;
     doc.setDrawColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]);
     doc.rect(xPos, y - 3, 4, 4);
-    
-    // Draw simple X
     doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-    doc.setLineWidth(0.4);
-    doc.line(xPos, y-3, xPos+4, y+1);
-    doc.line(xPos, y+1, xPos+4, y-3);
-    
+    doc.line(xPos, y-3, xPos+4, y+1); doc.line(xPos, y+1, xPos+4, y-3);
     doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]);
     doc.text(item, xPos + 7, y);
-    
     y += 6;
-    // Se troppe righe, passa a colonna 2
-    if (y > startYList + 30 && col === 0) {
-       y = startYList;
-       col = 1;
-    }
+    if (y > startYList + 30 && col === 0) { y = startYList; col = 1; }
   });
 
-  // Reset Y al massimo delle due colonne
   y = Math.max(y, startYList + 6) + 10;
 
   // --- DETTAGLIO COSTI ---
   if (y > 200) { doc.addPage(); y = 20; }
   y = drawSectionHeader("Dettaglio Economico & Tariffazione", y);
-
   const costsBody = ingredients.map(ing => {
     const cost = (ing.costPerGram || 0) * ing.amountUsed;
-    return [
-      ing.name,
-      `${Number(ing.amountUsed).toFixed(ing.isContainer ? 0 : 2)} ${ing.unit}`,
-      `€ ${Number(ing.costPerGram || 0).toFixed(4)}`,
-      `€ ${cost.toFixed(2)}`
-    ];
+    return [ing.name, `${Number(ing.amountUsed).toFixed(ing.isContainer ? 0 : 2)} ${ing.unit}`, `€ ${Number(ing.costPerGram || 0).toFixed(4)}`, `€ ${cost.toFixed(2)}` ];
   });
-
   doc.autoTable({
-    startY: y,
-    head: [['VOCE DI COSTO', 'QUANTITÀ', 'COSTO UNIT.', 'TOTALE']],
-    body: costsBody,
-    theme: 'grid',
+    startY: y, head: [['VOCE DI COSTO', 'QUANTITÀ', 'COSTO UNIT.', 'TOTALE']], body: costsBody, theme: 'grid',
     headStyles: { fillColor: COLORS.background, textColor: COLORS.primary, fontStyle: 'bold', lineColor: COLORS.primary, lineWidth: 0.1 },
     styles: { fontSize: 9, cellPadding: 2, textColor: COLORS.text, lineColor: COLORS.border },
-    columnStyles: {
-      0: { cellWidth: 90 },
-      1: { cellWidth: 30, halign: 'right' },
-      2: { cellWidth: 30, halign: 'right' },
-      3: { cellWidth: 30, halign: 'right' }
-    }
+    columnStyles: { 0: { cellWidth: 90 }, 1: { cellWidth: 30, halign: 'right' }, 2: { cellWidth: 30, halign: 'right' }, 3: { cellWidth: 30, halign: 'right' } }
   });
-  
   y = doc.lastAutoTable.finalY + 5;
-
-  // Box Riepilogo Costi (Right Aligned)
-  const summaryX = 110;
-  const summaryWidth = 86;
-  
-  // Controlla spazio
   if (y > 220) { doc.addPage(); y = 20; }
-
-  doc.setFontSize(9);
-  doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]);
-
+  const summaryX = 110; const summaryWidth = 86;
+  doc.setFontSize(9); doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]);
   const drawSummaryLine = (label, value, isBold = false) => {
     doc.setFont('helvetica', isBold ? 'bold' : 'normal');
-    doc.text(label, summaryX, y);
-    doc.text(value, summaryX + summaryWidth, y, { align: 'right' });
+    doc.text(label, summaryX, y); doc.text(value, summaryX + summaryWidth, y, { align: 'right' });
     y += 5;
   };
-
   drawSummaryLine("Totale Materie Prime:", `€ ${pricing.substances.toFixed(2)}`);
   drawSummaryLine("Onorario Professionale:", `€ ${pricing.fee.toFixed(2)}`);
-  if (pricing.additional > 0) {
-    drawSummaryLine("Addizionali / Sost. Pericolose:", `€ ${pricing.additional.toFixed(2)}`);
-  }
-  // Extra Tech Ops non è esplicitamente nel pricing object standard ma incluso nella fee o calcolato a parte.
-  // Assumiamo che pricing.fee includa già le operazioni extra se non sono separate.
-  // Se volessimo separarle dovremmo passare extraTechOps a questa funzione.
-  
-  doc.setDrawColor(COLORS.border[0], COLORS.border[1], COLORS.border[2]);
-  doc.line(summaryX, y, summaryX + summaryWidth, y);
+  if (pricing.additional > 0) drawSummaryLine("Addizionali / Sost. Pericolose:", `€ ${pricing.additional.toFixed(2)}`);
+  doc.setDrawColor(COLORS.border[0], COLORS.border[1], COLORS.border[2]); doc.line(summaryX, y, summaryX + summaryWidth, y);
   y += 5;
-  
   drawSummaryLine("Totale Imponibile:", `€ ${pricing.net.toFixed(2)}`, true);
   drawSummaryLine(`IVA (${(VAT_RATE * 100).toFixed(0)}%):`, `€ ${pricing.vat.toFixed(2)}`);
-
   y += 5;
 
-  // --- FOOTER & PREZZO ---
+  // --- FOOTER ---
   if (y > 240) { doc.addPage(); y = 20; }
-  
-  // Box Prezzo
   doc.setFillColor(COLORS.background[0], COLORS.background[1], COLORS.background[2]);
   doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
   doc.roundedRect(130, y, 66, 20, 2, 2, 'FD');
-  doc.setFontSize(10);
-  doc.setTextColor(COLORS.textLight[0], COLORS.textLight[1], COLORS.textLight[2]);
+  doc.setFontSize(10); doc.setTextColor(COLORS.textLight[0], COLORS.textLight[1], COLORS.textLight[2]);
   doc.text("PREZZO FINALE (IVA incl.)", 163, y + 6, { align: 'center' });
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+  doc.setFontSize(14); doc.setFont('helvetica', 'bold'); doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
   doc.text(`€ ${pricing.final.toFixed(2)}`, 163, y + 15, { align: 'center' });
-
-  // Firme
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]);
   
   let signY = y + 15;
-  // Firma 1: Preparatore
-  doc.line(14, signY, 80, signY);
-  doc.text("Il Farmacista Preparatore", 14, signY + 5);
-  doc.line(90, signY, 120, signY);
-  doc.text("Data", 90, signY + 5);
-
+  doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]);
+  doc.line(14, signY, 80, signY); doc.text("Il Farmacista Preparatore", 14, signY + 5);
+  doc.line(90, signY, 120, signY); doc.text("Data", 90, signY + 5);
   signY += 15;
-  // Firma 2: Direttore
-  doc.line(14, signY, 80, signY);
-  doc.text("Il Direttore Responsabile", 14, signY + 5);
-  doc.line(90, signY, 120, signY);
-  doc.text("Data", 90, signY + 5);
+  doc.line(14, signY, 80, signY); doc.text("Il Direttore Responsabile", 14, signY + 5);
+  doc.line(90, signY, 120, signY); doc.text("Data", 90, signY + 5);
 
-  // --- SAVE ---
-  const safeName = details.name.replace(/\s+/g, '_');
-  const safeNum = details.prepNumber.replace(/[\/\\|]/g, '-');
-  doc.save(`FL_${safeNum}_${safeName}.pdf`);
+  doc.save(`FL_${details.prepNumber.replace(/[\/\\|]/g, '-')}_${details.name.replace(/\s+/g, '_')}.pdf`);
 };
