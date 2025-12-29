@@ -124,6 +124,11 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
       { content: '', colSpan: 2 }
     ]);
   }
+  // Aggiungi Posologia come ultima riga
+  infoData.push([
+      { content: 'POSOLOGIA:', styles: { fontStyle: 'bold', textColor: COLORS.primary, valign: 'top' } },
+      { content: details.posology, colSpan: 3 }
+  ]);
 
   doc.autoTable({
     startY: y,
@@ -135,15 +140,15 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
 
   y = doc.lastAutoTable.finalY + 10;
 
-  // --- VERIFICHE PRELIMINARI (Nuova posizione) ---
+  // --- VERIFICHE PRELIMINARI ---
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
   doc.text("VERIFICHE PRELIMINARI:", 14, y);
   y += 5;
   let nextX = drawCheckbox("Verifica Pulizia Locali, Puliti", true, 14, y);
-  drawCheckbox("Verifica Pulizia Attrezzatura, Utensili, Confezionamento, Puliti", true, nextX, y);
-  y += 15; // Spazio aumentato come richiesto
+  drawCheckbox("Verifica Pulizia Attrezzatura, Utensili, Confezionamento, Puliti", true, 105, y); // Posizione fissa
+  y += 15;
 
   // --- COMPOSIZIONE ---
   y = drawSectionHeader("Composizione", y);
@@ -166,7 +171,7 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
     });
 
     doc.autoTable({
-      startY: y - 7, // Minima distanza dal titolo
+      startY: y - 7,
       head: [['SOSTANZA', 'LOTTO / N.I.', 'QUANTITÀ', 'NOTE']],
       body: substancesBody,
       theme: 'grid',
@@ -174,7 +179,7 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
       styles: { fontSize: 9, cellPadding: 2, textColor: COLORS.text, lineColor: COLORS.border },
       columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 40 }, 2: { cellWidth: 30 }, 3: { cellWidth: 'auto' } }
     });
-    y = doc.lastAutoTable.finalY; // Reset Y per attaccare la prossima tabella
+    y = doc.lastAutoTable.finalY;
   }
 
   if (containers.length > 0) {
@@ -189,7 +194,7 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
     });
 
     doc.autoTable({
-      startY: y, // Attaccata alla precedente
+      startY: y,
       head: [['CONTENITORE', 'LOTTO / N.I.', 'QUANTITÀ', 'NOTE']],
       body: containersBody,
       theme: 'grid',
@@ -221,35 +226,7 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
 
   y += 5;
   if (y > 220) { doc.addPage(); y = 20; }
-
-  // --- POSOLOGIA & AVVERTENZE (Altezza dinamica) ---
-  doc.setFontSize(9); doc.setFont('helvetica', 'normal');
-  const posologyLines = doc.splitTextToSize(details.posology || '-', 150);
-  const warningsLines = doc.splitTextToSize(details.warnings || '-', 150);
   
-  const posologyHeight = posologyLines.length * 4;
-  const warningsHeight = warningsLines.length * 4;
-  const boxHeight = 10 + posologyHeight + 5 + warningsHeight + 5; // Padding + content + gaps
-
-  doc.setDrawColor(COLORS.secondary[0], COLORS.secondary[1], COLORS.secondary[2]);
-  doc.setLineWidth(0.5);
-  doc.roundedRect(14, y, 182, boxHeight, 2, 2);
-  
-  let textY = y + 5;
-  doc.setFont('helvetica', 'bold'); doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-  doc.text("POSOLOGIA:", 17, textY);
-  doc.setFont('helvetica', 'normal'); doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]);
-  doc.text(posologyLines, 40, textY);
-  
-  textY += Math.max(posologyHeight, 5) + 5;
-  
-  doc.setFont('helvetica', 'bold'); doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-  doc.text("AVVERTENZE:", 17, textY);
-  doc.setFont('helvetica', 'normal'); doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]);
-  doc.text(warningsLines, 40, textY);
-
-  y += boxHeight + 10;
-
   // --- FRASI ED AVVERTENZE DA RIPORTARE IN ETICHETTA (Altezza dinamica) ---
   if (details.labelWarnings && details.labelWarnings.length > 0) {
     if (y > 220) { doc.addPage(); y = 20; }
@@ -258,7 +235,7 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
     let totalWarnHeight = 0;
     const processedWarnings = details.labelWarnings.map(warn => {
       const lines = doc.splitTextToSize(`• ${warn}`, 170);
-      const height = lines.length * 4;
+      const height = lines.length * 4; 
       totalWarnHeight += height + 2;
       return { lines, height };
     });
@@ -374,5 +351,5 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
   doc.line(14, signY, 80, signY); doc.text("Il Direttore Responsabile", 14, signY + 5);
   doc.line(90, signY, 120, signY); doc.text("Data", 90, signY + 5);
 
-  doc.save(`FL_${details.prepNumber.replace(/[\/\\|]/g, '-')}_${details.name.replace(/\s+/g, '_')}.pdf`);
+  doc.save(`FL_${details.prepNumber.replace(/["\/|]/g, '-')}_${details.name.replace(/\s+/g, '_')}.pdf`);
 };

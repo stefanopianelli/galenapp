@@ -33,7 +33,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
   const [details, setDetails] = useState({ 
     name: '', patient: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
-    expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', warnings: '', recipeDate: '', usage: 'Orale', operatingProcedures: '', prepType: 'magistrale', labelWarnings: []
+    expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', recipeDate: '', usage: 'Orale', operatingProcedures: '', prepType: 'magistrale', labelWarnings: []
   });
 
   const getNextPrepNumber = () => {
@@ -53,7 +53,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   useEffect(() => {
     const defaultDetails = {
       name: '', patient: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
-      expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', warnings: '', recipeDate: '', usage: 'Orale', operatingProcedures: '', status: 'Bozza', prepType: 'magistrale', batches: [], worksheetItems: [], labelWarnings: []
+      expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', recipeDate: '', usage: 'Orale', operatingProcedures: '', status: 'Bozza', prepType: 'magistrale', batches: [], worksheetItems: [], labelWarnings: []
     };
 
     if (initialData) {
@@ -187,7 +187,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   };
 
   const isStep1Valid = (() => {
-    const baseFields = details.name && details.prepNumber && details.quantity && details.pharmaceuticalForm && details.expiryDate && details.posology && details.warnings && details.usage;
+    const baseFields = details.name && details.prepNumber && details.quantity && details.pharmaceuticalForm && details.expiryDate && details.posology && details.usage;
     if (!baseFields) return false;
     if (isOfficinale) return true;
     return !!(details.patient && details.doctor && details.recipeDate);
@@ -425,7 +425,6 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                       </select>
                     </div>
                     <div className="col-span-2"><label className="block text-sm font-bold">Posologia *</label><textarea className="w-full border p-3 rounded-md outline-none h-20 resize-none" value={details.posology} onChange={e => setDetails({...details, posology: e.target.value})} /></div>
-                    <div className="col-span-2"><label className="block text-sm font-bold">Avvertenze *</label><textarea className="w-full border p-3 rounded-md outline-none h-20 resize-none" value={details.warnings} onChange={e => setDetails({...details, warnings: e.target.value})} /></div>
                 </div>
                 <div className="flex justify-end pt-4"><button disabled={!isStep1Valid} onClick={() => setStep(2)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 disabled:opacity-50">Avanti</button></div>
             </div>
