@@ -26,7 +26,7 @@ import PrepTypeSelectionModal from './components/modals/PrepTypeSelectionModal';
 import SettingsComponent from './components/sections/Settings';
 
 export default function GalenicoApp() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('activeTab') || 'dashboard');
 
   // Stati Dati
   const [inventory, setInventory] = useState([]);
@@ -124,6 +124,11 @@ export default function GalenicoApp() {
     // Salva le impostazioni della farmacia ogni volta che cambiano
     localStorage.setItem('galenico_settings', JSON.stringify(pharmacySettings));
   }, [pharmacySettings]);
+
+  useEffect(() => {
+    // Salva la tab attiva nel local storage per mantenere lo stato dopo il refresh
+    localStorage.setItem('activeTab', activeTab);
+  }, [activeTab]);
 
   const handleTabChange = (tab) => {
     if (activeTab === 'preparation') {
@@ -265,6 +270,10 @@ export default function GalenicoApp() {
       );
     }
 
+    if (inventoryFilterSubstance) {
+      filteredData = filteredData.filter(i => i.id === inventoryFilterSubstance);
+    }
+    
     let sortableItems = filteredData.map(item => ({
       ...item,
       usageCount: getUsageCount(item)
@@ -295,7 +304,7 @@ export default function GalenicoApp() {
       }),
       sortedDisposedInventory: sortableItems.filter(i => i.disposed)
     };
-  }, [inventory, logs, sortConfig, searchTerm, preparations, inventoryFilter]);
+  }, [inventory, logs, sortConfig, searchTerm, preparations, inventoryFilter, inventoryFilterSubstance]);
 
   const filteredPreparations = useMemo(() => {
     let filtered = [...preparations];
@@ -333,8 +342,8 @@ export default function GalenicoApp() {
             if (typeof bVal === 'string') bVal = bVal.toLowerCase();
         }
 
-        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+        if (aVal < bVal) return prepSortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return prepSortConfig.direction === 'asc' ? 1 : -1;
         return 0;
       });
     }
