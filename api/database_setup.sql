@@ -1,6 +1,5 @@
 -- SQL Dump for GalenicoLab
--- version 1.0
--- Host: localhost
+-- version 1.1 - Added DROP TABLE statements for idempotency
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -14,6 +13,14 @@ SET time_zone = "+00:00";
 --
 -- Database: `galenapp`
 --
+
+-- Elimina le tabelle esistenti in ordine inverso per rispettare le foreign key
+DROP TABLE IF EXISTS `logs`;
+DROP TABLE IF EXISTS `preparation_ingredients`;
+DROP TABLE IF EXISTS `preparations`;
+DROP TABLE IF EXISTS `inventory`;
+DROP TABLE IF EXISTS `settings`;
+
 
 -- --------------------------------------------------------
 
@@ -128,8 +135,7 @@ CREATE TABLE `logs` (
   `operator` varchar(255) DEFAULT NULL,
   `preparationId` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `preparationId` (`preparationId`),
-  CONSTRAINT `logs_ibfk_1` FOREIGN KEY (`preparationId`) REFERENCES `preparations` (`id`) ON DELETE SET NULL
+  KEY `preparationId` (`preparationId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
@@ -142,6 +148,12 @@ CREATE TABLE `logs` (
 ALTER TABLE `preparation_ingredients`
   ADD CONSTRAINT `preparation_ingredients_ibfk_1` FOREIGN KEY (`preparationId`) REFERENCES `preparations` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `preparation_ingredients_ibfk_2` FOREIGN KEY (`inventoryId`) REFERENCES `inventory` (`id`);
+  
+--
+-- Limiti per la tabella `logs`
+--
+ALTER TABLE `logs`
+  ADD CONSTRAINT `logs_ibfk_1` FOREIGN KEY (`preparationId`) REFERENCES `preparations` (`id`) ON DELETE SET NULL;
 
 COMMIT;
 
