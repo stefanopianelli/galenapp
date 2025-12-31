@@ -110,6 +110,27 @@ CREATE TABLE `settings` (
   UNIQUE KEY `settingKey` (`settingKey`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- --------------------------------------------------------
+
+--
+-- Struttura della tabella `logs`
+--
+
+CREATE TABLE `logs` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `date` date NOT NULL,
+  `type` varchar(50) NOT NULL,
+  `substance` varchar(255) DEFAULT NULL,
+  `ni` varchar(50) DEFAULT NULL,
+  `quantity` decimal(10,2) DEFAULT NULL,
+  `unit` varchar(20) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `operator` varchar(255) DEFAULT NULL,
+  `preparationId` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `preparationId` (`preparationId`),
+  CONSTRAINT `logs_ibfk_1` FOREIGN KEY (`preparationId`) REFERENCES `preparations` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Limiti per le tabelle scaricate

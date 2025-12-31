@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 
 const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+console.log("USE_MOCK_DATA in App.jsx:", USE_MOCK_DATA);
 let MOCK_INVENTORY, MOCK_PREPARATIONS, MOCK_LOGS;
 if (USE_MOCK_DATA) {
   ({ MOCK_INVENTORY, MOCK_PREPARATIONS, MOCK_LOGS } = await import('./constants/mockData.js'));
@@ -30,7 +31,7 @@ import SubstanceModal from './components/modals/SubstanceModal';
 import PrepTypeSelectionModal from './components/modals/PrepTypeSelectionModal';
 import SettingsComponent from './components/sections/Settings';
 
-const API_URL = './src_prod/api.php';
+const API_URL = './api/api.php'; // Adatta se la tua API è in una sottocartella o un dominio diverso
 
 export default function GalenicoApp() {
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem('activeTab') || 'dashboard');
