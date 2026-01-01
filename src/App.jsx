@@ -304,7 +304,20 @@ export default function GalenicoApp() {
       filteredData = filteredData.filter(item => item.name.toLowerCase().includes(term) || item.ni.toLowerCase().includes(term) || item.lot.toLowerCase().includes(term) || (item.supplier && item.supplier.toLowerCase().includes(term)));
     }
     if (inventoryFilterSubstance) filteredData = filteredData.filter(i => i.id === inventoryFilterSubstance);
-    let sortableItems = filteredData.map(item => ({...item, usageCount: getUsageCount(item)}));
+        let sortableItems = filteredData.map(item => {
+          const daysUntilExpiry = (new Date(item.expiry) - new Date()) / (1000 * 60 * 60 * 24);
+          let status = 'OK';
+          if (new Date(item.expiry) < new Date()) {
+            status = 'Scaduto';
+          } else if (daysUntilExpiry > 0 && daysUntilExpiry <= 30) {
+            status = 'In Scadenza';
+          }
+          return {
+            ...item,
+            usageCount: getUsageCount(item),
+            status: status // Aggiungi la proprietà status calcolata
+          };
+        });
     if (sortConfig.key) {
       sortableItems.sort((a, b) => {
         let aVal = a[sortConfig.key];
