@@ -79,6 +79,7 @@ CREATE TABLE `preparations` (
   `usage` varchar(100) DEFAULT NULL,
   `operatingProcedures` text DEFAULT NULL,
   `labelWarnings` text DEFAULT NULL,
+  `customLabelWarning` text DEFAULT NULL,
   `techOps` text DEFAULT NULL,
   `worksheetItems` text DEFAULT NULL,
   `recipeDate` date DEFAULT NULL,

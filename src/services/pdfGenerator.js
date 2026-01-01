@@ -228,17 +228,30 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
   if (y > 220) { doc.addPage(); y = 20; }
   
   // --- FRASI ED AVVERTENZE DA RIPORTARE IN ETICHETTA (Altezza dinamica) ---
-  if (details.labelWarnings && details.labelWarnings.length > 0) {
+  const hasLabelWarnings = (details.labelWarnings && details.labelWarnings.length > 0) || (details.customLabelWarning && details.customLabelWarning.trim() !== '');
+  
+  if (hasLabelWarnings) {
     if (y > 220) { doc.addPage(); y = 20; }
     
     doc.setFont('helvetica', 'italic'); doc.setFontSize(9);
     let totalWarnHeight = 0;
-    const processedWarnings = details.labelWarnings.map(warn => {
+    
+    // Processa checkbox warnings
+    const processedWarnings = (details.labelWarnings || []).map(warn => {
       const lines = doc.splitTextToSize(`• ${warn}`, 170);
       const height = lines.length * 4; 
       totalWarnHeight += height + 2;
       return { lines, height };
     });
+
+    // Processa custom warning
+    let customWarnLines = null;
+    let customWarnHeight = 0;
+    if (details.customLabelWarning && details.customLabelWarning.trim() !== '') {
+      customWarnLines = doc.splitTextToSize(`• ${details.customLabelWarning}`, 170);
+      customWarnHeight = customWarnLines.length * 4;
+      totalWarnHeight += customWarnHeight + 2;
+    }
 
     const labelBoxHeight = 10 + totalWarnHeight;
     
@@ -256,6 +269,10 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
       doc.text(item.lines, 20, currentWarnY);
       currentWarnY += item.height + 2;
     });
+
+    if (customWarnLines) {
+      doc.text(customWarnLines, 20, currentWarnY);
+    }
     
     y += labelBoxHeight + 10;
   }

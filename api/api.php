@@ -183,7 +183,12 @@ function savePreparation($pdo) {
     $pdo->beginTransaction();
     try {
         // --- GESTIONE PREPARAZIONE (INSERT/UPDATE) ---
-        $prepFields = ['prepNumber', 'name', 'pharmaceuticalForm', 'quantity', 'prepUnit', 'expiryDate', 'posology', 'date', 'patient', 'doctor', 'status', 'totalPrice', 'prepType', 'notes', 'usage', 'operatingProcedures', 'labelWarnings', 'techOps', 'worksheetItems', 'recipeDate', 'batches'];
+                $prepFields = [
+                    'prepNumber', 'name', 'pharmaceuticalForm', 'quantity', 'prepUnit', 
+                    'expiryDate', 'posology', 'date', 'patient', 'doctor', 'status', 
+                    'totalPrice', 'prepType', 'notes', 'usage', 'operatingProcedures', 
+                    'labelWarnings', 'customLabelWarning', 'techOps', 'worksheetItems', 'recipeDate', 'batches'
+                ];
         $prepParams = [];
         foreach ($prepFields as $field) {
             $value = $prepDetails[$field] ?? null;

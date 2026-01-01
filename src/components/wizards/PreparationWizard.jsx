@@ -34,7 +34,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
   const [details, setDetails] = useState({ 
     name: '', patient: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
-    expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', recipeDate: '', usage: 'Orale', operatingProcedures: '', prepType: 'magistrale', labelWarnings: [], techOps: []
+    expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', recipeDate: '', usage: 'Orale', operatingProcedures: '', prepType: 'magistrale', labelWarnings: [], customLabelWarning: '', techOps: []
   });
 
   const getNextPrepNumber = () => {
@@ -54,7 +54,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   useEffect(() => {
     const defaultDetails = {
       name: '', patient: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
-      expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', recipeDate: '', usage: 'Orale', operatingProcedures: '', status: 'Bozza', prepType: 'magistrale', batches: [], worksheetItems: [], labelWarnings: [], techOps: []
+      expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', recipeDate: '', usage: 'Orale', operatingProcedures: '', status: 'Bozza', prepType: 'magistrale', batches: [], worksheetItems: [], labelWarnings: [], customLabelWarning: '', techOps: []
     };
 
     if (initialData) {
@@ -123,10 +123,10 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
     let fee = 0;
     
     let extraOpsCount = 0;
-    if (form === 'Capsule') {
-        extraOpsCount = Math.max(0, (details.techOps || []).length - 3);
+    if (form === 'Capsule') { // Solo per Capsule
+        extraOpsCount = Math.max(0, (details.techOps || []).length - 3); // Prime 3 incluse
     } else {
-        extraOpsCount = (details.techOps || []).length;
+        extraOpsCount = (details.techOps || []).length; // Tutte extra per le altre forme (per ora)
     }
     const extraOpsFee = extraOpsCount * 2.30;
 
@@ -140,11 +140,11 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
         const extraComponents = Math.max(0, activeSubstancesCount - 1);
         
         fee += (Math.min(extraComponents, 4) * 0.60);
-        fee += extraOpsFee;
+        fee += extraOpsFee; // Aggiungi il costo delle operazioni extra
         fee *= 1.40;
     } else {
         fee = NATIONAL_TARIFF_FEES[form] || 8.00;
-        fee += extraOpsFee;
+        fee += extraOpsFee; // Aggiungi il costo delle operazioni extra
     }
     return fee;
   };
@@ -457,25 +457,25 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                   ))}
                   {selectedIngredients.length === 0 && <p className="text-center text-slate-400 italic py-4">Nessun componente selezionato.</p>}
                 </div>
-                {!isOfficinale && (
-                  <div className="space-y-4 pt-6 border-t mt-6">
-                    <h3 className="text-lg font-bold text-slate-700">Operazioni Tecnologiche</h3>
-                    <div className="bg-slate-50 p-4 rounded-md border border-slate-200 min-h-[60px]">
-                        {details.techOps && details.techOps.length > 0 ? (
-                            <div className="flex flex-wrap gap-2">
-                                {details.techOps.map(opCode => {
-                                    const op = TechOpsList.find(o => o.code === opCode);
-                                    return <Badge key={opCode} type="neutral">{op ? op.text : opCode}</Badge>
-                                })}
-                            </div>
-                        ) : <p className="text-sm text-slate-500 italic">Nessuna operazione selezionata.</p>}
-                    </div>
-                    <button onClick={() => setIsTechOpsModalOpen(true)} className="text-sm bg-slate-200 text-slate-700 px-4 py-2 rounded-md hover:bg-slate-300">
-                        Modifica Operazioni Tecnologiche
-                    </button>
-                </div>
-                )}
-                <div className="flex justify-between pt-4"><button onClick={() => setStep(1)} className="text-slate-500 hover:underline">Indietro</button><button disabled={selectedIngredients.length === 0} onClick={() => setStep(3)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 disabled:opacity-50">Avanti</button></div>
+                              {/* Operazioni Tecnologiche */}
+                              {!isOfficinale && (
+                                <div className="space-y-4 pt-6 border-t mt-6">
+                                  <h3 className="text-lg font-bold text-slate-700">Operazioni Tecnologiche</h3>
+                                  <div className="bg-slate-50 p-4 rounded-md border border-slate-200 min-h-[60px]">
+                                      {details.techOps && details.techOps.length > 0 ? (
+                                          <div className="flex flex-wrap gap-2">
+                                              {details.techOps.map(opCode => {
+                                                  const op = TechOpsList.find(o => o.code === opCode);
+                                                  return <Badge key={opCode} type="neutral">{op ? op.text : opCode}</Badge>
+                                              })}
+                                          </div>
+                                      ) : <p className="text-sm text-slate-500 italic">Nessuna operazione selezionata.</p>}
+                                  </div>
+                                  <button onClick={() => setIsTechOpsModalOpen(true)} className="text-sm bg-slate-200 text-slate-700 px-4 py-2 rounded-md hover:bg-slate-300">
+                                      Modifica Operazioni Tecnologiche
+                                  </button>
+                                </div>
+                              )}                <div className="flex justify-between pt-4"><button onClick={() => setStep(1)} className="text-slate-500 hover:underline">Indietro</button><button disabled={selectedIngredients.length === 0} onClick={() => setStep(3)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 disabled:opacity-50">Calcola Prezzo</button></div>
             </div>
           )}
           
@@ -515,7 +515,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                   <div className="w-full flex justify-between text-sm text-teal-800 mb-2 border-b border-teal-200 pb-2"><span>IVA (10%)</span><span>€ {pricing.vat.toFixed(2)}</span></div>
                   <div className="flex items-baseline gap-4"><span className="text-lg font-bold text-teal-900">PREZZO FINALE</span><span className="text-3xl font-bold text-teal-700">€ {pricing.final.toFixed(2)}</span></div>
                 </div>
-                <div className="pt-4 flex justify-between"><button onClick={() => setStep(2)} className="text-slate-500 hover:underline">Indietro</button><button onClick={() => setStep(isOfficinale ? 4 : 5)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700">Avanti</button></div>
+                <div className="pt-4 flex justify-between"><button onClick={() => setStep(2)} className="text-slate-500 hover:underline">Indietro</button><button onClick={() => setStep(4)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700">Avanti</button></div>
             </div>
           )}
 
@@ -551,13 +551,20 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
               <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 pt-4"><FileText size={24} /> Personalizzazione Foglio di Lavorazione</h2>
               <div className="space-y-2"><label className="block text-sm font-bold text-slate-700 uppercase tracking-wide">Procedure operative ed eventuali integrazioni</label><textarea className="w-full border p-3 rounded-md outline-none h-40 resize-y focus:ring-2 ring-teal-500" value={details.operatingProcedures || ''} onChange={e => setDetails({...details, operatingProcedures: e.target.value})} placeholder="Es. Miscelare le polveri in progressione geometrica..."/></div>
               <div className="space-y-2"><label className="block text-sm font-bold text-slate-700 uppercase tracking-wide">Fasi di lavorazione e controlli (per il PDF)</label><div className="grid grid-cols-2 gap-x-4 gap-y-2 p-4 border rounded-md bg-white">{worksheetItems.map((item, index) => (<label key={index} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={item.checked} onChange={() => handleWorksheetItemChange(index)} className="mt-0.5 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"/><span className="text-slate-700">{item.text}</span></label>))}</div></div>
-              <div className="space-y-2"><label className="block text-sm font-bold text-slate-700 uppercase tracking-wide">Frasi ed avvertenze da riportare in etichetta</label><div className="space-y-2 p-4 border rounded-md bg-white">{["Tenere fuori dalla portata dei bambini", "Tenere al riparo da luce e fonti di calore"].map((warning, i) => (<label key={i} className="flex items-start gap-2 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={(details.labelWarnings || []).includes(warning)} onChange={() => handleLabelWarningChange(warning)} className="mt-0.5 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"/><span className="text-slate-700">{warning}</span></label>))}{hasDopingIngredient && (<label className="flex items-start gap-2 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={(details.labelWarnings || []).includes(dopingWarning)} onChange={() => handleLabelWarningChange(dopingWarning)} className="mt-0.5 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"/><span className="text-slate-700 font-bold text-red-600">{dopingWarning}</span></label>)}</div></div>
+              <div className="space-y-2"><label className="block text-sm font-bold text-slate-700 uppercase tracking-wide">Frasi ed avvertenze da riportare in etichetta</label><div className="space-y-2 p-4 border rounded-md bg-white">{["Tenere fuori dalla portata dei bambini", "Tenere al riparo da luce e fonti di calore"].map((warning, i) => (<label key={i} className="flex items-start gap-2 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={(details.labelWarnings || []).includes(warning)} onChange={() => handleLabelWarningChange(warning)} className="mt-0.5 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"/><span className="text-slate-700">{warning}</span></label>))}{hasDopingIngredient && (<label className="flex items-start gap-2 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={(details.labelWarnings || []).includes(dopingWarning)} onChange={() => handleLabelWarningChange(dopingWarning)} className="mt-0.5 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"/><span className="text-slate-700 font-bold text-red-600">{dopingWarning}</span></label>)}
+                <textarea 
+                  className="w-full border p-2 rounded-md outline-none h-20 resize-y text-sm mt-2 focus:ring-2 ring-teal-500" 
+                  value={details.customLabelWarning || ''} 
+                  onChange={e => setDetails({...details, customLabelWarning: e.target.value})} 
+                  placeholder="Inserisci altre avvertenze da riportare in etichetta..."
+                />
+              </div></div>
               <div className="pt-4 flex justify-between"><button onClick={() => setStep(isOfficinale ? 4 : 3)} className="text-slate-500 hover:underline">Indietro</button><button onClick={() => setStep(isOfficinale ? 6 : 5)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700">Avanti</button></div>
             </div>
           )}
 
           {((isOfficinale && step === 6) || (!isOfficinale && step === 5)) && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="space-y-6 animate-in fade-in">
                   <div className="text-center"><h2 className="text-xl font-bold text-slate-800 pt-4 flex items-center justify-center gap-2"><ClipboardCheck size={24} />Conferma Finale</h2><div className="bg-slate-50 p-6 border rounded-md mt-4 max-w-md mx-auto"><p className="text-slate-600">Confermi la produzione di <b>{details.name}</b>?</p><p className="text-3xl font-bold mt-2 text-teal-700">€ {pricing.final.toFixed(2)}</p></div></div>
                   {isOfficinale && batches.length > 0 && (<div className="bg-blue-50/50 p-6 border border-blue-100 rounded-md mt-4"><h3 className="text-sm font-bold text-blue-800 uppercase tracking-wider mb-4 flex items-center gap-2"><ListOrdered size={16}/> Riepilogo Lotti di Produzione</h3><div className="space-y-2">{batches.map((batch, i) => { const container = selectedIngredients.find(ing => ing.id === batch.containerId); return (<div key={i} className="flex justify-between items-center bg-white p-3 rounded border border-blue-100 shadow-sm"><div className="flex items-center gap-3"><Box size={18} className="text-blue-500" /><div><div className="font-bold text-sm text-slate-800">{container?.name || 'Contenitore'}</div><div className="text-xs text-slate-500"><span className="font-bold text-blue-600">{Number(container?.amountUsed || 0).toFixed(0)} confezioni</span> preparate con {batch.productQuantity} unità cad.</div></div></div><div className="text-right"><div className="font-mono font-bold text-blue-700">€ {parseFloat(batch.unitPrice || 0).toFixed(2)}</div><div className="text-[10px] text-slate-400 font-bold uppercase">Prezzo Unitario</div></div></div>)})}</div></div>)}
                   <div className="pt-4 flex justify-between border-t border-slate-100">
