@@ -24,7 +24,6 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   const [tempAmount, setTempAmount] = useState('');
   
   const [professionalFee, setProfessionalFee] = useState(0);
-  const [extraTechOps, setExtraTechOps] = useState(0);
   const [batches, setBatches] = useState([]); 
   const [worksheetItems, setWorksheetItems] = useState([]);
   const [isTechOpsModalOpen, setIsTechOpsModalOpen] = useState(false);
@@ -122,6 +121,15 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
     const qty = parseFloat(details.quantity) || 0;
     const form = details.pharmaceuticalForm;
     let fee = 0;
+    
+    let extraOpsCount = 0;
+    if (form === 'Capsule') {
+        extraOpsCount = Math.max(0, (details.techOps || []).length - 3);
+    } else {
+        extraOpsCount = (details.techOps || []).length;
+    }
+    const extraOpsFee = extraOpsCount * 2.30;
+
     if (form === 'Capsule' || form === 'Cartine') {
         const BASE_QTY = 120;
         fee = 22.00;
@@ -132,18 +140,18 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
         const extraComponents = Math.max(0, activeSubstancesCount - 1);
         
         fee += (Math.min(extraComponents, 4) * 0.60);
-        fee += (extraTechOps * 2.30);
+        fee += extraOpsFee;
         fee *= 1.40;
     } else {
         fee = NATIONAL_TARIFF_FEES[form] || 8.00;
-        fee += (extraTechOps * 2.30);
+        fee += extraOpsFee;
     }
     return fee;
   };
 
   useEffect(() => {
       setProfessionalFee(calculateComplexFee());
-  }, [details.pharmaceuticalForm, details.quantity, selectedIngredients, extraTechOps]);
+  }, [details.pharmaceuticalForm, details.quantity, selectedIngredients, details.techOps]);
 
   const handleBatchChange = (containerId, field, value) => {
     setBatches(prevBatches => {
@@ -175,7 +183,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
       }
     });
   };
-
+  
   const handleTechOpChange = (opCode) => {
     setDetails(prev => {
       const current = prev.techOps || [];
@@ -286,23 +294,13 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   const calculateTotal = () => {
     const substancesCost = selectedIngredients.reduce((acc, ing) => acc + (ing.costPerGram ? ing.costPerGram * ing.amountUsed : 0), 0);
     const currentFee = parseFloat(professionalFee);
-    
     let additional = 0;
-    const hasHighRisk = selectedIngredients.some(ing => 
-      (ing.securityData?.pictograms?.length > 0) && ing.isNarcotic
-    );
-
-    if (hasHighRisk) {
-      additional = 5.00;
-    } else {
-      const hasMediumRisk = selectedIngredients.some(ing => 
-        (ing.securityData?.pictograms?.length > 0) || ing.isDoping || ing.isNarcotic
-      );
-      if (hasMediumRisk) {
-        additional = 2.50;
-      }
+    const hasHighRisk = selectedIngredients.some(ing => (ing.securityData?.pictograms?.length > 0) && ing.isNarcotic);
+    if (hasHighRisk) additional = 5.00;
+    else {
+      const hasMediumRisk = selectedIngredients.some(ing => (ing.securityData?.pictograms?.length > 0) || ing.isDoping || ing.isNarcotic);
+      if (hasMediumRisk) additional = 2.50;
     }
-
     const net = substancesCost + currentFee + additional;
     const vat = net * VAT_RATE;
     return { substances: substancesCost, fee: currentFee, disposal: 0, additional, net, vat, final: net + vat };
@@ -356,9 +354,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
   const getStepLabels = () => {
     const base = ["Anagrafica", "Componenti", "Tariffa"];
-    if (isOfficinale) {
-      return [...base, "Lotti", "Foglio Lav.", "Conferma"];
-    }
+    if (isOfficinale) return [...base, "Lotti", "Foglio Lav.", "Conferma"];
     return [...base, "Foglio Lav.", "Conferma"];
   };
   const stepLabels = getStepLabels();
@@ -461,23 +457,25 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                   ))}
                   {selectedIngredients.length === 0 && <p className="text-center text-slate-400 italic py-4">Nessun componente selezionato.</p>}
                 </div>
-                <div className="space-y-4 pt-6 border-t mt-6">
-                  <h3 className="text-lg font-bold text-slate-700">Operazioni Tecnologiche</h3>
-                  <div className="bg-slate-50 p-4 rounded-md border border-slate-200 min-h-[60px]">
-                      {details.techOps && details.techOps.length > 0 ? (
-                          <div className="flex flex-wrap gap-2">
-                              {details.techOps.map(opCode => {
-                                  const op = TechOpsList.find(o => o.code === opCode);
-                                  return <Badge key={opCode} type="neutral">{op ? op.text : opCode}</Badge>
-                              })}
-                          </div>
-                      ) : <p className="text-sm text-slate-500 italic">Nessuna operazione selezionata.</p>}
-                  </div>
-                  <button onClick={() => setIsTechOpsModalOpen(true)} className="text-sm bg-slate-200 text-slate-700 px-4 py-2 rounded-md hover:bg-slate-300">
-                      Modifica Operazioni Tecnologiche
-                  </button>
+                {!isOfficinale && (
+                  <div className="space-y-4 pt-6 border-t mt-6">
+                    <h3 className="text-lg font-bold text-slate-700">Operazioni Tecnologiche</h3>
+                    <div className="bg-slate-50 p-4 rounded-md border border-slate-200 min-h-[60px]">
+                        {details.techOps && details.techOps.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                                {details.techOps.map(opCode => {
+                                    const op = TechOpsList.find(o => o.code === opCode);
+                                    return <Badge key={opCode} type="neutral">{op ? op.text : opCode}</Badge>
+                                })}
+                            </div>
+                        ) : <p className="text-sm text-slate-500 italic">Nessuna operazione selezionata.</p>}
+                    </div>
+                    <button onClick={() => setIsTechOpsModalOpen(true)} className="text-sm bg-slate-200 text-slate-700 px-4 py-2 rounded-md hover:bg-slate-300">
+                        Modifica Operazioni Tecnologiche
+                    </button>
                 </div>
-                <div className="flex justify-between pt-4"><button onClick={() => setStep(1)} className="text-slate-500 hover:underline">Indietro</button><button disabled={selectedIngredients.length === 0} onClick={() => setStep(3)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 disabled:opacity-50">Calcola Prezzo</button></div>
+                )}
+                <div className="flex justify-between pt-4"><button onClick={() => setStep(1)} className="text-slate-500 hover:underline">Indietro</button><button disabled={selectedIngredients.length === 0} onClick={() => setStep(3)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 disabled:opacity-50">Avanti</button></div>
             </div>
           )}
           
@@ -490,7 +488,24 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                     <div className="bg-slate-50 p-4 rounded-md border border-slate-200 space-y-4">
                         <h3 className="font-bold text-sm text-slate-700 mb-3 border-b pb-2">Onorari & Costi</h3>
                         <div><label className="block text-xs font-bold text-slate-500 mb-1">Onorario + Suppl. 40%</label><input type="number" className="w-full border p-2 rounded text-right font-mono bg-slate-100" value={professionalFee.toFixed(2)} readOnly /></div>
-                        <div><label className="block text-xs font-bold text-slate-500 mb-1">Op. Tecnologiche Extra (+2.30€)</label><input type="number" min="0" className="w-full border p-2 rounded text-right font-mono" value={extraTechOps} onChange={e => setExtraTechOps(parseInt(e.target.value)||0)} /></div>
+                        {(() => {
+                          let extraOpsCount = 0;
+                          if (details.pharmaceuticalForm === 'Capsule') { 
+                              extraOpsCount = Math.max(0, (details.techOps || []).length - 3);
+                          } else {
+                              extraOpsCount = (details.techOps || []).length;
+                          }
+                          const extraOpsFee = extraOpsCount * 2.30;
+                          return (
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1">Op. Tecnologiche Extra (+2.30€ cad.)</label>
+                                <div className="w-full flex justify-between items-center bg-slate-100 p-2 rounded text-sm font-mono">
+                                    <span>{extraOpsCount} oper.</span>
+                                    <span>€ {extraOpsFee.toFixed(2)}</span>
+                                </div>
+                            </div>
+                          );
+                        })()}
                         <div><label className="block text-xs font-bold text-slate-500 mb-1">Addizionale</label><input type="text" className="w-full border p-2 rounded text-right font-mono bg-slate-100" value={pricing.additional.toFixed(2)} readOnly /></div>
                     </div>
                 </div>
@@ -500,7 +515,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                   <div className="w-full flex justify-between text-sm text-teal-800 mb-2 border-b border-teal-200 pb-2"><span>IVA (10%)</span><span>€ {pricing.vat.toFixed(2)}</span></div>
                   <div className="flex items-baseline gap-4"><span className="text-lg font-bold text-teal-900">PREZZO FINALE</span><span className="text-3xl font-bold text-teal-700">€ {pricing.final.toFixed(2)}</span></div>
                 </div>
-                <div className="pt-4 flex justify-between"><button onClick={() => setStep(2)} className="text-slate-500 hover:underline">Indietro</button><button onClick={() => setStep(4)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700">Avanti</button></div>
+                <div className="pt-4 flex justify-between"><button onClick={() => setStep(2)} className="text-slate-500 hover:underline">Indietro</button><button onClick={() => setStep(isOfficinale ? 4 : 5)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700">Avanti</button></div>
             </div>
           )}
 
@@ -527,7 +542,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                 })}
                 {selectedIngredients.filter(ing => ing.isContainer).length === 0 && (<p className="text-center text-slate-400 italic py-12">Nessun contenitore selezionato nello Step 2.<br/>Torna indietro per aggiungerne uno.</p>)}
               </div>
-              <div className="pt-4 flex justify-between"><button onClick={() => setStep(3)} className="text-slate-500 hover:underline">Indietro</button><button disabled={Math.abs(calculateBatchBalance()) >= 0.01} onClick={() => setStep(5)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed">Avanti a Foglio Lav.</button></div>
+              <div className="pt-4 flex justify-between"><button onClick={() => setStep(3)} className="text-slate-500 hover:underline">Indietro</button><button disabled={Math.abs(calculateBatchBalance()) >= 0.01} onClick={() => setStep(5)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed">Avanti</button></div>
             </div>
           )}
           
@@ -542,7 +557,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
           )}
 
           {((isOfficinale && step === 6) || (!isOfficinale && step === 5)) && (
-              <div className="space-y-6 animate-in fade-in">
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                   <div className="text-center"><h2 className="text-xl font-bold text-slate-800 pt-4 flex items-center justify-center gap-2"><ClipboardCheck size={24} />Conferma Finale</h2><div className="bg-slate-50 p-6 border rounded-md mt-4 max-w-md mx-auto"><p className="text-slate-600">Confermi la produzione di <b>{details.name}</b>?</p><p className="text-3xl font-bold mt-2 text-teal-700">€ {pricing.final.toFixed(2)}</p></div></div>
                   {isOfficinale && batches.length > 0 && (<div className="bg-blue-50/50 p-6 border border-blue-100 rounded-md mt-4"><h3 className="text-sm font-bold text-blue-800 uppercase tracking-wider mb-4 flex items-center gap-2"><ListOrdered size={16}/> Riepilogo Lotti di Produzione</h3><div className="space-y-2">{batches.map((batch, i) => { const container = selectedIngredients.find(ing => ing.id === batch.containerId); return (<div key={i} className="flex justify-between items-center bg-white p-3 rounded border border-blue-100 shadow-sm"><div className="flex items-center gap-3"><Box size={18} className="text-blue-500" /><div><div className="font-bold text-sm text-slate-800">{container?.name || 'Contenitore'}</div><div className="text-xs text-slate-500"><span className="font-bold text-blue-600">{Number(container?.amountUsed || 0).toFixed(0)} confezioni</span> preparate con {batch.productQuantity} unità cad.</div></div></div><div className="text-right"><div className="font-mono font-bold text-blue-700">€ {parseFloat(batch.unitPrice || 0).toFixed(2)}</div><div className="text-[10px] text-slate-400 font-bold uppercase">Prezzo Unitario</div></div></div>)})}</div></div>)}
                   <div className="pt-4 flex justify-between border-t border-slate-100">
