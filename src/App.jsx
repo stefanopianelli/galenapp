@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 
 const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true';
-console.log("USE_MOCK_DATA in App.jsx:", USE_MOCK_DATA);
 let MOCK_INVENTORY, MOCK_PREPARATIONS, MOCK_LOGS;
 if (USE_MOCK_DATA) {
   ({ MOCK_INVENTORY, MOCK_PREPARATIONS, MOCK_LOGS } = await import('./constants/mockData.js'));
@@ -31,7 +30,7 @@ import SubstanceModal from './components/modals/SubstanceModal';
 import PrepTypeSelectionModal from './components/modals/PrepTypeSelectionModal';
 import SettingsComponent from './components/sections/Settings';
 
-const API_URL = './api/api.php'; // Adatta se la tua API è in una sottocartella o un dominio diverso
+const API_URL = './api/api.php';
 
 export default function GalenicoApp() {
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem('activeTab') || 'dashboard');
@@ -75,30 +74,24 @@ export default function GalenicoApp() {
   const [preparationLogFilter, setPreparationLogFilter] = useState(null);
   const [inventoryFilterSubstance, setInventoryFilterSubstance] = useState(null);
 
-  // --- Funzioni di caricamento dati (API o Mock) ---
   const loadData = useCallback(async () => {
     setLoadingData(true);
     if (USE_MOCK_DATA) {
-      console.log("Loading mock data...");
       setInventory(MOCK_INVENTORY);
       setPreparations(MOCK_PREPARATIONS);
       setLogs(MOCK_LOGS);
-      setIsOnline(false); // Consideriamo "offline" con i mock data
+      setIsOnline(false);
       setLoadingData(false);
       return;
     }
 
-    // Altrimenti, carica da API
-    console.log("Loading data from API...");
     try {
       const response = await fetch(`${API_URL}?action=get_all_data`);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
-      
       if (data.error) {
         console.error("Errore API:", data.error);
         setIsOnline(false);
-        setInventory([]); setPreparations([]); setLogs([]);
       } else {
         setInventory(data.inventory || []);
         setPreparations(data.preparations || []);
@@ -108,138 +101,11 @@ export default function GalenicoApp() {
     } catch (e) {
       console.error("Errore caricamento dati:", e);
       setIsOnline(false);
-      setInventory([]); setPreparations([]); setLogs([]);
     } finally {
       setLoadingData(false);
     }
-  }, []); // Dipendenze vuote per evitare ricreazione inutile
+  }, []);
 
-  // --- Funzioni di salvataggio dati (API o Mock) ---
-  const saveInventoryData = useCallback(async (itemToSave) => {
-    if (USE_MOCK_DATA) {
-      console.log("Mock saving inventory item:", itemToSave);
-      const updatedInventory = itemToSave.id 
-        ? inventory.map(item => String(item.id) === String(itemToSave.id) ? { ...item, ...itemToSave } : item)
-        : [...inventory, { ...itemToSave, id: Date.now() }];
-      setInventory(updatedInventory);
-      return { success: true, id: itemToSave.id || Date.now() };
-    } else {
-      const response = await fetch(`${API_URL}?action=add_or_update_inventory`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(itemToSave)
-      });
-      return await response.json();
-    }
-  }, [inventory]);
-
-  const disposeInventoryData = useCallback(async (id) => {
-    if (USE_MOCK_DATA) {
-      console.log("Mock disposing inventory item:", id);
-      setInventory(inventory.map(item => item.id === id ? { ...item, disposed: true, endUseDate: new Date().toISOString().split('T')[0] } : item));
-      return { success: true, id };
-    } else {
-      const response = await fetch(`${API_URL}?action=dispose_inventory`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id })
-      });
-      return await response.json();
-    }
-  }, [inventory]);
-
-  const savePreparationData = useCallback(async (itemsUsed, prepDetails, isDraft) => {
-    if (USE_MOCK_DATA) {
-      console.log("Mock saving preparation:", prepDetails, itemsUsed, isDraft);
-      
-      const isNewPrep = !prepDetails.id;
-      const finalStatus = isDraft ? 'Bozza' : 'Completata';
-      let updatedInventory = [...inventory];
-      let updatedLogs = [...logs];
-      let updatedPreparations = [...preparations];
-
-      if (isNewPrep) {
-          const newPrep = { ...prepDetails, id: Date.now(), date: new Date().toISOString().split('T')[0], status: finalStatus, ingredients: itemsUsed };
-          if (!isDraft) {
-              itemsUsed.forEach(used => {
-                  const invIndex = updatedInventory.findIndex(i => i.id === used.id);
-                  if (invIndex > -1) {
-                      updatedInventory[invIndex] = { ...updatedInventory[invIndex], quantity: updatedInventory[invIndex].quantity - used.amountUsed };
-                  }
-                  updatedLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'SCARICO', substance: used.name, ni: used.ni, quantity: used.amountUsed, unit: used.unit, notes: `Nuova Prep. #${newPrep.prepNumber}` });
-              });
-          }
-          updatedPreparations.unshift(newPrep);
-      } else {
-          const oldPrep = preparations.find(p => p.id === prepDetails.id);
-          const wasDraft = oldPrep?.status === 'Bozza';
-          const isNowComplete = !isDraft;
-
-          if (isNowComplete && wasDraft) { // Da Bozza a Completata
-              itemsUsed.forEach(used => {
-                  const invIndex = updatedInventory.findIndex(i => i.id === used.id);
-                  if (invIndex > -1) {
-                      updatedInventory[invIndex] = { ...updatedInventory[invIndex], quantity: updatedInventory[invIndex].quantity - used.amountUsed };
-                  }
-                  updatedLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'SCARICO', substance: used.name, ni: used.ni, quantity: used.amountUsed, unit: used.unit, notes: `Complet. Prep. #${prepDetails.prepNumber}` });
-              });
-          } else if (isNowComplete && !wasDraft) { // Modifica di una prep già completa
-              const oldIngredients = oldPrep.ingredients || [];
-              const logNote = `Modifica Prep. #${prepDetails.prepNumber}`;
-
-              itemsUsed.forEach(newIng => {
-                  const oldIng = oldIngredients.find(o => o.id === newIng.id);
-                  const invIndex = updatedInventory.findIndex(i => i.id === newIng.id);
-                  if (invIndex === -1) return;
-                  
-                  const diff = newIng.amountUsed - (oldIng ? oldIng.amountUsed : 0);
-                  if (diff > 0) {
-                      updatedInventory[invIndex] = { ...updatedInventory[invIndex], quantity: updatedInventory[invIndex].quantity - diff };
-                      updatedLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'SCARICO', substance: newIng.name, ni: newIng.ni, quantity: diff, unit: newIng.unit, notes: logNote });
-                  } else if (diff < 0) {
-                      updatedInventory[invIndex] = { ...updatedInventory[invIndex], quantity: updatedInventory[invIndex].quantity + Math.abs(diff) };
-                      updatedLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'ANNULLAMENTO', substance: newIng.name, ni: newIng.ni, quantity: Math.abs(diff), unit: newIng.unit, notes: logNote });
-                  }
-              });
-              oldIngredients.forEach(oldIng => {
-                  if (!itemsUsed.some(n => n.id === oldIng.id)) {
-                      const invIndex = updatedInventory.findIndex(i => i.id === oldIng.id);
-                      if (invIndex > -1) {
-                          updatedInventory[invIndex] = { ...updatedInventory[invIndex], quantity: updatedInventory[invIndex].quantity + oldIng.amountUsed };
-                          updatedLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'ANNULLAMENTO', substance: oldIng.name, ni: oldIng.ni, quantity: oldIng.amountUsed, unit: oldIng.unit, notes: logNote });
-                      }
-                  }
-              });
-          }
-          const prepIndex = updatedPreparations.findIndex(p => p.id === prepDetails.id);
-          if (prepIndex > -1) {
-              updatedPreparations[prepIndex] = { ...updatedPreparations[prepIndex], ...prepDetails, ingredients: itemsUsed, status: finalStatus };
-          }
-      }
-
-      setInventory(updatedInventory);
-      setLogs(updatedLogs);
-      setPreparations(updatedPreparations);
-
-      return { success: true, id: prepDetails.id || Date.now() };
-    } else {
-      const response = await fetch(`${API_URL}?action=save_preparation`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prepDetails, itemsUsed, isDraft })
-      });
-      return await response.json();
-    }
-  }, [inventory, preparations, logs]);
-
-  const deletePreparationData = useCallback(async (id) => {
-    if (USE_MOCK_DATA) {
-      console.log("Mock deleting preparation:", id);
-      setPreparations(preparations.filter(p => p.id !== id));
-      return { success: true, id };
-    } else {
-      const response = await fetch(`${API_URL}?action=delete_preparation`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id })
-      });
-      return await response.json();
-    }
-  }, [preparations]);
-
-  // --- Effetti collaterali principali ---
   useEffect(() => {
     loadData();
   }, [loadData]);
@@ -252,7 +118,6 @@ export default function GalenicoApp() {
     localStorage.setItem('activeTab', activeTab);
   }, [activeTab]);
 
-  // --- Handlers ---
   const handleTabChange = (tab) => {
     if (activeTab === 'preparation' && window.confirm('Sei sicuro di voler uscire? Le modifiche non salvate andranno perse.')) {
       setEditingPrep(null); setActiveTab(tab);
@@ -260,8 +125,10 @@ export default function GalenicoApp() {
       setActiveTab(tab);
     }
   };
+
   const handleShowPreparation = (prepId) => { setPreparationLogFilter(prepId); handleTabChange('preparations_log'); setIsAddModalOpen(false); };
   const handleShowSubstanceInInventory = (substanceId) => { setInventoryFilterSubstance(substanceId); handleTabChange('inventory'); setIsAddModalOpen(false); };
+
   useEffect(() => {
     if (newSubstance.totalCost && newSubstance.quantity && parseFloat(newSubstance.quantity) > 0) {
       const calculatedCost = (parseFloat(newSubstance.totalCost) / parseFloat(newSubstance.quantity)).toFixed(4);
@@ -304,20 +171,7 @@ export default function GalenicoApp() {
       filteredData = filteredData.filter(item => item.name.toLowerCase().includes(term) || item.ni.toLowerCase().includes(term) || item.lot.toLowerCase().includes(term) || (item.supplier && item.supplier.toLowerCase().includes(term)));
     }
     if (inventoryFilterSubstance) filteredData = filteredData.filter(i => i.id === inventoryFilterSubstance);
-        let sortableItems = filteredData.map(item => {
-          const daysUntilExpiry = (new Date(item.expiry) - new Date()) / (1000 * 60 * 60 * 24);
-          let status = 'OK';
-          if (new Date(item.expiry) < new Date()) {
-            status = 'Scaduto';
-          } else if (daysUntilExpiry > 0 && daysUntilExpiry <= 30) {
-            status = 'In Scadenza';
-          }
-          return {
-            ...item,
-            usageCount: getUsageCount(item),
-            status: status // Aggiungi la proprietà status calcolata
-          };
-        });
+    let sortableItems = filteredData.map(item => ({...item, usageCount: getUsageCount(item)}));
     if (sortConfig.key) {
       sortableItems.sort((a, b) => {
         let aVal = a[sortConfig.key];
@@ -385,7 +239,7 @@ export default function GalenicoApp() {
     setNewSubstance({
       name: '', ni: getNextNi(isContainer), lot: '', expiry: '', quantity: '', unit: isContainer ? 'n.' : 'g', costPerGram: '', totalCost: '', supplier: '', purity: '',
       receptionDate: '', ddtNumber: '', ddtDate: '', firstUseDate: null, endUseDate: null, minStock: isContainer ? '10' : '5',
-      isExcipient: false, isContainer: isContainer, isDoping: false, isNarcotic: false, sdsFile: null, securityData: { pictograms: [] }
+      isExcipient: false, isContainer: isContainer, isDoping: false, isNarcotic: false, sdsFile: null, technicalSheetFile: null, securityData: { pictograms: [] }
     });
     setIsReadOnlyMode(false);
     setIsAddModalOpen(true);
@@ -407,67 +261,141 @@ export default function GalenicoApp() {
     setIsAddModalOpen(true);
   };
 
+  const handleSdsUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setNewSubstance(prev => ({ ...prev, sdsFile: file }));
+  };
+
+  const handleTechnicalSheetUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setNewSubstance(prev => ({ ...prev, technicalSheetFile: file }));
+  };
+
+  const handleRemoveSds = () => { if (window.confirm("Rimuovere la Scheda di Sicurezza?")) setNewSubstance(prev => ({ ...prev, sdsFile: null })); };
+  const handleRemoveTechnicalSheet = () => { if (window.confirm("Rimuovere la Scheda Tecnica?")) setNewSubstance(prev => ({ ...prev, technicalSheetFile: null })); };
+
+  const handleDownloadPdf = (e, file) => {
+    e.preventDefault();
+    if (!file) return;
+    if (file instanceof File) {
+      const url = window.URL.createObjectURL(file);
+      const link = document.createElement('a');
+      link.href = url; link.setAttribute('download', file.name);
+      document.body.appendChild(link); link.click();
+      link.parentNode.removeChild(link);
+    } else {
+      const fileUrl = `./api/uploads/${file}`;
+      window.open(fileUrl, '_blank');
+    }
+  };
+
+  const saveInventoryData = useCallback(async (itemToSave) => {
+    if (USE_MOCK_DATA) {
+      const updatedInventory = itemToSave.id 
+        ? inventory.map(item => String(item.id) === String(itemToSave.id) ? { ...item, ...itemToSave } : item)
+        : [...inventory, { ...itemToSave, id: Date.now() }];
+      setInventory(updatedInventory);
+      return { success: true, id: itemToSave.id || Date.now() };
+    } else {
+      // In production, we use the handleAddOrUpdateSubstance logic with FormData
+      return { success: true };
+    }
+  }, [inventory]);
+
+  const disposeInventoryData = useCallback(async (id) => {
+    if (USE_MOCK_DATA) {
+      setInventory(inventory.map(item => item.id === id ? { ...item, disposed: true, endUseDate: new Date().toISOString().split('T')[0] } : item));
+      return { success: true, id };
+    } else {
+      const response = await fetch(`${API_URL}?action=dispose_inventory`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+      return await response.json();
+    }
+  }, [inventory]);
+
+  const savePreparationData = useCallback(async (itemsUsed, prepDetails, isDraft) => {
+    if (USE_MOCK_DATA) {
+      const isNewPrep = !prepDetails.id;
+      const finalStatus = isDraft ? 'Bozza' : 'Completata';
+      let updatedInventory = [...inventory];
+      let updatedLogs = [...logs];
+      let updatedPreparations = [...preparations];
+      if (isNewPrep) {
+          const newPrep = { ...prepDetails, id: Date.now(), date: new Date().toISOString().split('T')[0], status: finalStatus, ingredients: itemsUsed };
+          if (!isDraft) {
+              itemsUsed.forEach(used => {
+                  const invIndex = updatedInventory.findIndex(i => i.id === used.id);
+                  if (invIndex > -1) updatedInventory[invIndex] = { ...updatedInventory[invIndex], quantity: updatedInventory[invIndex].quantity - used.amountUsed };
+                  updatedLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'SCARICO', substance: used.name, ni: used.ni, quantity: used.amountUsed, unit: used.unit, notes: `Nuova Prep. #${newPrep.prepNumber}` });
+              });
+          }
+          updatedPreparations.unshift(newPrep);
+      } else {
+          const oldPrep = preparations.find(p => p.id === prepDetails.id);
+          const wasDraft = oldPrep?.status === 'Bozza';
+          if (!isDraft && wasDraft) {
+              itemsUsed.forEach(used => {
+                  const invIndex = updatedInventory.findIndex(i => i.id === used.id);
+                  if (invIndex > -1) updatedInventory[invIndex] = { ...updatedInventory[invIndex], quantity: updatedInventory[invIndex].quantity - used.amountUsed };
+                  updatedLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'SCARICO', substance: used.name, ni: used.ni, quantity: used.amountUsed, unit: used.unit, notes: `Complet. Prep. #${prepDetails.prepNumber}` });
+              });
+          } else if (!isDraft && !wasDraft) {
+              const oldIngredients = oldPrep.ingredients || [];
+              itemsUsed.forEach(newIng => {
+                  const oldIng = oldIngredients.find(o => o.id === newIng.id);
+                  const invIndex = updatedInventory.findIndex(i => i.id === newIng.id);
+                  if (invIndex === -1) return;
+                  const diff = newIng.amountUsed - (oldIng ? oldIng.amountUsed : 0);
+                  if (diff > 0) {
+                      updatedInventory[invIndex] = { ...updatedInventory[invIndex], quantity: updatedInventory[invIndex].quantity - diff };
+                      updatedLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'SCARICO', substance: newIng.name, ni: newIng.ni, quantity: diff, unit: newIng.unit, notes: `Modifica Prep. #${prepDetails.prepNumber}` });
+                  } else if (diff < 0) {
+                      updatedInventory[invIndex] = { ...updatedInventory[invIndex], quantity: updatedInventory[invIndex].quantity + Math.abs(diff) };
+                      updatedLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'ANNULLAMENTO', substance: newIng.name, ni: newIng.ni, quantity: Math.abs(diff), unit: newIng.unit, notes: `Modifica Prep. #${prepDetails.prepNumber}` });
+                  }
+              });
+          }
+          const prepIndex = updatedPreparations.findIndex(p => p.id === prepDetails.id);
+          if (prepIndex > -1) updatedPreparations[prepIndex] = { ...updatedPreparations[prepIndex], ...prepDetails, ingredients: itemsUsed, status: finalStatus };
+      }
+      setInventory(updatedInventory); setLogs(updatedLogs); setPreparations(updatedPreparations);
+      return { success: true, id: prepDetails.id || Date.now() };
+    } else {
+      const response = await fetch(`${API_URL}?action=save_preparation`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prepDetails, itemsUsed, isDraft }) });
+      return await response.json();
+    }
+  }, [inventory, preparations, logs]);
+
+  const deletePreparationData = useCallback(async (id) => {
+    if (USE_MOCK_DATA) {
+      setPreparations(preparations.filter(p => p.id !== id));
+      return { success: true, id };
+    } else {
+      const response = await fetch(`${API_URL}?action=delete_preparation`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+      return await response.json();
+    }
+  }, [preparations]);
+
   const handleAddOrUpdateSubstance = async (e) => {
     e.preventDefault();
-    
-    // Usiamo FormData per poter inviare anche i file PDF
+    console.log("handleAddOrUpdateSubstance called. SDS File in state:", newSubstance.sdsFile);
     const formData = new FormData();
-    
-    // Aggiungi tutti i campi testuali
     const textFields = ['id', 'name', 'ni', 'lot', 'expiry', 'quantity', 'unit', 'totalCost', 'costPerGram', 'supplier', 'purity', 'receptionDate', 'ddtNumber', 'ddtDate', 'minStock', 'isExcipient', 'isContainer', 'isDoping', 'isNarcotic'];
-    textFields.forEach(field => {
-      if (newSubstance[field] !== undefined && newSubstance[field] !== null) {
-        formData.append(field, newSubstance[field]);
-      }
-    });
-
-    // Aggiungi securityData come stringa JSON
-    if (newSubstance.securityData) {
-      formData.append('securityData', JSON.stringify(newSubstance.securityData));
-    }
-
-    // Aggiungi i file se sono stati selezionati (e sono oggetti File)
-    if (newSubstance.sdsFile instanceof File) {
-      formData.append('sdsFile', newSubstance.sdsFile);
-    }
-    if (newSubstance.technicalSheetFile instanceof File) {
-      formData.append('technicalSheetFile', newSubstance.technicalSheetFile);
-    }
+    textFields.forEach(field => { if (newSubstance[field] !== undefined && newSubstance[field] !== null) formData.append(field, newSubstance[field]); });
+    if (newSubstance.securityData) formData.append('securityData', JSON.stringify(newSubstance.securityData));
+    if (newSubstance.sdsFile instanceof File) formData.append('sdsFile', newSubstance.sdsFile);
+    if (newSubstance.technicalSheetFile instanceof File) formData.append('technicalSheetFile', newSubstance.technicalSheetFile);
 
     try {
       if (USE_MOCK_DATA) {
-        // Logica mock semplificata (i file non vengono salvati in locale)
         const substanceToSave = Object.fromEntries(formData);
-        
-        // Riconverti securityData in oggetto per il mock locale
-        if (substanceToSave.securityData && typeof substanceToSave.securityData === 'string') {
-            try {
-                substanceToSave.securityData = JSON.parse(substanceToSave.securityData);
-            } catch (e) {
-                console.error("Errore parsing mock securityData", e);
-                substanceToSave.securityData = { pictograms: [] };
-            }
-        }
-
-        // Riconverti le stringhe 'true'/'false' in booleani per il mock locale
-        ['isExcipient', 'isContainer', 'isDoping', 'isNarcotic'].forEach(key => {
-            if (substanceToSave[key] === 'true') substanceToSave[key] = true;
-            if (substanceToSave[key] === 'false') substanceToSave[key] = false;
-        });
-
-        const result = await saveInventoryData({
-          ...substanceToSave,
-          quantity: parseFloat(substanceToSave.quantity || 0),
-          costPerGram: parseFloat(substanceToSave.costPerGram || 0),
-          totalCost: parseFloat(substanceToSave.totalCost || 0)
-        });
+        if (substanceToSave.securityData && typeof substanceToSave.securityData === 'string') substanceToSave.securityData = JSON.parse(substanceToSave.securityData);
+        ['isExcipient', 'isContainer', 'isDoping', 'isNarcotic'].forEach(key => { if (substanceToSave[key] === 'true') substanceToSave[key] = true; if (substanceToSave[key] === 'false') substanceToSave[key] = false; });
+        const result = await saveInventoryData({ ...substanceToSave, quantity: parseFloat(substanceToSave.quantity || 0), costPerGram: parseFloat(substanceToSave.costPerGram || 0), totalCost: parseFloat(substanceToSave.totalCost || 0) });
         if (result.error) throw new Error(result.error);
       } else {
-        // Chiamata API reale con FormData
-        const response = await fetch(`${API_URL}?action=add_or_update_inventory`, {
-          method: 'POST',
-          body: formData // Nota: non impostiamo Content-Type, lo fa il browser
-        });
+        const response = await fetch(`${API_URL}?action=add_or_update_inventory`, { method: 'POST', body: formData });
         const result = await response.json();
         if (result.error) throw new Error(result.error);
         await loadData();
@@ -484,7 +412,7 @@ export default function GalenicoApp() {
     try {
       const result = await disposeInventoryData(itemId);
       if (result.error) throw new Error(result.error);
-      if (!USE_MOCK_DATA) await loadData(); // Ricarica da API solo se non in mock
+      if (!USE_MOCK_DATA) await loadData();
     } catch (error) {
       console.error("Errore smaltimento:", error);
       alert("Errore durante lo smaltimento.");
@@ -496,7 +424,7 @@ export default function GalenicoApp() {
     try {
       const result = await deletePreparationData(prepId);
       if (result.error) throw new Error(result.error);
-      if (!USE_MOCK_DATA) await loadData(); // Ricarica da API solo se non in mock
+      if (!USE_MOCK_DATA) await loadData();
     } catch (error) {
       console.error("Errore eliminazione preparazione:", error);
       alert("Errore durante l'eliminazione della preparazione.");
@@ -508,7 +436,7 @@ export default function GalenicoApp() {
       const result = await savePreparationData(itemsUsed, prepDetails, isDraft);
       if (result.error) throw new Error(result.error);
       setEditingPrep(null); setActiveTab('preparations_log');
-      if (!USE_MOCK_DATA) await loadData(); // Ricarica da API solo se non in mock
+      if (!USE_MOCK_DATA) await loadData();
     } catch (error) {
       console.error("Errore salvataggio preparazione:", error);
       alert("Errore durante il salvataggio della preparazione.");
@@ -569,7 +497,7 @@ export default function GalenicoApp() {
         <header className="bg-white border-b border-slate-200 p-6 flex justify-between items-center sticky top-0 z-10"><h1 className="text-2xl font-bold text-slate-800">{activeTab === 'dashboard' && 'Panoramica Laboratorio'}{activeTab === 'inventory' && 'Magazzino & Sostanze'}{activeTab === 'preparation' && (editingPrep ? `Modifica: ${editingPrep.prepNumber}` : 'Foglio di Lavorazione')}{activeTab === 'preparations_log' && 'Registro Generale Preparazioni'}{activeTab === 'logs' && 'Registro di Carico/Scarico'}{activeTab === 'ai-assistant' && 'Assistente Galenico IA'}{activeTab === 'settings' && 'Impostazioni Farmacia'}</h1><div className="flex items-center gap-4"><div className="bg-slate-100 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 border border-slate-200">{new Date().toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div></div></header>
         <div className="p-6 max-w-7xl mx-auto">{renderContent()}</div>
       </main>
-      <SubstanceModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} isReadOnly={isReadOnlyMode} editingSubstance={editingSubstance} substanceData={newSubstance} setSubstanceData={setNewSubstance} onSubmit={handleAddOrUpdateSubstance} getNextNi={getNextNi} preparations={preparations} onShowPreparation={handleShowPreparation} />
+      <SubstanceModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} isReadOnly={isReadOnlyMode} editingSubstance={editingSubstance} substanceData={newSubstance} setSubstanceData={setNewSubstance} onSubmit={handleAddOrUpdateSubstance} getNextNi={getNextNi} preparations={preparations} onShowPreparation={handleShowPreparation} handleSdsUpload={handleSdsUpload} handleRemoveSds={handleRemoveSds} handleTechnicalSheetUpload={handleTechnicalSheetUpload} handleRemoveTechnicalSheet={handleRemoveTechnicalSheet} handleDownloadPdf={handleDownloadPdf} />
       <PrepTypeSelectionModal isOpen={isPrepTypeModalOpen} onClose={() => setIsPrepTypeModalOpen(false)} onSelectType={startNewPreparation} />
     </div>
   );

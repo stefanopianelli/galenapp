@@ -72,22 +72,12 @@ function createLog($pdo, $type, $notes, $details = []) {
 // --- FUNZIONI API ---
 
 function getAllData($pdo) {
-
     $stmt_inv = $pdo->query("SELECT * FROM `inventory` ORDER BY `name` ASC");
-
     $inventory = $stmt_inv->fetchAll();
-
-    // Decodifica securityData per ogni elemento dell'inventario
-
     foreach ($inventory as &$item) {
-
         $item['securityData'] = json_decode($item['securityData'] ?? '{"pictograms":[]}', true);
-
     }
-
-    unset($item); // Rompe il riferimento
-
-
+    unset($item);
 
     $stmt_preps = $pdo->query("SELECT * FROM `preparations` ORDER BY `date` DESC, `id` DESC");
     $preparations = $stmt_preps->fetchAll();
@@ -123,7 +113,7 @@ function handleFileUpload($fileInputName) {
     if (!isset($_FILES[$fileInputName])) return null;
 
     $fileError = $_FILES[$fileInputName]['error'];
-    if ($fileError === UPLOAD_ERR_NO_FILE) return null; // Nessun file caricato, non è un errore
+    if ($fileError === UPLOAD_ERR_NO_FILE) return null;
 
     if ($fileError !== UPLOAD_ERR_OK) {
         $msg = "Errore upload file ($fileError).";
@@ -142,8 +132,6 @@ function handleFileUpload($fileInputName) {
     
     $fileTmpPath = $_FILES[$fileInputName]['tmp_name'];
     $fileName = $_FILES[$fileInputName]['name'];
-    
-    // Sanitizza nome file e aggiungi timestamp univoco
     $newFileName = time() . '_' . preg_replace('/[^a-zA-Z0-9_\-\.]/', '', $fileName);
     $destPath = $uploadDir . $newFileName;
     
@@ -156,39 +144,27 @@ function handleFileUpload($fileInputName) {
 }
 
 function addOrUpdateInventory($pdo) {
-    // Nota: Con FormData (multipart/form-data), i dati sono in $_POST e i file in $_FILES
-    // Non usiamo più json_decode(file_get_contents('php://input')) per questa chiamata.
-    
-    $data = $_POST; // Dati testuali
+    $data = $_POST;
     
     $fields = ['name', 'ni', 'lot', 'expiry', 'quantity', 'unit', 'totalCost', 'costPerGram', 'supplier', 'purity', 'receptionDate', 'ddtNumber', 'ddtDate', 'isExcipient', 'isContainer', 'isDoping', 'isNarcotic', 'securityData'];
     $params = [];
     foreach ($fields as $field) {
         $value = $data[$field] ?? null;
-        // Se arriva come stringa "null" o vuota, convertiamo
         if ($value === 'null' || $value === '') $value = null;
-        
-        // securityData arriva come stringa JSON da FormData se è un oggetto
         $params[':' . $field] = $value;
     }
-    
-    // Gestione booleani (che arrivano come stringhe 'true'/'false' o '1'/'0' da FormData)
     $params[':isExcipient'] = filter_var($data['isExcipient'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
     $params[':isContainer'] = filter_var($data['isContainer'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
     $params[':isDoping'] = filter_var($data['isDoping'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
     $params[':isNarcotic'] = filter_var($data['isNarcotic'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
 
-    // Gestione File Upload
     $sdsFileName = handleFileUpload('sdsFile');
     $techSheetFileName = handleFileUpload('technicalSheetFile');
 
     $isUpdate = isset($data['id']) && !empty($data['id']);
 
     if ($isUpdate) {
-        // UPDATE
         $params[':id'] = $data['id'];
-        
-        // Costruiamo la query dinamicamente per includere i file solo se caricati
         $updateFields = array_map(fn($f) => "`$f`=:$f", $fields);
         if ($sdsFileName) {
             $updateFields[] = "`sdsFile`=:sdsFile";
@@ -202,11 +178,8 @@ function addOrUpdateInventory($pdo) {
         $sql = "UPDATE `inventory` SET " . implode(', ', $updateFields) . " WHERE `id`=:id";
         createLog($pdo, 'RETTIFICA', 'Aggiornamento anagrafica', ['substance' => $data['name'], 'ni' => $data['ni']]);
     } else {
-        // INSERT
-        // Aggiungiamo i campi file alla lista
         $insertFields = $fields;
         $insertPlaceholders = array_map(fn($f) => ":$f", $fields);
-        
         if ($sdsFileName) {
             $insertFields[] = 'sdsFile';
             $insertPlaceholders[] = ':sdsFile';
@@ -217,7 +190,6 @@ function addOrUpdateInventory($pdo) {
             $insertPlaceholders[] = ':technicalSheetFile';
             $params[':technicalSheetFile'] = $techSheetFileName;
         }
-
         $sql = "INSERT INTO `inventory` (" . implode(', ', array_map(fn($f) => "`$f`", $insertFields)) . ") VALUES (" . implode(', ', $insertPlaceholders) . ")";
     }
     
@@ -278,6 +250,18 @@ function savePreparation($pdo) {
             $prepParams[':warnings'] = $prepDetails['warnings'];
         }
 
+        $wasDraft = true;
+        $oldIngredients = [];
+        if ($oldPrepId) {
+            $stmt = $pdo->prepare("SELECT pi.`amountUsed`, pi.`inventoryId`, i.`name`, i.`ni`, i.`unit` FROM `preparation_ingredients` pi JOIN `inventory` i ON pi.inventoryId = i.id WHERE pi.`preparationId` = ?");
+            $stmt->execute([$oldPrepId]);
+            $oldIngredients = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $stmtStatus = $pdo->prepare("SELECT `status` FROM `preparations` WHERE `id` = ?");
+            $stmtStatus->execute([$oldPrepId]);
+            if ($stmtStatus->fetchColumn() === 'Completata') $wasDraft = false;
+        }
+
         $newPrepId = $oldPrepId;
         if ($oldPrepId) {
             $update_fields_sql = implode(', ', array_map(fn($f) => "`$f`=:$f", $prepFields));
@@ -288,7 +272,6 @@ function savePreparation($pdo) {
 
             $stmt = $pdo->prepare("DELETE FROM `preparation_ingredients` WHERE `preparationId` = ?");
             $stmt->execute([$oldPrepId]);
-            $newPrepId = $oldPrepId;
         } else {
             $insert_fields_sql = implode(', ', array_map(fn($f) => "`$f`", $prepFields));
             $insert_values_sql = implode(', ', array_map(fn($f) => ":$f", $prepFields));
@@ -304,26 +287,6 @@ function savePreparation($pdo) {
         }
 
         if (!$isDraft) {
-            $wasDraft = true;
-            if ($oldPrepId) {
-                 // Check if it was already completed (simplified logic, assumes no re-stocking if already completed)
-                 // A true implementation would check previous status.
-                 // For now we assume edits to completed preps don't re-deduct unless we implement full delta logic here again or passed from frontend.
-                 // But wait, I DID implement delta logic in previous turn! I need to keep it!
-                 // Let's re-implement the delta logic here correctly.
-                 // fetching old status is safer.
-                 // Wait, I overwrote the file, so I need to put the delta logic BACK IN.
-            }
-            
-            // Re-implementing Delta Logic from previous turn that I accidentally overwrote?
-            // No, wait, I am writing this file NOW. I must include the logic I wrote in turn 89/91.
-            
-             if ($oldPrepId) {
-                $stmtStatus = $pdo->prepare("SELECT `status` FROM `preparations` WHERE `id` = ?");
-                $stmtStatus->execute([$oldPrepId]);
-                if ($stmtStatus->fetchColumn() === 'Completata') $wasDraft = false;
-            }
-
             if ($wasDraft) { 
                 foreach ($itemsUsed as $item) {
                     $stmt = $pdo->prepare("UPDATE `inventory` SET `quantity` = `quantity` - ? WHERE `id` = ?");
@@ -331,32 +294,36 @@ function savePreparation($pdo) {
                     createLog($pdo, 'SCARICO', "Completata Prep. #{$prepDetails['prepNumber']}", ['substance' => $item['name'], 'ni' => $item['ni'] ?? '', 'quantity' => $item['amountUsed'], 'unit' => $item['unit'], 'preparationId' => $newPrepId]);
                 }
             } else { 
-                // Delta Logic
-                 $stmt = $pdo->prepare("SELECT * FROM `preparation_ingredients` pi JOIN `inventory` i ON pi.inventoryId = i.id WHERE pi.`preparationId` = ?");
-                 $stmt->execute([$oldPrepId]);
-                 $oldIngredients = $stmt->fetchAll();
-                 
+                // LOGICA DELTA PER MODIFICHE A PREPARAZIONI GIA' COMPLETE
                 $logNote = "Modifica Prep. #{$prepDetails['prepNumber']}";
-                $newIngredientsMap = array_column($itemsUsed, null, 'id');
-                $oldIngredientsMap = array_column($oldIngredients, null, 'inventoryId');
+                $newIngredientsMap = [];
+                foreach($itemsUsed as $item) $newIngredientsMap[$item['id']] = $item;
+                
+                $oldIngredientsMap = [];
+                foreach($oldIngredients as $item) $oldIngredientsMap[$item['inventoryId']] = $item;
 
-                foreach ($newIngredientsMap as $newIng) {
-                    $oldIng = $oldIngredientsMap[$newIng['id']] ?? null;
+                // 1. Nuovi ingredienti o quantità modificate
+                foreach ($newIngredientsMap as $invId => $newIng) {
+                    $oldIng = $oldIngredientsMap[$invId] ?? null;
                     $diff = $newIng['amountUsed'] - ($oldIng ? $oldIng['amountUsed'] : 0);
-                    if ($diff > 0) {
+                    
+                    if ($diff > 0.0001) { // Aumento quantità (SCARICO)
                         $stmt = $pdo->prepare("UPDATE `inventory` SET `quantity` = `quantity` - ? WHERE `id` = ?");
-                        $stmt->execute([$diff, $newIng['id']]);
+                        $stmt->execute([$diff, $invId]);
                         createLog($pdo, 'SCARICO', $logNote, ['substance' => $newIng['name'], 'ni' => $newIng['ni'] ?? '', 'quantity' => $diff, 'unit' => $newIng['unit'], 'preparationId' => $newPrepId]);
-                    } elseif ($diff < 0) {
+                    } elseif ($diff < -0.0001) { // Diminuzione quantità (ANNULLAMENTO PARZIALE)
+                        $absDiff = abs($diff);
                         $stmt = $pdo->prepare("UPDATE `inventory` SET `quantity` = `quantity` + ? WHERE `id` = ?");
-                        $stmt->execute([abs($diff), $newIng['id']]);
-                        createLog($pdo, 'ANNULLAMENTO', $logNote, ['substance' => $newIng['name'], 'ni' => $newIng['ni'] ?? '', 'quantity' => abs($diff), 'unit' => $newIng['unit'], 'preparationId' => $newPrepId]);
+                        $stmt->execute([$absDiff, $invId]);
+                        createLog($pdo, 'ANNULLAMENTO', $logNote, ['substance' => $newIng['name'], 'ni' => $newIng['ni'] ?? '', 'quantity' => $absDiff, 'unit' => $newIng['unit'], 'preparationId' => $newPrepId]);
                     }
                 }
-                foreach ($oldIngredientsMap as $oldIng) {
-                    if (!isset($newIngredientsMap[$oldIng['inventoryId']])) {
+                
+                // 2. Ingredienti rimossi
+                foreach ($oldIngredientsMap as $invId => $oldIng) {
+                    if (!isset($newIngredientsMap[$invId])) {
                         $stmt = $pdo->prepare("UPDATE `inventory` SET `quantity` = `quantity` + ? WHERE `id` = ?");
-                        $stmt->execute([$oldIng['amountUsed'], $oldIng['inventoryId']]);
+                        $stmt->execute([$oldIng['amountUsed'], $invId]);
                         createLog($pdo, 'ANNULLAMENTO', $logNote, ['substance' => $oldIng['name'], 'ni' => $oldIng['ni'] ?? '', 'quantity' => $oldIng['amountUsed'], 'unit' => $oldIng['unit'], 'preparationId' => $newPrepId]);
                     }
                 }
