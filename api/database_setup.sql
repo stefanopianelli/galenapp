@@ -50,6 +50,8 @@ CREATE TABLE `inventory` (
   `isContainer` tinyint(1) NOT NULL DEFAULT 0,
   `isDoping` tinyint(1) NOT NULL DEFAULT 0,
   `isNarcotic` tinyint(1) NOT NULL DEFAULT 0,
+  `sdsFile` varchar(255) DEFAULT NULL,
+  `technicalSheetFile` varchar(255) DEFAULT NULL,
   `securityData` text DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

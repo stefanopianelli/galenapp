@@ -119,7 +119,7 @@ export default function GalenicoApp() {
     if (USE_MOCK_DATA) {
       console.log("Mock saving inventory item:", itemToSave);
       const updatedInventory = itemToSave.id 
-        ? inventory.map(item => item.id === itemToSave.id ? itemToSave : item)
+        ? inventory.map(item => String(item.id) === String(itemToSave.id) ? { ...item, ...itemToSave } : item)
         : [...inventory, { ...itemToSave, id: Date.now() }];
       setInventory(updatedInventory);
       return { success: true, id: itemToSave.id || Date.now() };
@@ -409,15 +409,69 @@ export default function GalenicoApp() {
 
   const handleAddOrUpdateSubstance = async (e) => {
     e.preventDefault();
-    const substanceToSave = {
-      ...newSubstance, quantity: newSubstance.quantity ? parseFloat(newSubstance.quantity) : 0,
-      costPerGram: newSubstance.costPerGram ? parseFloat(newSubstance.costPerGram) : 0,
-      totalCost: newSubstance.totalCost ? parseFloat(newSubstance.totalCost) : 0
-    };
+    
+    // Usiamo FormData per poter inviare anche i file PDF
+    const formData = new FormData();
+    
+    // Aggiungi tutti i campi testuali
+    const textFields = ['id', 'name', 'ni', 'lot', 'expiry', 'quantity', 'unit', 'totalCost', 'costPerGram', 'supplier', 'purity', 'receptionDate', 'ddtNumber', 'ddtDate', 'minStock', 'isExcipient', 'isContainer', 'isDoping', 'isNarcotic'];
+    textFields.forEach(field => {
+      if (newSubstance[field] !== undefined && newSubstance[field] !== null) {
+        formData.append(field, newSubstance[field]);
+      }
+    });
+
+    // Aggiungi securityData come stringa JSON
+    if (newSubstance.securityData) {
+      formData.append('securityData', JSON.stringify(newSubstance.securityData));
+    }
+
+    // Aggiungi i file se sono stati selezionati (e sono oggetti File)
+    if (newSubstance.sdsFile instanceof File) {
+      formData.append('sdsFile', newSubstance.sdsFile);
+    }
+    if (newSubstance.technicalSheetFile instanceof File) {
+      formData.append('technicalSheetFile', newSubstance.technicalSheetFile);
+    }
+
     try {
-      const result = await saveInventoryData(substanceToSave);
-      if (result.error) throw new Error(result.error);
-      if (!USE_MOCK_DATA) await loadData(); // Ricarica da API solo se non in mock
+      if (USE_MOCK_DATA) {
+        // Logica mock semplificata (i file non vengono salvati in locale)
+        const substanceToSave = Object.fromEntries(formData);
+        
+        // Riconverti securityData in oggetto per il mock locale
+        if (substanceToSave.securityData && typeof substanceToSave.securityData === 'string') {
+            try {
+                substanceToSave.securityData = JSON.parse(substanceToSave.securityData);
+            } catch (e) {
+                console.error("Errore parsing mock securityData", e);
+                substanceToSave.securityData = { pictograms: [] };
+            }
+        }
+
+        // Riconverti le stringhe 'true'/'false' in booleani per il mock locale
+        ['isExcipient', 'isContainer', 'isDoping', 'isNarcotic'].forEach(key => {
+            if (substanceToSave[key] === 'true') substanceToSave[key] = true;
+            if (substanceToSave[key] === 'false') substanceToSave[key] = false;
+        });
+
+        const result = await saveInventoryData({
+          ...substanceToSave,
+          quantity: parseFloat(substanceToSave.quantity || 0),
+          costPerGram: parseFloat(substanceToSave.costPerGram || 0),
+          totalCost: parseFloat(substanceToSave.totalCost || 0)
+        });
+        if (result.error) throw new Error(result.error);
+      } else {
+        // Chiamata API reale con FormData
+        const response = await fetch(`${API_URL}?action=add_or_update_inventory`, {
+          method: 'POST',
+          body: formData // Nota: non impostiamo Content-Type, lo fa il browser
+        });
+        const result = await response.json();
+        if (result.error) throw new Error(result.error);
+        await loadData();
+      }
       setIsAddModalOpen(false);
     } catch(error) {
       console.error("Errore salvataggio sostanza:", error);

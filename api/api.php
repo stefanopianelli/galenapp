@@ -72,8 +72,23 @@ function createLog($pdo, $type, $notes, $details = []) {
 // --- FUNZIONI API ---
 
 function getAllData($pdo) {
+
     $stmt_inv = $pdo->query("SELECT * FROM `inventory` ORDER BY `name` ASC");
+
     $inventory = $stmt_inv->fetchAll();
+
+    // Decodifica securityData per ogni elemento dell'inventario
+
+    foreach ($inventory as &$item) {
+
+        $item['securityData'] = json_decode($item['securityData'] ?? '{"pictograms":[]}', true);
+
+    }
+
+    unset($item); // Rompe il riferimento
+
+
+
     $stmt_preps = $pdo->query("SELECT * FROM `preparations` ORDER BY `date` DESC, `id` DESC");
     $preparations = $stmt_preps->fetchAll();
     $prep_ids = array_map(fn($p) => $p['id'], $preparations);
@@ -104,48 +119,117 @@ function getAllData($pdo) {
     echo json_encode(['inventory' => $inventory, 'preparations' => $preparations, 'logs' => $logs]);
 }
 
-function addOrUpdateInventory($pdo) {
-    $data = json_decode(file_get_contents('php://input'), true);
-    $isUpdate = isset($data['id']) && !empty($data['id']);
+function handleFileUpload($fileInputName) {
+    if (!isset($_FILES[$fileInputName])) return null;
 
+    $fileError = $_FILES[$fileInputName]['error'];
+    if ($fileError === UPLOAD_ERR_NO_FILE) return null; // Nessun file caricato, non è un errore
+
+    if ($fileError !== UPLOAD_ERR_OK) {
+        $msg = "Errore upload file ($fileError).";
+        if ($fileError === UPLOAD_ERR_INI_SIZE || $fileError === UPLOAD_ERR_FORM_SIZE) $msg = "File troppo grande.";
+        sendError(400, $msg);
+        exit;
+    }
+
+    $uploadDir = __DIR__ . '/uploads/';
+    if (!is_dir($uploadDir)) {
+        if (!mkdir($uploadDir, 0755, true)) {
+            sendError(500, "Impossibile creare cartella uploads. Verifica permessi.");
+            exit;
+        }
+    }
+    
+    $fileTmpPath = $_FILES[$fileInputName]['tmp_name'];
+    $fileName = $_FILES[$fileInputName]['name'];
+    
+    // Sanitizza nome file e aggiungi timestamp univoco
+    $newFileName = time() . '_' . preg_replace('/[^a-zA-Z0-9_\-\.]/', '', $fileName);
+    $destPath = $uploadDir . $newFileName;
+    
+    if(move_uploaded_file($fileTmpPath, $destPath)) {
+        return $newFileName;
+    } else {
+        sendError(500, "Errore spostamento file su server. Verifica permessi cartella uploads.");
+        exit;
+    }
+}
+
+function addOrUpdateInventory($pdo) {
+    // Nota: Con FormData (multipart/form-data), i dati sono in $_POST e i file in $_FILES
+    // Non usiamo più json_decode(file_get_contents('php://input')) per questa chiamata.
+    
+    $data = $_POST; // Dati testuali
+    
     $fields = ['name', 'ni', 'lot', 'expiry', 'quantity', 'unit', 'totalCost', 'costPerGram', 'supplier', 'purity', 'receptionDate', 'ddtNumber', 'ddtDate', 'isExcipient', 'isContainer', 'isDoping', 'isNarcotic', 'securityData'];
     $params = [];
     foreach ($fields as $field) {
         $value = $data[$field] ?? null;
-        $params[':' . $field] = is_array($value) ? json_encode($value) : $value;
+        // Se arriva come stringa "null" o vuota, convertiamo
+        if ($value === 'null' || $value === '') $value = null;
+        
+        // securityData arriva come stringa JSON da FormData se è un oggetto
+        $params[':' . $field] = $value;
     }
-    $params[':isExcipient'] = !empty($data['isExcipient']) ? 1 : 0;
-    $params[':isContainer'] = !empty($data['isContainer']) ? 1 : 0;
-    $params[':isDoping'] = !empty($data['isDoping']) ? 1 : 0;
-    $params[':isNarcotic'] = !empty($data['isNarcotic']) ? 1 : 0;
+    
+    // Gestione booleani (che arrivano come stringhe 'true'/'false' o '1'/'0' da FormData)
+    $params[':isExcipient'] = filter_var($data['isExcipient'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+    $params[':isContainer'] = filter_var($data['isContainer'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+    $params[':isDoping'] = filter_var($data['isDoping'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+    $params[':isNarcotic'] = filter_var($data['isNarcotic'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
 
-    $pdo->beginTransaction();
-    try {
-        if ($isUpdate) {
-            $params[':id'] = $data['id'];
-            $update_fields_sql = implode(', ', array_map(fn($f) => "`$f`=:$f", $fields));
-            $sql = "UPDATE `inventory` SET $update_fields_sql WHERE `id`=:id";
-            createLog($pdo, 'RETTIFICA', 'Aggiornamento anagrafica', ['substance' => $data['name'], 'ni' => $data['ni']]);
-        } else {
-            $insert_fields_sql = implode(', ', array_map(fn($f) => "`$f`", $fields));
-            $insert_values_sql = implode(', ', array_map(fn($f) => ":$f", $fields));
-            $sql = "INSERT INTO `inventory` ($insert_fields_sql) VALUES ($insert_values_sql)";
+    // Gestione File Upload
+    $sdsFileName = handleFileUpload('sdsFile');
+    $techSheetFileName = handleFileUpload('technicalSheetFile');
+
+    $isUpdate = isset($data['id']) && !empty($data['id']);
+
+    if ($isUpdate) {
+        // UPDATE
+        $params[':id'] = $data['id'];
+        
+        // Costruiamo la query dinamicamente per includere i file solo se caricati
+        $updateFields = array_map(fn($f) => "`$f`=:$f", $fields);
+        if ($sdsFileName) {
+            $updateFields[] = "`sdsFile`=:sdsFile";
+            $params[':sdsFile'] = $sdsFileName;
+        }
+        if ($techSheetFileName) {
+            $updateFields[] = "`technicalSheetFile`=:technicalSheetFile";
+            $params[':technicalSheetFile'] = $techSheetFileName;
         }
         
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
-        $newId = $data['id'] ?? $pdo->lastInsertId();
-
-        if (!$isUpdate) {
-             createLog($pdo, 'CARICO', 'Nuovo carico in magazzino', ['substance' => $data['name'], 'ni' => $data['ni'], 'quantity' => $data['quantity'], 'unit' => $data['unit']]);
-        }
+        $sql = "UPDATE `inventory` SET " . implode(', ', $updateFields) . " WHERE `id`=:id";
+        createLog($pdo, 'RETTIFICA', 'Aggiornamento anagrafica', ['substance' => $data['name'], 'ni' => $data['ni']]);
+    } else {
+        // INSERT
+        // Aggiungiamo i campi file alla lista
+        $insertFields = $fields;
+        $insertPlaceholders = array_map(fn($f) => ":$f", $fields);
         
-        $pdo->commit();
-        echo json_encode(['success' => true, 'id' => $newId]);
-    } catch (\Exception $e) {
-        $pdo->rollBack();
-        sendError(500, "Errore salvataggio sostanza: " . $e->getMessage());
+        if ($sdsFileName) {
+            $insertFields[] = 'sdsFile';
+            $insertPlaceholders[] = ':sdsFile';
+            $params[':sdsFile'] = $sdsFileName;
+        }
+        if ($techSheetFileName) {
+            $insertFields[] = 'technicalSheetFile';
+            $insertPlaceholders[] = ':technicalSheetFile';
+            $params[':technicalSheetFile'] = $techSheetFileName;
+        }
+
+        $sql = "INSERT INTO `inventory` (" . implode(', ', array_map(fn($f) => "`$f`", $insertFields)) . ") VALUES (" . implode(', ', $insertPlaceholders) . ")";
     }
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $newId = $data['id'] ?? $pdo->lastInsertId();
+
+    if (!$isUpdate) {
+         createLog($pdo, 'CARICO', 'Nuovo carico in magazzino', ['substance' => $data['name'], 'ni' => $data['ni'], 'quantity' => $data['quantity'], 'unit' => $data['unit']]);
+    }
+    
+    echo json_encode(['success' => true, 'id' => $newId]);
 }
 
 function disposeInventory($pdo) {
@@ -182,60 +266,80 @@ function savePreparation($pdo) {
 
     $pdo->beginTransaction();
     try {
-        // --- GESTIONE PREPARAZIONE (INSERT/UPDATE) ---
-                $prepFields = [
-                    'prepNumber', 'name', 'pharmaceuticalForm', 'quantity', 'prepUnit', 
-                    'expiryDate', 'posology', 'date', 'patient', 'doctor', 'status', 
-                    'totalPrice', 'prepType', 'notes', 'usage', 'operatingProcedures', 
-                    'labelWarnings', 'customLabelWarning', 'techOps', 'worksheetItems', 'recipeDate', 'batches'
-                ];
+        $prepFields = ['prepNumber', 'name', 'pharmaceuticalForm', 'quantity', 'prepUnit', 'expiryDate', 'posology', 'date', 'patient', 'doctor', 'status', 'totalPrice', 'prepType', 'notes', 'usage', 'operatingProcedures', 'labelWarnings', 'customLabelWarning', 'techOps', 'worksheetItems', 'recipeDate', 'batches'];
         $prepParams = [];
         foreach ($prepFields as $field) {
             $value = $prepDetails[$field] ?? null;
             $prepParams[':' . $field] = is_array($value) ? json_encode($value) : $value;
         }
         $prepParams[':status'] = $isDraft ? 'Bozza' : 'Completata';
-        
-        $wasDraft = true;
-        $oldIngredients = [];
-        if ($oldPrepId) {
-            $stmt = $pdo->prepare("SELECT * FROM `preparation_ingredients` pi JOIN `inventory` i ON pi.inventoryId = i.id WHERE pi.`preparationId` = ?");
-            $stmt->execute([$oldPrepId]);
-            $oldIngredients = $stmt->fetchAll();
-
-            $stmtStatus = $pdo->prepare("SELECT `status` FROM `preparations` WHERE `id` = ?");
-            $stmtStatus->execute([$oldPrepId]);
-            if ($stmtStatus->fetchColumn() === 'Completata') $wasDraft = false;
+        if (isset($prepDetails['warnings'])) {
+            $prepFields[] = 'warnings';
+            $prepParams[':warnings'] = $prepDetails['warnings'];
         }
-        
+
         $newPrepId = $oldPrepId;
         if ($oldPrepId) {
             $update_fields_sql = implode(', ', array_map(fn($f) => "`$f`=:$f", $prepFields));
             $sql = "UPDATE `preparations` SET $update_fields_sql WHERE `id`=:id";
             $prepParams[':id'] = $oldPrepId;
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($prepParams);
+
+            $stmt = $pdo->prepare("DELETE FROM `preparation_ingredients` WHERE `preparationId` = ?");
+            $stmt->execute([$oldPrepId]);
+            $newPrepId = $oldPrepId;
         } else {
             $insert_fields_sql = implode(', ', array_map(fn($f) => "`$f`", $prepFields));
             $insert_values_sql = implode(', ', array_map(fn($f) => ":$f", $prepFields));
             $sql = "INSERT INTO `preparations` ($insert_fields_sql) VALUES ($insert_values_sql)";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($prepParams);
+            $newPrepId = $pdo->lastInsertId();
         }
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($prepParams);
-        if (!$oldPrepId) $newPrepId = $pdo->lastInsertId();
 
-        // --- GESTIONE MAGAZZINO E LOGS ---
+        foreach ($itemsUsed as $item) {
+            $stmt = $pdo->prepare("INSERT INTO `preparation_ingredients` (`preparationId`, `inventoryId`, `amountUsed`) VALUES (?, ?, ?)");
+            $stmt->execute([$newPrepId, $item['id'], $item['amountUsed']]);
+        }
+
         if (!$isDraft) {
-            if ($wasDraft) { // Passaggio da Bozza/Nuova a Completata: scarico semplice
+            $wasDraft = true;
+            if ($oldPrepId) {
+                 // Check if it was already completed (simplified logic, assumes no re-stocking if already completed)
+                 // A true implementation would check previous status.
+                 // For now we assume edits to completed preps don't re-deduct unless we implement full delta logic here again or passed from frontend.
+                 // But wait, I DID implement delta logic in previous turn! I need to keep it!
+                 // Let's re-implement the delta logic here correctly.
+                 // fetching old status is safer.
+                 // Wait, I overwrote the file, so I need to put the delta logic BACK IN.
+            }
+            
+            // Re-implementing Delta Logic from previous turn that I accidentally overwrote?
+            // No, wait, I am writing this file NOW. I must include the logic I wrote in turn 89/91.
+            
+             if ($oldPrepId) {
+                $stmtStatus = $pdo->prepare("SELECT `status` FROM `preparations` WHERE `id` = ?");
+                $stmtStatus->execute([$oldPrepId]);
+                if ($stmtStatus->fetchColumn() === 'Completata') $wasDraft = false;
+            }
+
+            if ($wasDraft) { 
                 foreach ($itemsUsed as $item) {
                     $stmt = $pdo->prepare("UPDATE `inventory` SET `quantity` = `quantity` - ? WHERE `id` = ?");
                     $stmt->execute([$item['amountUsed'], $item['id']]);
                     createLog($pdo, 'SCARICO', "Completata Prep. #{$prepDetails['prepNumber']}", ['substance' => $item['name'], 'ni' => $item['ni'] ?? '', 'quantity' => $item['amountUsed'], 'unit' => $item['unit'], 'preparationId' => $newPrepId]);
                 }
-            } else { // Modifica di una prep già completa: logica delta
+            } else { 
+                // Delta Logic
+                 $stmt = $pdo->prepare("SELECT * FROM `preparation_ingredients` pi JOIN `inventory` i ON pi.inventoryId = i.id WHERE pi.`preparationId` = ?");
+                 $stmt->execute([$oldPrepId]);
+                 $oldIngredients = $stmt->fetchAll();
+                 
                 $logNote = "Modifica Prep. #{$prepDetails['prepNumber']}";
                 $newIngredientsMap = array_column($itemsUsed, null, 'id');
                 $oldIngredientsMap = array_column($oldIngredients, null, 'inventoryId');
 
-                // Itera sui nuovi ingredienti per calcolare scarichi o rettifiche
                 foreach ($newIngredientsMap as $newIng) {
                     $oldIng = $oldIngredientsMap[$newIng['id']] ?? null;
                     $diff = $newIng['amountUsed'] - ($oldIng ? $oldIng['amountUsed'] : 0);
@@ -249,7 +353,6 @@ function savePreparation($pdo) {
                         createLog($pdo, 'ANNULLAMENTO', $logNote, ['substance' => $newIng['name'], 'ni' => $newIng['ni'] ?? '', 'quantity' => abs($diff), 'unit' => $newIng['unit'], 'preparationId' => $newPrepId]);
                     }
                 }
-                // Itera sui vecchi ingredienti per trovare quelli rimossi
                 foreach ($oldIngredientsMap as $oldIng) {
                     if (!isset($newIngredientsMap[$oldIng['inventoryId']])) {
                         $stmt = $pdo->prepare("UPDATE `inventory` SET `quantity` = `quantity` + ? WHERE `id` = ?");
@@ -258,14 +361,6 @@ function savePreparation($pdo) {
                     }
                 }
             }
-        }
-        
-        // --- GESTIONE INGREDIENTI ---
-        $stmt = $pdo->prepare("DELETE FROM `preparation_ingredients` WHERE `preparationId` = ?");
-        $stmt->execute([$newPrepId]);
-        foreach ($itemsUsed as $item) {
-            $stmt = $pdo->prepare("INSERT INTO `preparation_ingredients` (`preparationId`, `inventoryId`, `amountUsed`) VALUES (?, ?, ?)");
-            $stmt->execute([$newPrepId, $item['id'], $item['amountUsed']]);
         }
 
         $pdo->commit();
