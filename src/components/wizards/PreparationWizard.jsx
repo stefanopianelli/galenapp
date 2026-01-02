@@ -122,29 +122,43 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
     const form = details.pharmaceuticalForm;
     let fee = 0;
     
+    // Calcolo costi Operazioni Tecnologiche Extra
     let extraOpsCount = 0;
-    if (form === 'Capsule') { // Solo per Capsule
-        extraOpsCount = Math.max(0, (details.techOps || []).length - 3); // Prime 3 incluse
+    // Per Capsule e Cartine, 3 operazioni sono incluse, le altre costano 2.30€
+    if (form === 'Capsule' || form === 'Cartine') {
+        extraOpsCount = Math.max(0, (details.techOps || []).length - 3);
     } else {
-        extraOpsCount = (details.techOps || []).length; // Tutte extra per le altre forme (per ora)
+        // Per altre forme, al momento tutte le ops sono considerate extra (regola da definire)
+        extraOpsCount = (details.techOps || []).length;
     }
     const extraOpsFee = extraOpsCount * 2.30;
 
-    if (form === 'Capsule' || form === 'Cartine') {
+    // Calcolo costo Componenti Aggiuntivi (simile per Capsule e Cartine)
+    const activeSubstancesCount = selectedIngredients.filter(i => !i.isExcipient && !i.isContainer).length;
+    const extraComponentsCount = Math.max(0, activeSubstancesCount - 1);
+    const extraComponentsFee = Math.min(extraComponentsCount, 4) * 0.60; // Max 4 componenti extra
+
+    if (form === 'Capsule') {
         const BASE_QTY = 120;
         fee = 22.00;
         if (qty > BASE_QTY) fee += (Math.ceil((qty - BASE_QTY) / 10) * 2.00);
         else if (qty < BASE_QTY && qty > 0) fee -= (Math.ceil((BASE_QTY - qty) / 10) * 1.00);
         
-        const activeSubstancesCount = selectedIngredients.filter(i => !i.isExcipient && !i.isContainer).length;
-        const extraComponents = Math.max(0, activeSubstancesCount - 1);
-        
-        fee += (Math.min(extraComponents, 4) * 0.60);
-        fee += extraOpsFee; // Aggiungi il costo delle operazioni extra
+        fee += extraComponentsFee;
+        fee += extraOpsFee;
         fee *= 1.40;
-    } else {
+    } else if (form === 'Cartine') {
+        const BASE_QTY_CARTINE = 10;
+        fee = 11.00;
+        if (qty > BASE_QTY_CARTINE) fee += ((qty - BASE_QTY_CARTINE) * 0.25);
+        else if (qty < BASE_QTY_CARTINE && qty > 0) fee -= ((BASE_QTY_CARTINE - qty) * 0.35);
+        
+        fee += extraComponentsFee;
+        fee += extraOpsFee;
+        fee *= 1.40; // Anche le Cartine hanno il moltiplicatore finale di 1.40
+    } else { // Default per altre forme (Tariffa Tabellare)
         fee = NATIONAL_TARIFF_FEES[form] || 8.00;
-        fee += extraOpsFee; // Aggiungi il costo delle operazioni extra
+        fee += extraOpsFee; // Al momento tutte le ops sono extra
     }
     return fee;
   };
@@ -490,7 +504,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                         <div><label className="block text-xs font-bold text-slate-500 mb-1">Onorario + Suppl. 40%</label><input type="number" className="w-full border p-2 rounded text-right font-mono bg-slate-100" value={professionalFee.toFixed(2)} readOnly /></div>
                         {(() => {
                           let extraOpsCount = 0;
-                          if (details.pharmaceuticalForm === 'Capsule') { 
+                          if (details.pharmaceuticalForm === 'Capsule' || details.pharmaceuticalForm === 'Cartine') { 
                               extraOpsCount = Math.max(0, (details.techOps || []).length - 3);
                           } else {
                               extraOpsCount = (details.techOps || []).length;
