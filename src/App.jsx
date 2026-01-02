@@ -106,191 +106,6 @@ export default function GalenicoApp() {
     }
   }, []);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  useEffect(() => {
-    localStorage.setItem('galenico_settings', JSON.stringify(pharmacySettings));
-  }, [pharmacySettings]);
-
-  useEffect(() => {
-    localStorage.setItem('activeTab', activeTab);
-  }, [activeTab]);
-
-  const handleTabChange = (tab) => {
-    if (activeTab === 'preparation' && window.confirm('Sei sicuro di voler uscire? Le modifiche non salvate andranno perse.')) {
-      setEditingPrep(null); setActiveTab(tab);
-    } else if (activeTab !== 'preparation') {
-      setActiveTab(tab);
-    }
-  };
-
-  const handleShowPreparation = (prepId) => { setPreparationLogFilter(prepId); handleTabChange('preparations_log'); setIsAddModalOpen(false); };
-  const handleShowSubstanceInInventory = (substanceId) => { setInventoryFilterSubstance(substanceId); handleTabChange('inventory'); setIsAddModalOpen(false); };
-
-  useEffect(() => {
-    if (newSubstance.totalCost && newSubstance.quantity && parseFloat(newSubstance.quantity) > 0) {
-      const calculatedCost = (parseFloat(newSubstance.totalCost) / parseFloat(newSubstance.quantity)).toFixed(4);
-      setNewSubstance(prev => ({ ...prev, costPerGram: calculatedCost }));
-    }
-  }, [newSubstance.totalCost, newSubstance.quantity]);
-
-  const getStats = () => {
-    if (!inventory) return { expiringSoon: 0, expired: 0, lowStock: 0, totalItems: 0 };
-    const activeInventory = inventory.filter(i => !i.disposed);
-    const expiringSoon = activeInventory.filter(item => {
-      const days = (new Date(item.expiry) - new Date()) / (1000 * 60 * 60 * 24);
-      return days > 0 && days <= 30;
-    }).length;
-    const expired = activeInventory.filter(item => new Date(item.expiry) < new Date()).length;
-    const lowStock = activeInventory.filter(item => item.quantity < 50 && item.quantity > 0).length;
-    return { expiringSoon, expired, lowStock, totalItems: inventory.length };
-  };
-  const stats = getStats();
-
-  const getUsageCount = (item) => {
-    return preparations.reduce((count, prep) => count + (prep.ingredients.some(ing => ing.id === item.id) ? 1 : 0), 0);
-  };
-
-  const requestSort = (key) => {
-    let direction = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
-    setSortConfig({ key, direction });
-  };
-  const requestPrepSort = (key) => {
-    let direction = 'asc';
-    if (prepSortConfig.key === key && prepSortConfig.direction === 'asc') direction = 'desc';
-    setPrepSortConfig({ key, direction });
-  };
-
-  const { sortedActiveInventory, sortedDisposedInventory } = useMemo(() => {
-    let filteredData = inventory || [];
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filteredData = filteredData.filter(item => item.name.toLowerCase().includes(term) || item.ni.toLowerCase().includes(term) || item.lot.toLowerCase().includes(term) || (item.supplier && item.supplier.toLowerCase().includes(term)));
-    }
-    if (inventoryFilterSubstance) filteredData = filteredData.filter(i => i.id === inventoryFilterSubstance);
-    let sortableItems = filteredData.map(item => ({...item, usageCount: getUsageCount(item)}));
-    if (sortConfig.key) {
-      sortableItems.sort((a, b) => {
-        let aVal = a[sortConfig.key];
-        let bVal = b[sortConfig.key];
-        if (typeof aVal === 'string') aVal = aVal.toLowerCase();
-        if (typeof bVal === 'string') bVal = bVal.toLowerCase();
-        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
-    return {
-      sortedActiveInventory: sortableItems.filter(i => {
-        if (i.disposed) return false;
-        const daysUntilExpiry = (new Date(i.expiry) - new Date()) / (1000 * 60 * 60 * 24);
-        const isExpired = new Date(i.expiry) < new Date();
-        const isExpiring = !isExpired && daysUntilExpiry > 0 && daysUntilExpiry <= 30;
-        if (inventoryFilter === 'expiring') return isExpiring;
-        if (inventoryFilter === 'expired') return isExpired;
-        return true;
-      }),
-      sortedDisposedInventory: sortableItems.filter(i => i.disposed)
-    };
-  }, [inventory, sortConfig, searchTerm, preparations, inventoryFilter, inventoryFilterSubstance]);
-
-  const filteredPreparations = useMemo(() => {
-    let filtered = preparations || [];
-    if (preparationLogFilter) filtered = filtered.filter(p => p.id === preparationLogFilter);
-    if (prepTypeFilter !== 'all') filtered = filtered.filter(p => p.prepType === prepTypeFilter || (prepTypeFilter === 'magistrale' && !p.prepType));
-    if (prepSearchTerm) {
-      const term = prepSearchTerm.toLowerCase();
-      filtered = filtered.filter(p => p.name.toLowerCase().includes(term) || (p.ingredients && p.ingredients.some(ing => ing.name.toLowerCase().includes(term))));
-    }
-    if (prepSortConfig.key) {
-      filtered.sort((a, b) => {
-        let aVal = a[prepSortConfig.key];
-        let bVal = b[prepSortConfig.key];
-        if (prepSortConfig.key === 'totalPrice') { aVal = parseFloat(aVal || 0); bVal = parseFloat(bVal || 0); }
-        else { if (typeof aVal === 'string') aVal = aVal.toLowerCase(); if (typeof bVal === 'string') bVal = bVal.toLowerCase(); }
-        if (aVal < bVal) return prepSortConfig.direction === 'asc' ? -1 : 1;
-        if (aVal > bVal) return prepSortConfig.direction === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
-    return filtered;
-  }, [preparations, preparationLogFilter, prepSearchTerm, prepSortConfig, prepTypeFilter]);
-
-  const getNextNi = (isContainer = false) => {
-    const currentYear = new Date().getFullYear().toString().slice(-2);
-    const typeChar = isContainer ? 'C' : 'S';
-    let maxProg = 0;
-    inventory.forEach(item => {
-      const prefix = `${currentYear}/${typeChar}`;
-      if (item.ni && item.ni.toUpperCase().startsWith(prefix)) {
-        const parts = item.ni.toUpperCase().split(typeChar);
-        if (parts.length > 1) { const progNum = parseInt(parts[1]); if (!isNaN(progNum) && progNum > maxProg) maxProg = progNum; }
-      }
-    });
-    return `${currentYear}/${typeChar}${(maxProg + 1).toString().padStart(3, '0')}`;
-  };
-
-  const handleOpenAddModal = (type = 'substance') => {
-    setEditingSubstance(null);
-    const isContainer = type === 'container';
-    setNewSubstance({
-      name: '', ni: getNextNi(isContainer), lot: '', expiry: '', quantity: '', unit: isContainer ? 'n.' : 'g', costPerGram: '', totalCost: '', supplier: '', purity: '',
-      receptionDate: '', ddtNumber: '', ddtDate: '', firstUseDate: null, endUseDate: null, minStock: isContainer ? '10' : '5',
-      isExcipient: false, isContainer: isContainer, isDoping: false, isNarcotic: false, sdsFile: null, technicalSheetFile: null, securityData: { pictograms: [] }
-    });
-    setIsReadOnlyMode(false);
-    setIsAddModalOpen(true);
-  };
-
-  const handleOpenEditModal = (item) => {
-    setEditingSubstance(item);
-    setNewSubstance({ ...item, quantity: item.quantity.toString(), minStock: item.minStock || (item.isContainer ? '10' : '5'),
-      totalCost: item.totalCost ? item.totalCost.toString() : '', costPerGram: item.costPerGram?.toString() || '' });
-    setIsReadOnlyMode(false);
-    setIsAddModalOpen(true);
-  };
-  
-  const handleOpenViewModal = (item) => {
-    setEditingSubstance(item);
-    setNewSubstance({ ...item, quantity: item.quantity.toString(), minStock: item.minStock || (item.isContainer ? '10' : '5'),
-      totalCost: item.totalCost ? item.totalCost.toString() : '', costPerGram: item.costPerGram?.toString() || '' });
-    setIsReadOnlyMode(true);
-    setIsAddModalOpen(true);
-  };
-
-  const handleSdsUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setNewSubstance(prev => ({ ...prev, sdsFile: file }));
-  };
-
-  const handleTechnicalSheetUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setNewSubstance(prev => ({ ...prev, technicalSheetFile: file }));
-  };
-
-  const handleRemoveSds = () => { if (window.confirm("Rimuovere la Scheda di Sicurezza?")) setNewSubstance(prev => ({ ...prev, sdsFile: null })); };
-  const handleRemoveTechnicalSheet = () => { if (window.confirm("Rimuovere la Scheda Tecnica?")) setNewSubstance(prev => ({ ...prev, technicalSheetFile: null })); };
-
-  const handleDownloadPdf = (e, file) => {
-    e.preventDefault();
-    if (!file) return;
-    if (file instanceof File) {
-      const url = window.URL.createObjectURL(file);
-      const link = document.createElement('a');
-      link.href = url; link.setAttribute('download', file.name);
-      document.body.appendChild(link); link.click();
-      link.parentNode.removeChild(link);
-    } else {
-      const fileUrl = `./api/uploads/${file}`;
-      window.open(fileUrl, '_blank');
-    }
-  };
-
   const saveInventoryData = useCallback(async (itemToSave) => {
     if (USE_MOCK_DATA) {
       const updatedInventory = itemToSave.id 
@@ -299,7 +114,6 @@ export default function GalenicoApp() {
       setInventory(updatedInventory);
       return { success: true, id: itemToSave.id || Date.now() };
     } else {
-      // In production, we use the handleAddOrUpdateSubstance logic with FormData
       return { success: true };
     }
   }, [inventory]);
@@ -355,6 +169,15 @@ export default function GalenicoApp() {
                       updatedLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'ANNULLAMENTO', substance: newIng.name, ni: newIng.ni, quantity: Math.abs(diff), unit: newIng.unit, notes: `Modifica Prep. #${prepDetails.prepNumber}` });
                   }
               });
+              oldIngredients.forEach(oldIng => {
+                  if (!itemsUsed.some(n => n.id === oldIng.id)) {
+                      const invIndex = updatedInventory.findIndex(i => i.id === oldIng.id);
+                      if (invIndex > -1) {
+                          updatedInventory[invIndex] = { ...updatedInventory[invIndex], quantity: updatedInventory[invIndex].quantity + oldIng.amountUsed };
+                          updatedLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'ANNULLAMENTO', substance: oldIng.name, ni: oldIng.ni, quantity: oldIng.amountUsed, unit: oldIng.unit, notes: `Modifica Prep. #${prepDetails.prepNumber}` });
+                      }
+                  }
+              });
           }
           const prepIndex = updatedPreparations.findIndex(p => p.id === prepDetails.id);
           if (prepIndex > -1) updatedPreparations[prepIndex] = { ...updatedPreparations[prepIndex], ...prepDetails, ingredients: itemsUsed, status: finalStatus };
@@ -377,16 +200,201 @@ export default function GalenicoApp() {
     }
   }, [preparations]);
 
+  const handleClearLogs = async (options) => {
+    if (USE_MOCK_DATA) {
+      if (options.mode === 'all') {
+        setLogs([]);
+      } else if (options.mode === 'range') {
+        const start = new Date(options.startDate);
+        const end = new Date(options.endDate);
+        setLogs(logs.filter(log => {
+          const logDate = new Date(log.date);
+          return logDate < start || logDate > end;
+        }));
+      }
+      return;
+    }
+    try {
+      const response = await fetch(`${API_URL}?action=clear_logs`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(options)
+      });
+      const result = await response.json();
+      if (result.error) throw new Error(result.error);
+      await loadData();
+    } catch (error) {
+      console.error("Errore pulizia log:", error);
+      alert("Errore durante la pulizia dei log.");
+    }
+  };
+
+  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { localStorage.setItem('galenico_settings', JSON.stringify(pharmacySettings)); }, [pharmacySettings]);
+  useEffect(() => { localStorage.setItem('activeTab', activeTab); }, [activeTab]);
+
+  const handleTabChange = (tab) => {
+    if (activeTab === 'preparation' && window.confirm('Sei sicuro di voler uscire? Le modifiche non salvate andranno perse.')) {
+      setEditingPrep(null); setActiveTab(tab);
+    } else if (activeTab !== 'preparation') {
+      setActiveTab(tab);
+    }
+  };
+  const handleShowPreparation = (prepId) => { setPreparationLogFilter(prepId); handleTabChange('preparations_log'); setIsAddModalOpen(false); };
+  const handleShowSubstanceInInventory = (substanceId) => { setInventoryFilterSubstance(substanceId); handleTabChange('inventory'); setIsAddModalOpen(false); };
+  useEffect(() => {
+    if (newSubstance.totalCost && newSubstance.quantity && parseFloat(newSubstance.quantity) > 0) {
+      const calculatedCost = (parseFloat(newSubstance.totalCost) / parseFloat(newSubstance.quantity)).toFixed(4);
+      setNewSubstance(prev => ({ ...prev, costPerGram: calculatedCost }));
+    }
+  }, [newSubstance.totalCost, newSubstance.quantity]);
+
+  const getStats = () => {
+    if (!inventory) return { expiringSoon: 0, expired: 0, lowStock: 0, totalItems: 0 };
+    const activeInventory = inventory.filter(i => !i.disposed);
+    const expiringSoon = activeInventory.filter(item => {
+      const days = (new Date(item.expiry) - new Date()) / (1000 * 60 * 60 * 24);
+      return days > 0 && days <= 30;
+    }).length;
+    const expired = activeInventory.filter(item => new Date(item.expiry) < new Date()).length;
+    const lowStock = activeInventory.filter(item => item.quantity < 50 && item.quantity > 0).length;
+    return { expiringSoon, expired, lowStock, totalItems: inventory.length };
+  };
+  const stats = getStats();
+  const getUsageCount = (item) => preparations.reduce((count, prep) => count + (prep.ingredients.some(ing => ing.id === item.id) ? 1 : 0), 0);
+  const requestSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+    setSortConfig({ key, direction });
+  };
+  const requestPrepSort = (key) => {
+    let direction = 'asc';
+    if (prepSortConfig.key === key && prepSortConfig.direction === 'asc') direction = 'desc';
+    setPrepSortConfig({ key, direction });
+  };
+  const { sortedActiveInventory, sortedDisposedInventory } = useMemo(() => {
+    let filteredData = inventory || [];
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filteredData = filteredData.filter(item => item.name.toLowerCase().includes(term) || item.ni.toLowerCase().includes(term) || item.lot.toLowerCase().includes(term) || (item.supplier && item.supplier.toLowerCase().includes(term)));
+    }
+    if (inventoryFilterSubstance) filteredData = filteredData.filter(i => i.id === inventoryFilterSubstance);
+    let sortableItems = filteredData.map(item => ({...item, usageCount: getUsageCount(item)}));
+    if (sortConfig.key) {
+      sortableItems.sort((a, b) => {
+        let aVal = a[sortConfig.key];
+        let bVal = b[sortConfig.key];
+        if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+        if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return {
+      sortedActiveInventory: sortableItems.filter(i => {
+        if (i.disposed) return false;
+        const daysUntilExpiry = (new Date(i.expiry) - new Date()) / (1000 * 60 * 60 * 24);
+        const isExpired = new Date(i.expiry) < new Date();
+        const isExpiring = !isExpired && daysUntilExpiry > 0 && daysUntilExpiry <= 30;
+        if (inventoryFilter === 'expiring') return isExpiring;
+        if (inventoryFilter === 'expired') return isExpired;
+        return true;
+      }),
+      sortedDisposedInventory: sortableItems.filter(i => i.disposed)
+    };
+  }, [inventory, sortConfig, searchTerm, preparations, inventoryFilter, inventoryFilterSubstance]);
+  const filteredPreparations = useMemo(() => {
+    let filtered = preparations || [];
+    if (preparationLogFilter) filtered = filtered.filter(p => p.id === preparationLogFilter);
+    if (prepTypeFilter !== 'all') filtered = filtered.filter(p => p.prepType === prepTypeFilter || (prepTypeFilter === 'magistrale' && !p.prepType));
+    if (prepSearchTerm) {
+      const term = prepSearchTerm.toLowerCase();
+      filtered = filtered.filter(p => p.name.toLowerCase().includes(term) || (p.ingredients && p.ingredients.some(ing => ing.name.toLowerCase().includes(term))));
+    }
+    if (prepSortConfig.key) {
+      filtered.sort((a, b) => {
+        let aVal = a[prepSortConfig.key];
+        let bVal = b[prepSortConfig.key];
+        if (prepSortConfig.key === 'totalPrice') { aVal = parseFloat(aVal || 0); bVal = parseFloat(bVal || 0); }
+        else { if (typeof aVal === 'string') aVal = aVal.toLowerCase(); if (typeof bVal === 'string') bVal = bVal.toLowerCase(); }
+        if (aVal < bVal) return prepSortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return prepSortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return filtered;
+  }, [preparations, preparationLogFilter, prepSearchTerm, prepSortConfig, prepTypeFilter]);
+  const getNextNi = (isContainer = false) => {
+    const currentYear = new Date().getFullYear().toString().slice(-2);
+    const typeChar = isContainer ? 'C' : 'S';
+    let maxProg = 0;
+    inventory.forEach(item => {
+      const prefix = `${currentYear}/${typeChar}`;
+      if (item.ni && item.ni.toUpperCase().startsWith(prefix)) {
+        const parts = item.ni.toUpperCase().split(typeChar);
+        if (parts.length > 1) { const progNum = parseInt(parts[1]); if (!isNaN(progNum) && progNum > maxProg) maxProg = progNum; }
+      }
+    });
+    return `${currentYear}/${typeChar}${(maxProg + 1).toString().padStart(3, '0')}`;
+  };
+  const handleOpenAddModal = (type = 'substance') => {
+    setEditingSubstance(null);
+    const isContainer = type === 'container';
+    setNewSubstance({
+      name: '', ni: getNextNi(isContainer), lot: '', expiry: '', quantity: '', unit: isContainer ? 'n.' : 'g', costPerGram: '', totalCost: '', supplier: '', purity: '',
+      receptionDate: '', ddtNumber: '', ddtDate: '', firstUseDate: null, endUseDate: null, minStock: isContainer ? '10' : '5',
+      isExcipient: false, isContainer: isContainer, isDoping: false, isNarcotic: false, sdsFile: null, technicalSheetFile: null, securityData: { pictograms: [] }
+    });
+    setIsReadOnlyMode(false);
+    setIsAddModalOpen(true);
+  };
+  const handleOpenEditModal = (item) => {
+    setEditingSubstance(item);
+    setNewSubstance({ ...item, quantity: item.quantity.toString(), minStock: item.minStock || (item.isContainer ? '10' : '5'),
+      totalCost: item.totalCost ? item.totalCost.toString() : '', costPerGram: item.costPerGram?.toString() || '' });
+    setIsReadOnlyMode(false);
+    setIsAddModalOpen(true);
+  };
+  const handleOpenViewModal = (item) => {
+    setEditingSubstance(item);
+    setNewSubstance({ ...item, quantity: item.quantity.toString(), minStock: item.minStock || (item.isContainer ? '10' : '5'),
+      totalCost: item.totalCost ? item.totalCost.toString() : '', costPerGram: item.costPerGram?.toString() || '' });
+    setIsReadOnlyMode(true);
+    setIsAddModalOpen(true);
+  };
+  const handleSdsUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setNewSubstance(prev => ({ ...prev, sdsFile: file }));
+  };
+  const handleTechnicalSheetUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setNewSubstance(prev => ({ ...prev, technicalSheetFile: file }));
+  };
+  const handleRemoveSds = () => { if (window.confirm("Rimuovere la Scheda di Sicurezza?")) setNewSubstance(prev => ({ ...prev, sdsFile: null })); };
+  const handleRemoveTechnicalSheet = () => { if (window.confirm("Rimuovere la Scheda Tecnica?")) setNewSubstance(prev => ({ ...prev, technicalSheetFile: null })); };
+  const handleDownloadPdf = (e, file) => {
+    e.preventDefault();
+    if (!file) return;
+    if (file instanceof File) {
+      const url = window.URL.createObjectURL(file);
+      const link = document.createElement('a');
+      link.href = url; link.setAttribute('download', file.name);
+      document.body.appendChild(link); link.click();
+      link.parentNode.removeChild(link);
+    } else {
+      const fileUrl = `./api/uploads/${file}`;
+      window.open(fileUrl, '_blank');
+    }
+  };
   const handleAddOrUpdateSubstance = async (e) => {
     e.preventDefault();
-    console.log("handleAddOrUpdateSubstance called. SDS File in state:", newSubstance.sdsFile);
     const formData = new FormData();
     const textFields = ['id', 'name', 'ni', 'lot', 'expiry', 'quantity', 'unit', 'totalCost', 'costPerGram', 'supplier', 'purity', 'receptionDate', 'ddtNumber', 'ddtDate', 'minStock', 'isExcipient', 'isContainer', 'isDoping', 'isNarcotic'];
     textFields.forEach(field => { if (newSubstance[field] !== undefined && newSubstance[field] !== null) formData.append(field, newSubstance[field]); });
     if (newSubstance.securityData) formData.append('securityData', JSON.stringify(newSubstance.securityData));
     if (newSubstance.sdsFile instanceof File) formData.append('sdsFile', newSubstance.sdsFile);
     if (newSubstance.technicalSheetFile instanceof File) formData.append('technicalSheetFile', newSubstance.technicalSheetFile);
-
     try {
       if (USE_MOCK_DATA) {
         const substanceToSave = Object.fromEntries(formData);
@@ -406,7 +414,6 @@ export default function GalenicoApp() {
       alert("Errore durante il salvataggio della sostanza.");
     }
   };
-
   const handleDispose = async (itemId) => {
     if (!window.confirm(`Confermi di voler smaltire l'elemento?`)) return;
     try {
@@ -418,7 +425,6 @@ export default function GalenicoApp() {
       alert("Errore durante lo smaltimento.");
     }
   };
-
   const handleDeletePreparation = async (prepId) => {
     if (!window.confirm(`Eliminare la preparazione?`)) return;
     try {
@@ -430,7 +436,6 @@ export default function GalenicoApp() {
       alert("Errore durante l'eliminazione della preparazione.");
     }
   };
-
   const handleSavePreparation = async (itemsUsed, prepDetails, isDraft = false) => {
     try {
       const result = await savePreparationData(itemsUsed, prepDetails, isDraft);
@@ -442,7 +447,6 @@ export default function GalenicoApp() {
       alert("Errore durante il salvataggio della preparazione.");
     }
   };
-
   const handleJumpToStep = (prep, step = 1) => { setEditingPrep(prep); setInitialWizardStep(step); setActiveTab('preparation'); };
   const handleDuplicatePreparation = (prepToDuplicate) => {
     const duplicatedData = { ...prepToDuplicate, isDuplicate: true };
@@ -457,9 +461,7 @@ export default function GalenicoApp() {
     }
   };
   const startNewPreparation = (type) => { setEditingPrep({ prepType: type }); setIsPrepTypeModalOpen(false); setActiveTab('preparation'); };
-
   if (loadingData) return <div className="flex h-screen items-center justify-center bg-slate-50 text-slate-500 gap-2"><Loader2 className="animate-spin" /> Caricamento...</div>;
-
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
@@ -471,14 +473,13 @@ export default function GalenicoApp() {
       case 'preparation':
         return <PreparationWizard inventory={inventory} preparations={preparations} onComplete={handleSavePreparation} initialData={editingPrep} pharmacySettings={pharmacySettings} initialStep={initialWizardStep} />;
       case 'logs':
-        return <Logs logs={logs} preparations={preparations} handleShowPreparation={handleShowPreparation} />;
+        return <Logs logs={logs} preparations={preparations} handleShowPreparation={handleShowPreparation} handleClearLogs={handleClearLogs} />;
       case 'settings':
         return <SettingsComponent settings={pharmacySettings} setSettings={setPharmacySettings} />;
       default:
         return null;
     }
   };
-
   return (
     <div className="flex h-screen bg-slate-50 font-sans text-slate-900">
       <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl">

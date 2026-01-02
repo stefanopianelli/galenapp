@@ -42,6 +42,10 @@ try {
             if ($method === 'POST') deletePreparation($pdo);
             else sendError(405, 'Metodo non consentito.');
             break;
+        case 'clear_logs':
+            if ($method === 'POST') clearLogs($pdo);
+            else sendError(405, 'Metodo non consentito.');
+            break;
         default:
             sendError(404, 'Azione non valida o non specificata.');
             break;
@@ -294,7 +298,7 @@ function savePreparation($pdo) {
                     createLog($pdo, 'SCARICO', "Completata Prep. #{$prepDetails['prepNumber']}", ['substance' => $item['name'], 'ni' => $item['ni'] ?? '', 'quantity' => $item['amountUsed'], 'unit' => $item['unit'], 'preparationId' => $newPrepId]);
                 }
             } else { 
-                // LOGICA DELTA PER MODIFICHE A PREPARAZIONI GIA' COMPLETE
+                // LOGICA DELTA
                 $logNote = "Modifica Prep. #{$prepDetails['prepNumber']}";
                 $newIngredientsMap = [];
                 foreach($itemsUsed as $item) $newIngredientsMap[$item['id']] = $item;
@@ -302,24 +306,21 @@ function savePreparation($pdo) {
                 $oldIngredientsMap = [];
                 foreach($oldIngredients as $item) $oldIngredientsMap[$item['inventoryId']] = $item;
 
-                // 1. Nuovi ingredienti o quantità modificate
                 foreach ($newIngredientsMap as $invId => $newIng) {
                     $oldIng = $oldIngredientsMap[$invId] ?? null;
                     $diff = $newIng['amountUsed'] - ($oldIng ? $oldIng['amountUsed'] : 0);
                     
-                    if ($diff > 0.0001) { // Aumento quantità (SCARICO)
+                    if ($diff > 0.0001) {
                         $stmt = $pdo->prepare("UPDATE `inventory` SET `quantity` = `quantity` - ? WHERE `id` = ?");
                         $stmt->execute([$diff, $invId]);
                         createLog($pdo, 'SCARICO', $logNote, ['substance' => $newIng['name'], 'ni' => $newIng['ni'] ?? '', 'quantity' => $diff, 'unit' => $newIng['unit'], 'preparationId' => $newPrepId]);
-                    } elseif ($diff < -0.0001) { // Diminuzione quantità (ANNULLAMENTO PARZIALE)
+                    } elseif ($diff < -0.0001) {
                         $absDiff = abs($diff);
                         $stmt = $pdo->prepare("UPDATE `inventory` SET `quantity` = `quantity` + ? WHERE `id` = ?");
                         $stmt->execute([$absDiff, $invId]);
                         createLog($pdo, 'ANNULLAMENTO', $logNote, ['substance' => $newIng['name'], 'ni' => $newIng['ni'] ?? '', 'quantity' => $absDiff, 'unit' => $newIng['unit'], 'preparationId' => $newPrepId]);
                     }
                 }
-                
-                // 2. Ingredienti rimossi
                 foreach ($oldIngredientsMap as $invId => $oldIng) {
                     if (!isset($newIngredientsMap[$invId])) {
                         $stmt = $pdo->prepare("UPDATE `inventory` SET `quantity` = `quantity` + ? WHERE `id` = ?");
@@ -365,6 +366,34 @@ function deletePreparation($pdo) {
     } catch (\Exception $e) {
         $pdo->rollBack();
         sendError(500, "Errore eliminazione preparazione: " . $e->getMessage());
+    }
+}
+
+function clearLogs($pdo) {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $mode = $data['mode'] ?? 'range';
+
+    $pdo->beginTransaction();
+    try {
+        if ($mode === 'all') {
+            $stmt = $pdo->prepare("DELETE FROM `logs`");
+            $stmt->execute();
+        } elseif ($mode === 'range') {
+            $startDate = $data['startDate'] ?? null;
+            $endDate = $data['endDate'] ?? null;
+            if (!$startDate || !$endDate) {
+                sendError(400, 'Date mancanti.');
+                $pdo->rollBack();
+                return;
+            }
+            $stmt = $pdo->prepare("DELETE FROM `logs` WHERE `date` >= ? AND `date` <= ?");
+            $stmt->execute([$startDate, $endDate]);
+        }
+        $pdo->commit();
+        echo json_encode(['success' => true]);
+    } catch (\Exception $e) {
+        $pdo->rollBack();
+        sendError(500, "Errore cancellazione log: " . $e->getMessage());
     }
 }
 
