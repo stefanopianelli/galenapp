@@ -120,23 +120,9 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   const calculateComplexFee = () => {
     const qty = parseFloat(details.quantity) || 0;
     const form = details.pharmaceuticalForm;
-    let fee = 0;
-    
-    // Calcolo costi Operazioni Tecnologiche Extra
-    let extraOpsCount = 0;
-    // Per Capsule e Cartine, 3 operazioni sono incluse, le altre costano 2.30€
-    if (form === 'Capsule' || form === 'Cartine') {
-        extraOpsCount = Math.max(0, (details.techOps || []).length - 3);
-    } else {
-        // Per altre forme, al momento tutte le ops sono considerate extra (regola da definire)
-        extraOpsCount = (details.techOps || []).length;
-    }
-    const extraOpsFee = extraOpsCount * 2.30;
-
-    // Calcolo costo Componenti Aggiuntivi (simile per Capsule e Cartine)
     const activeSubstancesCount = selectedIngredients.filter(i => !i.isExcipient && !i.isContainer).length;
-    const extraComponentsCount = Math.max(0, activeSubstancesCount - 1);
-    const extraComponentsFee = Math.min(extraComponentsCount, 4) * 0.60; // Max 4 componenti extra
+    const techOpsCount = (details.techOps || []).length;
+    let fee = 0;
 
     if (form === 'Capsule') {
         const BASE_QTY = 120;
@@ -144,22 +130,42 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
         if (qty > BASE_QTY) fee += (Math.ceil((qty - BASE_QTY) / 10) * 2.00);
         else if (qty < BASE_QTY && qty > 0) fee -= (Math.ceil((BASE_QTY - qty) / 10) * 1.00);
         
-        fee += extraComponentsFee;
-        fee += extraOpsFee;
-        fee *= 1.40;
+        const extraComponentsCount = Math.max(0, activeSubstancesCount - 1);
+        fee += Math.min(extraComponentsCount, 4) * 0.60;
+
+        const extraOpsCount = Math.max(0, techOpsCount - 3);
+        fee += extraOpsCount * 2.30;
     } else if (form === 'Cartine') {
         const BASE_QTY_CARTINE = 10;
         fee = 11.00;
         if (qty > BASE_QTY_CARTINE) fee += ((qty - BASE_QTY_CARTINE) * 0.25);
         else if (qty < BASE_QTY_CARTINE && qty > 0) fee -= ((BASE_QTY_CARTINE - qty) * 0.35);
         
-        fee += extraComponentsFee;
-        fee += extraOpsFee;
-        fee *= 1.40; // Anche le Cartine hanno il moltiplicatore finale di 1.40
+        const extraComponentsCount = Math.max(0, activeSubstancesCount - 1);
+        fee += Math.min(extraComponentsCount, 4) * 0.60;
+
+        const extraOpsCount = Math.max(0, techOpsCount - 3);
+        fee += extraOpsCount * 2.30;
+    } else if (form === 'Ovuli') {
+        const BASE_QTY_OVULI = 6;
+        fee = 13.30;
+        if (qty > BASE_QTY_OVULI) fee += ((qty - BASE_QTY_OVULI) * 0.60);
+        else if (qty < BASE_QTY_OVULI && qty > 0) fee -= ((BASE_QTY_OVULI - qty) * 1.10);
+
+        const extraComponentsCount = Math.max(0, activeSubstancesCount - 3);
+        fee += extraComponentsCount * 0.60;
+
+        const extraOpsCount = Math.max(0, techOpsCount - 4);
+        fee += extraOpsCount * 2.30;
     } else { // Default per altre forme (Tariffa Tabellare)
         fee = NATIONAL_TARIFF_FEES[form] || 8.00;
-        fee += extraOpsFee; // Al momento tutte le ops sono extra
+        const extraOpsCount = techOpsCount;
+        fee += extraOpsCount * 2.30;
     }
+
+    // Moltiplicatore finale 1.40 applicato a tutte le forme farmaceutiche
+    fee *= 1.40;
+
     return fee;
   };
 
@@ -321,6 +327,30 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   };
 
   const pricing = calculateTotal();
+
+  let extraOpsCount = 0;
+  let extraComponentsCount = 0;
+  let extraOpsFee = 0;
+  let extraComponentsFee = 0;
+  
+  const form = details.pharmaceuticalForm;
+  const activeSubstancesCount = selectedIngredients.filter(i => !i.isExcipient && !i.isContainer).length;
+  const techOpsCount = (details.techOps || []).length;
+
+  if (form === 'Capsule' || form === 'Cartine') {
+      extraOpsCount = Math.max(0, techOpsCount - 3);
+      extraComponentsCount = Math.max(0, activeSubstancesCount - 1);
+      extraComponentsFee = Math.min(extraComponentsCount, 4) * 0.60;
+  } else if (form === 'Ovuli') {
+      extraOpsCount = Math.max(0, techOpsCount - 4);
+      extraComponentsCount = Math.max(0, activeSubstancesCount - 3);
+      extraComponentsFee = extraComponentsCount * 0.60;
+  } else {
+      extraOpsCount = techOpsCount;
+      extraComponentsCount = 0;
+      extraComponentsFee = 0;
+  }
+  extraOpsFee = extraOpsCount * 2.30;
 
   const handleDownloadWorksheet = () => generateWorkSheetPDF({ details: { ...details, worksheetItems }, ingredients: selectedIngredients, pricing }, pharmacySettings);
 
@@ -496,30 +526,42 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
           {step === 3 && (
             <div className="space-y-6 animate-in fade-in">
                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 pt-4"><Euro size={24} className="text-teal-600"/> Tariffazione Nazionale</h2>
-                <div className="bg-blue-50 border border-blue-200 rounded p-3 text-xs text-blue-800 flex items-start gap-2"><Info size={16} className="mt-0.5 shrink-0" /><div><strong>Dettaglio Calcolo:</strong><br/>{details.pharmaceuticalForm === 'Capsule' || details.pharmaceuticalForm === 'Cartine' ? <>• Base (fino a 120): 22,00 €<br/>• Extra Q.tà: +2,00€ ogni 10 oltre 120 / -1,00€ ogni 10 in meno<br/>• Extra Componenti: +0,60€ (oltre il 1°, max 4)<br/>• Op. Tecnologiche Extra: +2,30€ cad.</> : <>• Tariffa Tabellare Standard</>}</div></div>
+                <div className="bg-blue-50 border border-blue-200 rounded p-3 text-xs text-blue-800 flex items-start gap-2"><Info size={16} className="mt-0.5 shrink-0" />
+                  <div>
+                    <strong>Dettaglio Calcolo:</strong><br/>
+                    {(() => {
+                      const form = details.pharmaceuticalForm;
+                      if (form === 'Capsule') {
+                        return <>• Base (fino a 120): 22,00 €<br/>• Extra Q.tà: +2,00€ ogni 10 oltre 120 / -1,00€ ogni 10 in meno<br/>• Extra Componenti: +0,60€ (oltre il 1°, max 4)<br/>• Op. Tecnologiche: 3 incluse, +2,30€ per le extra</>;
+                      } else if (form === 'Cartine') {
+                        return <>• Base (fino a 10): 11,00 €<br/>• Extra Q.tà: +0,25€ per unità oltre 10 / -0,35€ per unità in meno<br/>• Extra Componenti: +0,60€ (oltre il 1°, max 4)<br/>• Op. Tecnologiche: 3 incluse, +2,30€ per le extra</>;
+                      } else if (form === 'Ovuli') {
+                        return <>• Base (fino a 6): 13,30 €<br/>• Extra Q.tà: +0,60€ per unità oltre 6 / -1,10€ per unità in meno<br/>• Extra Componenti: +0,60€ (oltre il 3°)<br/>• Op. Tecnologiche: 4 incluse, +2,30€ per le extra</>;
+                      } else {
+                        return <>• Tariffa Tabellare Standard</>;
+                      }
+                    })()}
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-slate-50 p-4 rounded-md border border-slate-200"><h3 className="font-bold text-sm text-slate-700 mb-3 border-b pb-2">Costo Materie Prime</h3>{selectedIngredients.map((ing, i) => <div key={i} className="flex justify-between text-sm"><span>{ing.name} ({Number(ing.amountUsed).toFixed(ing.isContainer ? 0 : 2)}{ing.unit})</span><span className="font-mono">€ {(ing.costPerGram * ing.amountUsed).toFixed(2)}</span></div>)}<div className="flex justify-between font-bold text-sm mt-3 pt-2 border-t border-slate-300"><span>Totale Sostanze</span><span>€ {pricing.substances.toFixed(2)}</span></div></div>
                     <div className="bg-slate-50 p-4 rounded-md border border-slate-200 space-y-4">
                         <h3 className="font-bold text-sm text-slate-700 mb-3 border-b pb-2">Onorari & Costi</h3>
-                        <div><label className="block text-xs font-bold text-slate-500 mb-1">Onorario + Suppl. 40%</label><input type="number" className="w-full border p-2 rounded text-right font-mono bg-slate-100" value={professionalFee.toFixed(2)} readOnly /></div>
-                        {(() => {
-                          let extraOpsCount = 0;
-                          if (details.pharmaceuticalForm === 'Capsule' || details.pharmaceuticalForm === 'Cartine') { 
-                              extraOpsCount = Math.max(0, (details.techOps || []).length - 3);
-                          } else {
-                              extraOpsCount = (details.techOps || []).length;
-                          }
-                          const extraOpsFee = extraOpsCount * 2.30;
-                          return (
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">Op. Tecnologiche Extra (+2.30€ cad.)</label>
-                                <div className="w-full flex justify-between items-center bg-slate-100 p-2 rounded text-sm font-mono">
-                                    <span>{extraOpsCount} oper.</span>
-                                    <span>€ {extraOpsFee.toFixed(2)}</span>
-                                </div>
+                        <div><label className="block text-xs font-bold text-slate-500 mb-1">Onorario Professionale</label><input type="number" className="w-full border p-2 rounded text-right font-mono bg-slate-100" value={professionalFee.toFixed(2)} readOnly /></div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1">Componenti Attivi Extra (+0.60€ cad.)</label>
+                            <div className="w-full flex justify-between items-center bg-slate-100 p-2 rounded text-sm font-mono">
+                                <span>{extraComponentsCount} comp.</span>
+                                <span>€ {extraComponentsFee.toFixed(2)}</span>
                             </div>
-                          );
-                        })()}
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1">Op. Tecnologiche Extra (+2.30€ cad.)</label>
+                            <div className="w-full flex justify-between items-center bg-slate-100 p-2 rounded text-sm font-mono">
+                                <span>{extraOpsCount} oper.</span>
+                                <span>€ {extraOpsFee.toFixed(2)}</span>
+                            </div>
+                        </div>
                         <div><label className="block text-xs font-bold text-slate-500 mb-1">Addizionale</label><input type="text" className="w-full border p-2 rounded text-right font-mono bg-slate-100" value={pricing.additional.toFixed(2)} readOnly /></div>
                     </div>
                 </div>
