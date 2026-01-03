@@ -135,7 +135,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
         const extraOpsCount = Math.max(0, techOpsCount - 3);
         fee += extraOpsCount * 2.30;
-    } else if (form === 'Cartine') {
+    } else if (form === 'Cartine e cialdini') {
         const BASE_QTY_CARTINE = 10;
         fee = 11.00;
         if (qty > BASE_QTY_CARTINE) fee += ((qty - BASE_QTY_CARTINE) * 0.25);
@@ -146,7 +146,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
         const extraOpsCount = Math.max(0, techOpsCount - 3);
         fee += extraOpsCount * 2.30;
-    } else if (form === 'Ovuli') {
+    } else if (form === 'Suppositori e ovuli') {
         const BASE_QTY_OVULI = 6;
         fee = 13.30;
         if (qty > BASE_QTY_OVULI) fee += ((qty - BASE_QTY_OVULI) * 0.60);
@@ -219,9 +219,15 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   const dopingWarning = "Per chi svolge attività sportiva: l’uso del farmaco senza necessità terapeutica costituisce doping e può determinare comunque positività ai test antidoping.";
 
   const getPrepUnit = (form) => {
-    if (['Crema', 'Gel', 'Unguento', 'Pasta', 'Polvere'].includes(form)) return 'g';
-    if (['Lozione', 'Sciroppo', 'Soluzione Cutanea', 'Soluzione Orale'].includes(form)) return 'ml';
-    if (['Capsule', 'Supposte', 'Ovuli', 'Cartine'].includes(form)) return 'n.'; 
+    if (['Preparazioni semisolide per applicazione cutanea e paste', 'Polveri composte e piante per tisane', 'Preparazioni semisolide per uso orale veterinario', 'Pillole omeopatiche', 'Triturazioni e diluizioni omeopatiche'].includes(form)) {
+        return 'g';
+    }
+    if (['Preparazioni liquide (soluzioni)', 'Estratti liquidi e tinture', 'Emulsioni, sospensioni e miscele di olii', 'Colliri e preparazioni oftalmiche semisolide', 'Soluzioni e sospensioni sterili', 'Emulsioni sterili'].includes(form)) {
+        return 'ml';
+    }
+    if (['Capsule', 'Suppositori e ovuli', 'Cartine e cialdini', 'Compresse e gomme da masticare medicate', 'Pillole, pastiglie e granulati'].includes(form)) {
+        return 'n.';
+    }
     return '-';
   };
 
@@ -337,11 +343,11 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   const activeSubstancesCount = selectedIngredients.filter(i => !i.isExcipient && !i.isContainer).length;
   const techOpsCount = (details.techOps || []).length;
 
-  if (form === 'Capsule' || form === 'Cartine') {
+  if (form === 'Capsule' || form === 'Cartine e cialdini') {
       extraOpsCount = Math.max(0, techOpsCount - 3);
       extraComponentsCount = Math.max(0, activeSubstancesCount - 1);
       extraComponentsFee = Math.min(extraComponentsCount, 4) * 0.60;
-  } else if (form === 'Ovuli') {
+  } else if (form === 'Suppositori e ovuli') {
       extraOpsCount = Math.max(0, techOpsCount - 4);
       extraComponentsCount = Math.max(0, activeSubstancesCount - 3);
       extraComponentsFee = extraComponentsCount * 0.60;
@@ -403,7 +409,24 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   };
   const stepLabels = getStepLabels();
 
-  const pharmaForms = ['Capsule', 'Crema', 'Gel', 'Unguento', 'Pasta', 'Lozione', 'Sciroppo', 'Soluzione Cutanea', 'Soluzione Orale', 'Polvere', 'Supposte', 'Ovuli', 'Cartine'];
+  const pharmaForms = [
+    'Preparazioni liquide (soluzioni)',
+    'Estratti liquidi e tinture',
+    'Emulsioni, sospensioni e miscele di olii',
+    'Preparazioni semisolide per applicazione cutanea e paste',
+    'Polveri composte e piante per tisane',
+    'Cartine e cialdini',
+    'Capsule',
+    'Compresse e gomme da masticare medicate',
+    'Pillole, pastiglie e granulati',
+    'Preparazioni semisolide per uso orale veterinario',
+    'Suppositori e ovuli',
+    'Colliri e preparazioni oftalmiche semisolide',
+    'Soluzioni e sospensioni sterili',
+    'Emulsioni sterili',
+    'Triturazioni e diluizioni omeopatiche',
+    'Pillole omeopatiche'
+  ];
   const usageOptions = ['Orale', 'Topica', 'Sublinguale', 'Buccale', 'Rettale', 'Inalatoria', 'Transdermica', 'Vaginale', 'Parenterale'];
 
   return (
@@ -533,9 +556,9 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                       const form = details.pharmaceuticalForm;
                       if (form === 'Capsule') {
                         return <>• Base (fino a 120): 22,00 €<br/>• Extra Q.tà: +2,00€ ogni 10 oltre 120 / -1,00€ ogni 10 in meno<br/>• Extra Componenti: +0,60€ (oltre il 1°, max 4)<br/>• Op. Tecnologiche: 3 incluse, +2,30€ per le extra</>;
-                      } else if (form === 'Cartine') {
+                      } else if (form === 'Cartine e cialdini') {
                         return <>• Base (fino a 10): 11,00 €<br/>• Extra Q.tà: +0,25€ per unità oltre 10 / -0,35€ per unità in meno<br/>• Extra Componenti: +0,60€ (oltre il 1°, max 4)<br/>• Op. Tecnologiche: 3 incluse, +2,30€ per le extra</>;
-                      } else if (form === 'Ovuli') {
+                      } else if (form === 'Suppositori e ovuli') {
                         return <>• Base (fino a 6): 13,30 €<br/>• Extra Q.tà: +0,60€ per unità oltre 6 / -1,10€ per unità in meno<br/>• Extra Componenti: +0,60€ (oltre il 3°)<br/>• Op. Tecnologiche: 4 incluse, +2,30€ per le extra</>;
                       } else {
                         return <>• Tariffa Tabellare Standard</>;
