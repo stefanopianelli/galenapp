@@ -476,6 +476,8 @@ export default function GalenicoApp() {
         return <Logs logs={logs} preparations={preparations} handleShowPreparation={handleShowPreparation} handleClearLogs={handleClearLogs} />;
       case 'settings':
         return <SettingsComponent settings={pharmacySettings} setSettings={setPharmacySettings} />;
+      case 'ai-assistant':
+        return <AIAssistant pharmacySettings={pharmacySettings} setPharmacySettings={setPharmacySettings} handleTabChange={handleTabChange} />;
       default:
         return null;
     }

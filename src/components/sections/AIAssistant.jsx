@@ -3,7 +3,7 @@ import { Sparkles, Send, Loader2 } from 'lucide-react';
 import Card from '../ui/Card';
 import { callGemini } from '../../services/gemini';
 
-const AIAssistant = () => {
+const AIAssistant = ({ pharmacySettings, handleTabChange }) => {
   const [messages, setMessages] = useState([
     { role: 'ai', text: 'Buongiorno Collega. Sono il tuo assistente galenico virtuale.' }
   ]);
@@ -28,11 +28,28 @@ const AIAssistant = () => {
 
     const prompt = `Sei un esperto farmacista formulatore galenico in Italia. Rispondi in modo tecnico ma conciso. Domanda dell'utente: "${userMsg}"`;
 
-    const response = await callGemini(prompt);
+    const apiKey = pharmacySettings.geminiApiKey;
+    const response = await callGemini(prompt, apiKey);
 
     setMessages(prev => [...prev, { role: 'ai', text: response }]);
     setIsLoading(false);
   };
+
+  if (!pharmacySettings.geminiApiKey) {
+    return (
+      <Card className="flex flex-col items-center justify-center h-[600px] text-center p-8 border-slate-200">
+        <Sparkles className="text-purple-400 w-16 h-16 mb-4" />
+        <h3 className="text-xl font-bold text-slate-800 mb-2">Chiave API Gemini mancante!</h3>
+        <p className="text-slate-600 mb-4">Per utilizzare l'Assistente Galenico IA, devi inserire la tua chiave API di Google Gemini nelle impostazioni.</p>
+        <button
+          onClick={() => handleTabChange('settings')}
+          className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-md transition-colors"
+        >
+          Vai alle Impostazioni
+        </button>
+      </Card>
+    );
+  }
 
   return (
     <Card className="flex flex-col h-[600px] border-slate-200">

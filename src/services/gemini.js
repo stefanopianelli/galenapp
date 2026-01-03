@@ -1,6 +1,5 @@
 // --- GEMINI API HELPER ---
-export const callGemini = async (prompt) => {
-  const apiKey = ""; 
+export const callGemini = async (prompt, apiKey) => { 
   try {
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,

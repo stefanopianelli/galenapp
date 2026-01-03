@@ -54,6 +54,10 @@ const SettingsComponent = ({ settings, setSettings }) => {
         </div>
         
         <InputField label="Numero di Telefono" name="phone" value={localSettings.phone} onChange={handleChange} />
+        
+        {/* New Gemini API Key Input */}
+        <h2 className="text-xl font-bold text-slate-800 pt-4">Integrazioni API</h2>
+        <InputField label="Chiave API Google Gemini" name="geminiApiKey" value={localSettings.geminiApiKey || ''} onChange={handleChange} />
 
         <div className="pt-4 flex items-center gap-4">
           <button type="submit" className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 flex items-center gap-2">
