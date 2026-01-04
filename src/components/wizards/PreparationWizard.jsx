@@ -157,6 +157,12 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
         const extraOpsCount = Math.max(0, techOpsCount - 4);
         fee += extraOpsCount * 2.30;
+    } else if (form === 'Preparazioni liquide (soluzioni)') {
+        fee = 6.65;
+        const extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
+        fee += extraComponentsCount * 0.80;
+        const extraOpsCount = Math.max(0, techOpsCount - 2);
+        fee += extraOpsCount * 2.30;
     } else { // Default per altre forme (Tariffa Tabellare)
         fee = NATIONAL_TARIFF_FEES[form] || 8.00;
         const extraOpsCount = techOpsCount;
@@ -351,6 +357,10 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
       extraOpsCount = Math.max(0, techOpsCount - 4);
       extraComponentsCount = Math.max(0, activeSubstancesCount - 3);
       extraComponentsFee = extraComponentsCount * 0.60;
+  } else if (form === 'Preparazioni liquide (soluzioni)') {
+      extraOpsCount = Math.max(0, techOpsCount - 2);
+      extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
+      extraComponentsFee = extraComponentsCount * 0.80;
   } else {
       extraOpsCount = techOpsCount;
       extraComponentsCount = 0;
@@ -467,7 +477,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                       <div className="col-span-2"><label className="block text-sm font-bold">Nome *</label><input className="w-full border p-3 rounded-md outline-none focus:ring-2 ring-teal-500" value={details.name} onChange={e => setDetails({...details, name: e.target.value})} /></div>
                       <div><label className="block text-sm font-bold">N.P. *</label><input className="w-full border p-3 rounded-md outline-none bg-slate-50 font-mono" value={details.prepNumber} readOnly /></div>
                                         <div><label className="block text-sm font-bold">Forma *</label><select className="w-full border p-3 rounded-md outline-none bg-white" value={details.pharmaceuticalForm} onChange={e => setDetails({...details, pharmaceuticalForm: e.target.value})}>{pharmaForms.map(f => {
-                                      const implementedForms = ['Capsule', 'Cartine e cialdini', 'Suppositori e ovuli'];
+                                      const implementedForms = ['Capsule', 'Cartine e cialdini', 'Suppositori e ovuli', 'Preparazioni liquide (soluzioni)'];
                                       const indicator = implementedForms.includes(f) ? '✓ ' : '○ ';
                                       return <option key={f} value={f}>{indicator}{f}</option>
                                     })}</select></div>                      <div><label className="block text-sm font-bold">Q.tà Totale ({getPrepUnit(details.pharmaceuticalForm)}) *</label><input type="number" step="0.01" className="w-full border p-3 rounded-md outline-none" value={details.quantity} onChange={e => setDetails({...details, quantity: e.target.value})} /></div>
@@ -563,6 +573,8 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                         return <>• Base (fino a 10): 11,00 €<br/>• Extra Q.tà: +0,25€ per unità oltre 10 / -0,35€ per unità in meno<br/>• Extra Componenti: +0,60€ (oltre il 1°, max 4)<br/>• Op. Tecnologiche: 3 incluse, +2,30€ per le extra</>;
                       } else if (form === 'Suppositori e ovuli') {
                         return <>• Base (fino a 6): 13,30 €<br/>• Extra Q.tà: +0,60€ per unità oltre 6 / -1,10€ per unità in meno<br/>• Extra Componenti: +0,60€ (oltre il 3°)<br/>• Op. Tecnologiche: 4 incluse, +2,30€ per le extra</>;
+                      } else if (form === 'Preparazioni liquide (soluzioni)') {
+                        return <>• Base: 6,65 € (fino a 2 comp., 2 op. tec.)<br/>• Extra Componenti: +0,80 € cad.<br/>• Op. Tecnologiche Extra: +2,30 € cad.</>;
                       } else {
                         return <>• Tariffa Tabellare Standard</>;
                       }
