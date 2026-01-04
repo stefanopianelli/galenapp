@@ -177,6 +177,14 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
         fee += extraComponentsCount * 0.70;
         const extraOpsCount = Math.max(0, techOpsCount - 2);
         fee += extraOpsCount * 2.30;
+    } else if (form === 'Preparazioni semisolide per applicazione cutanea e paste') {
+        const BASE_QTY = 50;
+        fee = 13.30;
+        if (qty > BASE_QTY) fee += (Math.ceil((qty - BASE_QTY) / 50) * 0.75);
+        const extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
+        fee += extraComponentsCount * 0.75;
+        const extraOpsCount = Math.max(0, techOpsCount - 2);
+        fee += extraOpsCount * 2.30;
     } else { // Default per altre forme (Tariffa Tabellare)
         fee = NATIONAL_TARIFF_FEES[form] || 8.00;
         const extraOpsCount = techOpsCount;
@@ -383,6 +391,10 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
       extraOpsCount = Math.max(0, techOpsCount - 2);
       extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
       extraComponentsFee = extraComponentsCount * 0.70;
+  } else if (form === 'Preparazioni semisolide per applicazione cutanea e paste') {
+      extraOpsCount = Math.max(0, techOpsCount - 2);
+      extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
+      extraComponentsFee = extraComponentsCount * 0.75;
   } else {
       extraOpsCount = techOpsCount;
       extraComponentsCount = 0;
@@ -499,7 +511,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                       <div className="col-span-2"><label className="block text-sm font-bold">Nome *</label><input className="w-full border p-3 rounded-md outline-none focus:ring-2 ring-teal-500" value={details.name} onChange={e => setDetails({...details, name: e.target.value})} /></div>
                       <div><label className="block text-sm font-bold">N.P. *</label><input className="w-full border p-3 rounded-md outline-none bg-slate-50 font-mono" value={details.prepNumber} readOnly /></div>
                                         <div><label className="block text-sm font-bold">Forma *</label><select className="w-full border p-3 rounded-md outline-none bg-white" value={details.pharmaceuticalForm} onChange={e => setDetails({...details, pharmaceuticalForm: e.target.value})}>{pharmaForms.map(f => {
-                                      const implementedForms = ['Capsule', 'Cartine e cialdini', 'Suppositori e ovuli', 'Preparazioni liquide (soluzioni)', 'Estratti liquidi e tinture', 'Emulsioni, sospensioni e miscele di olii'];
+                                      const implementedForms = ['Capsule', 'Cartine e cialdini', 'Suppositori e ovuli', 'Preparazioni liquide (soluzioni)', 'Estratti liquidi e tinture', 'Emulsioni, sospensioni e miscele di olii', 'Preparazioni semisolide per applicazione cutanea e paste'];
                                       const indicator = implementedForms.includes(f) ? '✓ ' : '○ ';
                                       return <option key={f} value={f}>{indicator}{f}</option>
                                     })}</select></div>                      <div><label className="block text-sm font-bold">Q.tà Totale ({getPrepUnit(details.pharmaceuticalForm)}) *</label><input type="number" step="0.01" className="w-full border p-3 rounded-md outline-none" value={details.quantity} onChange={e => setDetails({...details, quantity: e.target.value})} /></div>
@@ -601,6 +613,8 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                         return <>• Base: 8,00 € (fino a 2 comp., 2 op. tec.)<br/>• Extra Componenti: +0,80 € cad.<br/>• Op. Tecnologiche Extra: +2,30 € cad.</>;
                       } else if (form === 'Emulsioni, sospensioni e miscele di olii') {
                         return <>• Base: 13,30 € (fino a 250g, 2 comp., 2 op. tec.)<br/>• Extra Q.tà: +0,70 € ogni 100g oltre 250g<br/>• Extra Componenti: +0,70 € cad.<br/>• Op. Tecnologiche Extra: +2,30 € cad.</>;
+                      } else if (form === 'Preparazioni semisolide per applicazione cutanea e paste') {
+                        return <>• Base: 13,30 € (fino a 50g, 2 comp., 2 op. tec.)<br/>• Extra Q.tà: +0,75 € ogni 50g oltre 50g<br/>• Extra Componenti: +0,75 € cad.<br/>• Op. Tecnologiche Extra: +2,30 € cad.</>;
                       } else {
                         return <>• Tariffa Tabellare Standard</>;
                       }
