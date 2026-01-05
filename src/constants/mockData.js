@@ -1,137 +1,66 @@
-// --- DATI SIMULATI (15 SOSTANZE - Scenario Dicembre 2025) ---
-// Data di riferimento: 15 Dicembre 2025
+// mockData.js
+// Dati di esempio v4.1 - Coerenti, completi e con logica corretta (usage fix)
+
 export const MOCK_INVENTORY = [
-  // --- PRINCIPI ATTIVI (10) ---
-  { id: 1, name: 'Paracetamolo Polvere', ni: '25/S101', lot: 'PAR-001', expiry: '2028-12-31', quantity: 850, unit: 'g', totalCost: 50.00, costPerGram: 0.059, supplier: 'Acef', purity: 'Ph.Eur.', receptionDate: '2025-01-15', ddtNumber: 'ACE-1001', ddtDate: '2025-01-14', firstUseDate: null, endUseDate: null, disposed: false, sdsFile: null, securityData: null },
-  { id: 2, name: 'Melatonina', ni: '25/S102', lot: 'MEL-332', expiry: '2027-06-30', quantity: 95, unit: 'g', totalCost: 350.00, costPerGram: 3.68, supplier: 'Farmalabor', purity: '99.8%', receptionDate: '2025-02-20', ddtNumber: 'FL-2002', ddtDate: '2025-02-18', firstUseDate: null, endUseDate: null, disposed: false, sdsFile: null, securityData: null },
-  { id: 3, name: 'Finasteride', ni: '25/S103', lot: 'FIN-A55', expiry: '2028-02-29', quantity: 48, unit: 'g', totalCost: 950.00, costPerGram: 19.79, supplier: 'Galeno', purity: '99.5%', receptionDate: '2025-03-10', ddtNumber: 'GAL-3003', ddtDate: '2025-03-09', firstUseDate: null, endUseDate: null, disposed: false, sdsFile: 'finasteride_sds.pdf', securityData: { cas: '98319-26-7', hazardStatements: 'H360', pictograms: ['GHS08'] } },
-  { id: 4, name: 'Tadalafil', ni: '25/S104', lot: 'TAD-B01', expiry: '2027-11-30', quantity: 22, unit: 'g', totalCost: 1200.00, costPerGram: 54.54, supplier: 'Acef', purity: '99.2%', receptionDate: '2025-04-05', ddtNumber: 'ACE-4004', ddtDate: '2025-04-04', firstUseDate: null, endUseDate: null, disposed: false, sdsFile: 'tadalafil_sds.pdf', securityData: { cas: '171596-29-5', hazardStatements: 'H361', pictograms: ['GHS08'] } },
-  { id: 5, name: 'Curcumina Estr. Secco', ni: '25/S105', lot: 'CUR-95C', expiry: '2026-10-31', quantity: 450, unit: 'g', totalCost: 45.00, costPerGram: 0.10, supplier: 'Farmalabor', purity: '95%', receptionDate: '2025-05-12', ddtNumber: 'FL-5005', ddtDate: '2025-05-10', firstUseDate: null, endUseDate: null, disposed: false, sdsFile: null, securityData: null },
-  { id: 6, name: 'Vitamina D3 100.000 UI/g', ni: '25/S106', lot: 'VD3-C01', expiry: '2026-08-31', quantity: 980, unit: 'g', totalCost: 120.00, costPerGram: 0.122, supplier: 'Galeno', purity: '100.000 UI/g', receptionDate: '2025-06-18', ddtNumber: 'GAL-6006', ddtDate: '2025-06-17', firstUseDate: null, endUseDate: null, disposed: false, sdsFile: null, securityData: null },
-  { id: 7, name: 'Caffeina Anidra', ni: '25/S107', lot: 'CAF-007', expiry: '2029-01-01', quantity: 1800, unit: 'g', totalCost: 60.00, costPerGram: 0.033, supplier: 'Acef', purity: 'Ph.Eur.', receptionDate: '2025-07-22', ddtNumber: 'ACE-7007', ddtDate: '2025-07-21', firstUseDate: null, endUseDate: null, disposed: false, sdsFile: null, securityData: null },
-  { id: 8, name: 'Minoxidil Base', ni: '25/S108', lot: 'MNX-A11', expiry: '2028-05-31', quantity: 200, unit: 'g', totalCost: 240.00, costPerGram: 1.2, supplier: 'Farmalabor', purity: '99.9%', receptionDate: '2025-08-01', ddtNumber: 'FL-8008', ddtDate: '2025-07-30', firstUseDate: null, endUseDate: null, disposed: false, sdsFile: 'minoxidil_sds.pdf', securityData: { cas: '38304-91-5', hazardStatements: 'H302, H315', pictograms: ['GHS07'] } },
+  // Principi Attivi
+  { id: 1, name: 'Minoxidil Base', ni: '24/S001', lot: 'MX-2401', expiry: '2026-12-31', quantity: 480.00, unit: 'g', costPerGram: 0.90, supplier: 'Farma-Chemical', isExcipient: false, isContainer: false, isDoping: false, isNarcotic: false, securityData: { pictograms: ['GHS07'] } },
+  { id: 2, name: 'Idrocortisone Butirrato', ni: '24/S002', lot: 'HCB-2402', expiry: '2025-11-30', quantity: 99.00, unit: 'g', costPerGram: 1.25, supplier: 'Pharma-Actives', isExcipient: false, isContainer: false, isDoping: true, isNarcotic: false, securityData: { pictograms: ['GHS08'] } },
+  { id: 3, name: 'Sildenafil Citrato', ni: '24/S003', lot: 'SIL-2403', expiry: '2026-05-31', quantity: 198.00, unit: 'g', costPerGram: 2.75, supplier: 'Pharma-Actives', isExcipient: false, isContainer: false, isDoping: false, isNarcotic: false, securityData: { pictograms: ['GHS07', 'GHS08'] } },
+  { id: 4, name: 'Acido Salicilico', ni: '24/S004', lot: 'AS-2401', expiry: '2027-01-31', quantity: 950.00, unit: 'g', costPerGram: 0.10, supplier: 'Farma-Chemical', isExcipient: false, isContainer: false, isDoping: false, isNarcotic: false, securityData: { pictograms: ['GHS05', 'GHS07'] } },
+  { id: 5, name: 'Melatonina', ni: '24/S005', lot: 'MLT-2404', expiry: '2026-08-31', quantity: 250.00, unit: 'g', costPerGram: 3.50, supplier: 'NaturePharma', isExcipient: false, isContainer: false, isDoping: false, isNarcotic: false, securityData: { pictograms: [] } },
+  { id: 6, name: 'Clotrimazolo', ni: '24/S006', lot: 'CLT-2312', expiry: '2025-12-31', quantity: 200.00, unit: 'g', costPerGram: 1.10, supplier: 'Farma-Chemical', isExcipient: false, isContainer: false, isDoping: false, isNarcotic: false, securityData: { pictograms: ['GHS07'] } },
   
-  // --- IN SCADENZA (< 6 mesi) ---
-  { id: 9, name: 'Diltiazem Cloridrato', ni: '25/S109', lot: 'DIL-X09', expiry: '2026-05-15', quantity: 80, unit: 'g', totalCost: 200.00, costPerGram: 2.5, supplier: 'Acef', purity: 'Ph.Eur.', receptionDate: '2025-01-02', ddtNumber: 'ACE-9009', ddtDate: '2025-01-01', firstUseDate: null, endUseDate: null, disposed: false, sdsFile: null, securityData: null },
-  { id: 10, name: 'Coenzima Q10', ni: '25/S110', lot: 'Q10-Z01', expiry: '2026-02-28', quantity: 150, unit: 'g', totalCost: 180.00, costPerGram: 1.2, supplier: 'Galeno', purity: '99%', receptionDate: '2025-09-10', ddtNumber: 'GAL-1010', ddtDate: '2025-09-09', firstUseDate: null, endUseDate: null, disposed: false, sdsFile: null, securityData: null },
+  // Eccipienti
+  { id: 7, name: 'Glicole Propilenico', ni: '24/E001', lot: 'GP-2401', expiry: '2025-10-31', quantity: 4800.00, unit: 'ml', costPerGram: 0.04, supplier: 'Farma-Chemical', isExcipient: true, isContainer: false, isDoping: false, isNarcotic: false, securityData: { pictograms: [] } },
+  { id: 8, name: 'Alcool Etilico 96°', ni: '24/E002', lot: 'ALC-2402', expiry: '2027-03-31', quantity: 8500.00, unit: 'ml', costPerGram: 0.02, supplier: 'Distillerie Nazionali', isExcipient: true, isContainer: false, isDoping: false, isNarcotic: false, securityData: { pictograms: ['GHS02'] } },
+  { id: 9, name: 'Crema Base Lipo', ni: '24/E003', lot: 'CBL-2401', expiry: '2025-09-30', quantity: 1850.00, unit: 'g', costPerGram: 0.05, supplier: 'Galenica Srl', isExcipient: true, isContainer: false, isDoping: false, isNarcotic: false, securityData: { pictograms: [] } },
+  { id: 10, name: 'Lattosio Monoidrato', ni: '24/E004', lot: 'LAC-2403', expiry: '2026-06-30', quantity: 4000.00, unit: 'g', costPerGram: 0.01, supplier: 'Galenica Srl', isExcipient: true, isContainer: false, isDoping: false, isNarcotic: false, securityData: { pictograms: [] } },
+  { id: 11, name: 'Camomilla Fiori T.T.', ni: '24/E005', lot: 'CAM-2311', expiry: '2025-11-30', quantity: 500.00, unit: 'g', costPerGram: 0.11, supplier: 'HerbalSana', isExcipient: true, isContainer: false, isDoping: false, isNarcotic: false, securityData: { pictograms: [] } },
 
-  // --- ECCIPIENTI (5) ---
-  { id: 11, name: 'Lattosio Monoidrato', ni: '25/E001', lot: 'LAC-001', expiry: '2027-12-31', quantity: 4500, unit: 'g', totalCost: 30.00, costPerGram: 0.0067, supplier: 'Farmalabor', purity: 'FU', receptionDate: '2025-01-10', ddtNumber: 'FL-E001', ddtDate: '2025-01-09', firstUseDate: null, endUseDate: null, isExcipient: true, disposed: false, sdsFile: null, securityData: null },
-  { id: 12, name: 'Cellulosa Microcristallina PH 102', ni: '25/E002', lot: 'CMC-102', expiry: '2028-01-31', quantity: 8800, unit: 'g', totalCost: 80.00, costPerGram: 0.0091, supplier: 'Acef', purity: 'Ph.Eur.', receptionDate: '2025-02-15', ddtNumber: 'ACE-E002', ddtDate: '2025-02-14', firstUseDate: null, endUseDate: null, isExcipient: true, disposed: false, sdsFile: null, securityData: null },
-  { id: 13, name: 'Magnesio Stearato Vegetale', ni: '25/E003', lot: 'MG-ST-V', expiry: '2026-11-30', quantity: 950, unit: 'g', totalCost: 25.00, costPerGram: 0.026, supplier: 'Farmalabor', purity: 'FU', receptionDate: '2025-03-20', ddtNumber: 'FL-E003', ddtDate: '2025-03-19', firstUseDate: null, endUseDate: null, isExcipient: true, disposed: false, sdsFile: null, securityData: null },
-  
-  // --- SCADUTA ---
-  { id: 14, name: 'Silice Colloidale Anidra', ni: '25/E004', lot: 'SIL-C01', expiry: '2025-11-01', quantity: 400, unit: 'g', totalCost: 15.00, costPerGram: 0.0375, supplier: 'Galeno', purity: 'FU', receptionDate: '2024-11-01', ddtNumber: 'GAL-E004', ddtDate: '2024-10-30', firstUseDate: null, endUseDate: null, isExcipient: true, disposed: false, sdsFile: null, securityData: null },
-  
-  // --- ESAURITA (ma non smaltita) ---
-  { id: 15, name: 'Tadalafil', ni: '24/S099', lot: 'TAD-OLD', expiry: '2026-12-31', quantity: 0, unit: 'g', totalCost: 1000.00, costPerGram: 50, supplier: 'Acef', purity: '99%', receptionDate: '2024-10-01', ddtNumber: 'ACE-OLD', ddtDate: '2024-09-30', firstUseDate: null, endUseDate: null, disposed: false, sdsFile: null, securityData: null },
-
-  // --- CONTENITORI (4) ---
-  { id: 101, name: 'Flacone Vetro Scuro 100ml', ni: '25/C001', lot: 'VET-100', expiry: '2030-12-31', quantity: 50, unit: 'n.', totalCost: 45.00, costPerGram: 0.90, supplier: 'Vetreria Scienza', receptionDate: '2025-01-20', ddtNumber: 'VS-001', ddtDate: '2025-01-18', isContainer: true, disposed: false },
-  { id: 102, name: 'Barattolo Plastica 50g', ni: '25/C002', lot: 'PL-50', expiry: '2029-06-30', quantity: 100, unit: 'n.', totalCost: 60.00, costPerGram: 0.60, supplier: 'Plastilab', receptionDate: '2025-02-10', ddtNumber: 'PL-442', ddtDate: '2025-02-08', isContainer: true, disposed: false },
-  { id: 103, name: 'Flacone Vetro 30ml + Contagocce', ni: '25/C003', lot: 'CG-30', expiry: '2030-01-01', quantity: 30, unit: 'n.', totalCost: 42.00, costPerGram: 1.40, supplier: 'Vetreria Scienza', receptionDate: '2025-03-05', ddtNumber: 'VS-055', ddtDate: '2025-03-04', isContainer: true, disposed: false },
-  { id: 104, name: 'Scatola Capsule (100 posti)', ni: '25/C004', lot: 'BOX-C', expiry: '2028-12-31', quantity: 200, unit: 'n.', totalCost: 100.00, costPerGram: 0.50, supplier: 'Cartotecnica Galenica', receptionDate: '2025-04-12', ddtNumber: 'CG-123', ddtDate: '2025-04-10', isContainer: true, disposed: false },
+  // Contenitori
+  { id: 12, name: 'Flacone vetro 100ml c/contagocce', ni: '24/C001', lot: 'FLV-24', expiry: '2029-01-01', quantity: 95.00, unit: 'n.', costPerGram: 0.80, supplier: 'Pharma-Packaging', isExcipient: false, isContainer: true, isDoping: false, isNarcotic: false, securityData: { pictograms: [] } },
+  { id: 13, name: 'Vasetto unguento 50g', ni: '24/C002', lot: 'VAS-24', expiry: '2029-01-01', quantity: 198.00, unit: 'n.', costPerGram: 0.45, supplier: 'Pharma-Packaging', isExcipient: false, isContainer: true, isDoping: false, isNarcotic: false, securityData: { pictograms: [] } },
+  { id: 14, name: 'Capsule Gelatina Dura Tipo 0', ni: '24/C003', lot: 'CAPS-0-24', expiry: '2028-01-01', quantity: 880.00, unit: 'n.', costPerGram: 0.02, supplier: 'Capsul-It', isExcipient: false, isContainer: true, isDoping: false, isNarcotic: false, securityData: { pictograms: [] } },
+  { id: 15, name: 'Busta per tisana 100g', ni: '24/C004', lot: 'BUST-24', expiry: '2029-01-01', quantity: 300.00, unit: 'n.', costPerGram: 0.15, supplier: 'Pharma-Packaging', isExcipient: false, isContainer: true, isDoping: false, isNarcotic: false, securityData: { pictograms: [] } },
 ];
+
+const ingredientsForPrep = (prepId) => {
+    const allIngredients = {
+        1: [{ id: 1, amount: 5.00 }, { id: 7, amount: 20.00 }, { id: 8, amount: 50.00 }, { id: 12, amount: 1.00 }],
+        2: [{ id: 2, amount: 0.50 }, { id: 9, amount: 49.50 }, { id: 13, amount: 1.00 }],
+        3: [{ id: 3, amount: 1.00 }, { id: 10, amount: 4.00 }, { id: 14, amount: 10.00 }],
+        4: [{ id: 5, amount: 0.30 }, { id: 10, amount: 20.00 }, { id: 14, amount: 60.00 }],
+        5: [{ id: 4, amount: 5.00 }, { id: 9, amount: 95.00 }, { id: 13, amount: 2.00 }],
+        6: [{ id: 10, amount: 15.00 }], // Cartine con solo eccipiente
+        7: [{ id: 6, amount: 1.20 }],
+        8: [{ id: 4, amount: 3.00 }, {id: 8, amount: 97.00}],
+        9: [{ id: 11, amount: 100.00 }, { id: 15, amount: 1.00 }],
+        10: [{ id: 7, amount: 50.00 }],
+    };
+    const selected = allIngredients[prepId] || [];
+    return selected.map(ing => ({
+        ...MOCK_INVENTORY.find(inv => inv.id === ing.id),
+        amountUsed: ing.amount
+    }));
+};
 
 export const MOCK_PREPARATIONS = [
-  { 
-    id: 201, prepNumber: '25/P001', name: 'Melatonina 5mg', 
-    pharmaceuticalForm: 'Capsule', quantity: 120, prepUnit: 'n.', 
-    expiryDate: '2026-06-15', date: '2025-12-10', 
-    prepType: 'magistrale', status: 'Completata',
-    patient: 'Laura Neri', doctor: 'Dr. Rossi', recipeDate: '2025-12-09',
-    posology: '1 caps 30 min prima di coricarsi', 
-    usage: 'Orale',
-    warnings: 'Può causare sonnolenza. Non guidare dopo l\'assunzione.',
-    operatingProcedures: '',
-    worksheetItems: [],
-    ingredients: [
-      { id: 2, name: 'Melatonina', amountUsed: 0.6, unit: 'g' },
-      { id: 11, name: 'Lattosio Monoidrato', amountUsed: 35.4, unit: 'g' },
-      { id: 104, name: 'Scatola Capsule (100 posti)', amountUsed: 2, unit: 'n.'},
-    ],
-    totalPrice: 32.50
-  },
-  { 
-    id: 202, prepNumber: '25/P002', name: 'Finasteride 1mg', 
-    pharmaceuticalForm: 'Capsule', quantity: 90, prepUnit: 'n.', 
-    expiryDate: '2026-06-12', date: '2025-12-12', 
-    prepType: 'magistrale', status: 'Completata',
-    patient: 'Marco Verdi', doctor: 'Dr. Gialli', recipeDate: '2025-12-10',
-    posology: '1 caps al giorno', 
-    usage: 'Orale',
-    warnings: 'Non maneggiare se in stato di gravidanza.',
-    operatingProcedures: 'Miscelazione in progressione geometrica delle polveri.',
-    worksheetItems: [
-        { text: 'Verifica fonti documentali e calcoli', checked: true },
-        { text: 'Controllo corrispondenza materie prime', checked: true },
-        { text: 'Pesata/misura dei componenti', checked: true },
-        { text: 'Miscelazione / Lavorazione', checked: true },
-        { text: 'Allestimento / Incapsulamento / Ripartizione', checked: true },
-        { text: 'Controllo di uniformità e aspetto', checked: true },
-        { text: 'Etichettatura e confezionamento', checked: true }
-    ],
-    ingredients: [
-      { id: 3, name: 'Finasteride', amountUsed: 0.09, unit: 'g' },
-      { id: 12, name: 'Cellulosa Microcristallina PH 102', amountUsed: 26.91, unit: 'g' },
-      { id: 104, name: 'Scatola Capsule (100 posti)', amountUsed: 1, unit: 'n.'},
-    ],
-    totalPrice: 38.00
-  },
-  { 
-    id: 301, prepNumber: '25/P003', name: 'Minoxidil Base 5% Lozione', 
-    pharmaceuticalForm: 'Lozione', quantity: 100, prepUnit: 'ml', 
-    expiryDate: '2026-02-28', date: '2025-12-14',
-    prepType: 'officinale', status: 'Completata',
-    patient: '', doctor: '', recipeDate: '',
-    posology: 'Applicare 1ml (20 gocce) sul cuoio capelluto asciutto 1-2 volte al giorno.',
-    usage: 'Topica',
-    warnings: 'Uso esterno. Infiammabile. Evitare il contatto con gli occhi.',
-    operatingProcedures: '1. Solubilizzare minoxidil in etanolo 96°.\n2. Aggiungere il glicole propilenico.\n3. Portare a volume con acqua depurata sotto agitazione.',
-    ingredients: [
-      { id: 8, name: 'Minoxidil Base', amountUsed: 5, unit: 'g' },
-      // Ipotizziamo che Glicole ed Etanolo siano in magazzino
-      // { id: 16, name: 'Glicole Propilenico', amountUsed: 20, unit: 'ml' }, 
-      // { id: 17, name: 'Etanolo 96°', amountUsed: 50, unit: 'ml' },
-      { id: 101, name: 'Flacone Vetro Scuro 100ml', amountUsed: 1, unit: 'n.'},
-    ],
-    batches: [
-      { containerId: 101, productQuantity: 100, unitPrice: 25.00 }
-    ],
-    worksheetItems: [
-        { text: 'Verifica fonti documentali e calcoli', checked: true },
-        { text: 'Controllo corrispondenza materie prime', checked: true },
-        { text: 'Misurazione volumi', checked: true },
-        { text: 'Solubilizzazione', checked: true },
-        { text: 'Controllo di aspetto e limpidezza', checked: true },
-        { text: 'Etichettatura e confezionamento', checked: true }
-    ],
-    totalPrice: '28.50'
-  },
-  { 
-    id: 302, prepNumber: '25/P004', name: 'Crema Base Idratante', 
-    pharmaceuticalForm: 'Crema', quantity: 200, prepUnit: 'g', 
-    expiryDate: '2026-03-15', date: '2025-12-15',
-    prepType: 'officinale', status: 'Bozza',
-    patient: '', doctor: '', recipeDate: '',
-    posology: 'Applicare sulla zona interessata più volte al giorno.',
-    usage: 'Topica',
-    warnings: 'Conservare in luogo fresco e asciutto.',
-    operatingProcedures: '',
-    ingredients: [
-      { id: 102, name: 'Barattolo Plastica 50g', amountUsed: 4, unit: 'n.'},
-    ],
-    batches: [],
-    worksheetItems: [],
-    totalPrice: '0.00'
-  }
+  { id: 1, prepNumber: '24/P001', name: 'Minoxidil 5% Lozione', date: '2024-04-15', patient: 'Mario Rossi', doctor: 'Dr. Bianchi', recipeDate: '2024-04-10', prepType: 'magistrale', pharmaceuticalForm: 'Preparazioni liquide (soluzioni)', quantity: 100, prepUnit: 'ml', expiryDate: '2024-07-15', posology: '1ml sul cuoio capelluto due volte al giorno.', status: 'Completata', totalPrice: 28.50, patientPhone: '3331234567', usage: 'Topica', ingredients: ingredientsForPrep(1), techOps: ['SOLUBILIZZAZIONE'] },
+  { id: 2, prepNumber: '24/P002', name: 'Idrocortisone 1% Crema', date: '2024-04-14', patient: 'Laura Verdi', doctor: 'Dr. Neri', recipeDate: '2024-04-14', prepType: 'magistrale', pharmaceuticalForm: 'Preparazioni semisolide per applicazione cutanea e paste', quantity: 50, prepUnit: 'g', expiryDate: '2024-10-14', posology: 'Applicare 1-2 volte al giorno.', status: 'Completata', totalPrice: 22.50, patientPhone: '3478901234', usage: 'Topica', ingredients: ingredientsForPrep(2), techOps: ['MISCELAZIONE'] },
+  { id: 3, prepNumber: '24/P003', name: 'Sildenafil 100mg', date: '2024-04-12', patient: 'Giovanni Gialli', doctor: 'Dr. Azzurri', recipeDate: '2024-04-01', prepType: 'magistrale', pharmaceuticalForm: 'Capsule', quantity: 10, prepUnit: 'n.', expiryDate: '2024-10-12', posology: 'Una capsula al bisogno.', status: 'Completata', totalPrice: 55.20, patientPhone: '3385566778', usage: 'Orale', ingredients: ingredientsForPrep(3), techOps: ['MISCELAZIONE', 'RIEMPIMENTO', 'DIVISIONE_IN_DOSI'] },
+  { id: 4, prepNumber: '24/P004', name: 'Melatonina 5mg - Bozza', date: '2024-04-11', patient: 'Paola Neri', doctor: 'Autoprescrizione', recipeDate: '2024-04-11', prepType: 'magistrale', pharmaceuticalForm: 'Capsule', quantity: 60, prepUnit: 'n.', expiryDate: '2024-10-11', posology: 'Una capsula la sera.', status: 'Bozza', totalPrice: 32.80, patientPhone: '3358877665', usage: 'Orale', ingredients: ingredientsForPrep(4), techOps: [] },
+  { id: 5, prepNumber: '24/P005', name: 'Acido Salicilico 5% Unguento', date: '2024-04-10', patient: 'Franco Marroni', doctor: 'Dr. Rossi', recipeDate: '2024-04-09', prepType: 'magistrale', pharmaceuticalForm: 'Preparazioni semisolide per applicazione cutanea e paste', quantity: 100, prepUnit: 'g', expiryDate: '2024-07-10', posology: 'Applicare localmente.', status: 'Completata', totalPrice: 19.40, patientPhone: '', usage: 'Topica', ingredients: ingredientsForPrep(5), techOps: [] },
+  { id: 6, prepNumber: '24/P006', name: 'Cartine di Fermenti', date: '2024-04-08', patient: 'Bambino Rossi', doctor: 'Dr. Pediatra', recipeDate: '2024-04-08', prepType: 'magistrale', pharmaceuticalForm: 'Cartine e cialdini', quantity: 20, prepUnit: 'n.', expiryDate: '2024-06-08', posology: 'Una al giorno.', status: 'Completata', totalPrice: 17.60, patientPhone: '3331234567', usage: 'Orale', ingredients: ingredientsForPrep(6), techOps: [] },
+  { id: 7, prepNumber: '24/P007', name: 'Clotrimazolo Ovuli', date: '2024-04-02', patient: 'Giovanna Verdi', doctor: 'Dr. Ginecologo', recipeDate: '2024-04-01', prepType: 'magistrale', pharmaceuticalForm: 'Suppositori e ovuli', quantity: 12, prepUnit: 'n.', expiryDate: '2024-07-02', posology: 'Un ovulo la sera per 12 giorni.', status: 'Completata', totalPrice: 28.90, patientPhone: '3478901234', usage: 'Vaginale', ingredients: ingredientsForPrep(7), techOps: ['FUSIONE', 'RIEMPIMENTO_STAMPI'] },
+  { id: 8, prepNumber: '24/P008', name: 'Alcool Borico 3%', date: '2024-04-15', patient: null, doctor: null, recipeDate: null, prepType: 'officinale', pharmaceuticalForm: 'Preparazioni liquide (soluzioni)', quantity: 100, prepUnit: 'ml', expiryDate: '2025-04-15', posology: 'Uso esterno.', status: 'Completata', totalPrice: 12.50, patientPhone: null, usage: 'Topica', ingredients: ingredientsForPrep(8), techOps: [] },
+  { id: 9, prepNumber: '24/P009', name: 'Tisana Rilassante - Bozza', date: '2024-04-12', patient: null, doctor: null, recipeDate: null, prepType: 'officinale', pharmaceuticalForm: 'Polveri composte e piante per tisane', quantity: 100, prepUnit: 'g', expiryDate: '2024-12-12', posology: 'Un cucchiaio in acqua calda.', status: 'Bozza', totalPrice: 15.80, patientPhone: null, usage: 'Orale', ingredients: ingredientsForPrep(9), techOps: ['MISCELAZIONE'] },
+  { id: 10, prepNumber: '24/P010', name: 'Eosina 1% Soluzione Acquosa', date: '2024-03-25', patient: null, doctor: null, recipeDate: null, prepType: 'officinale', pharmaceuticalForm: 'Preparazioni liquide (soluzioni)', quantity: 50, prepUnit: 'ml', expiryDate: '2024-09-25', posology: 'Applicare sulla parte interessata.', status: 'Completata', totalPrice: 10.20, patientPhone: null, usage: 'Topica', ingredients: ingredientsForPrep(10), techOps: [] }
 ];
 
-
 export const MOCK_LOGS = [
-    { id: 1, date: '2024-01-10', type: 'CARICO', substance: 'Paracetamolo Polvere', ni: '25/S101', quantity: 50, unit: 'g', notes: 'Carico iniziale' },
-    { id: 2, date: '2024-01-15', type: 'SCARICO', substance: 'Melatonina', ni: '25/S102', quantity: 5, unit: 'g', notes: 'Preparazione #201' },
-    { id: 3, date: '2024-02-10', type: 'SCARICO', substance: 'Finasteride', ni: '25/S103', quantity: 1, unit: 'g', notes: 'Preparazione #202' },
-    { id: 4, date: '2024-03-05', type: 'CARICO', substance: 'Lattosio Monoidrato', ni: '25/E001', quantity: 1000, unit: 'g', notes: 'Nuovo arrivo' },
-    { id: 5, date: '2023-12-05', type: 'SMALTIMENTO', substance: 'Silice Colloidale Anidra', ni: '25/E004', quantity: 100, unit: 'g', notes: 'Smaltimento per scadenza' }
+    {id: 1, date: '2024-04-15', type: 'SCARICO', substance: 'Minoxidil Base', ni: '24/S001', quantity: 5.00, unit: 'g', notes: 'Prep. #24/P001', preparationId: 1},
+    {id: 2, date: '2024-04-14', type: 'SCARICO', substance: 'Idrocortisone Butirrato', ni: '24/S002', quantity: 0.50, unit: 'g', notes: 'Prep. #24/P002', preparationId: 2},
+    {id: 3, date: '2024-04-12', type: 'SCARICO', substance: 'Sildenafil Citrato', ni: '24/S003', quantity: 1.00, unit: 'g', notes: 'Prep. #24/P003', preparationId: 3},
+    {id: 4, date: '2024-04-02', type: 'CARICO', substance: 'Sildenafil Citrato', ni: '24/S003', quantity: 200.00, unit: 'g', notes: 'DDT 123'},
+    {id: 5, date: '2024-03-25', type: 'CARICO', substance: 'Minoxidil Base', ni: '24/S001', quantity: 500.00, unit: 'g', notes: 'DDT 119'},
 ];

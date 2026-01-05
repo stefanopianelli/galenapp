@@ -1,101 +1,68 @@
--- SQL Dump for GalenicoLab - New Mock Data (v2.1 Fix)
---
+-- Popolamento del database GalenicoLab
+-- Versione 1.6 - Dati di esempio con logica corretta per ingredienti e campi obbligatori
 
-START TRANSACTION;
-
--- Svuota le tabelle in ordine, partendo da quella con le foreign key
+-- Svuotare le tabelle esistenti in ordine inverso
+DELETE FROM `logs`;
 DELETE FROM `preparation_ingredients`;
 DELETE FROM `preparations`;
 DELETE FROM `inventory`;
-DELETE FROM `settings`;
-DELETE FROM `logs`;
 
--- Reimposta l'AUTO_INCREMENT per ogni tabella, così gli ID ripartono da 1
-ALTER TABLE `preparations` AUTO_INCREMENT = 1;
+-- Resettare l'auto-incremento
 ALTER TABLE `inventory` AUTO_INCREMENT = 1;
+ALTER TABLE `preparations` AUTO_INCREMENT = 1;
 ALTER TABLE `preparation_ingredients` AUTO_INCREMENT = 1;
-ALTER TABLE `settings` AUTO_INCREMENT = 1;
 ALTER TABLE `logs` AUTO_INCREMENT = 1;
 
---
--- Popolamento tabella `inventory` (15 articoli)
---
+-- INVENTARIO (15 sostanze, nessuna scaduta)
 INSERT INTO `inventory` (`id`, `name`, `ni`, `lot`, `expiry`, `quantity`, `unit`, `costPerGram`, `supplier`, `isExcipient`, `isContainer`, `isDoping`, `isNarcotic`, `securityData`) VALUES
-(1, 'Idrocortisone Butirrato', '25/S001', 'HCB-2025A', '2027-10-31', 50.00, 'g', 15.5000, 'Acef', 0, 0, 0, 0, NULL),
-(2, 'Ketoconazolo', '25/S002', 'KTC-001B', '2028-05-31', 250.00, 'g', 1.8000, 'Farmalabor', 0, 0, 0, 0, NULL),
-(3, 'Acido Salicilico', '25/S003', 'AS-2025C', '2029-01-31', 500.00, 'g', 0.0800, 'Galeno', 0, 0, 0, 0, NULL),
-(4, 'Testosterone Propionato', '25/S004', 'TEST-P-01', '2027-06-30', 25.00, 'g', 25.0000, 'Acef', 0, 0, 1, 0, '{"pictograms":["GHS08"]}'),
-(5, 'Amni Visnaga Glicolico 5%', '25/S005', 'AV-GL-5', '2026-11-30', 100.00, 'ml', 0.9000, 'Sinerga', 0, 0, 0, 0, NULL),
-(6, 'Urea', '25/S006', 'UR-123', '2028-12-31', 1000.00, 'g', 0.0500, 'Farmalabor', 0, 0, 0, 0, NULL),
-(7, 'Olio di Mandorle Dolci', '25/S007', 'OMD-25', '2027-09-30', 2000.00, 'ml', 0.0200, 'Galeno', 1, 0, 0, 0, NULL),
-(8, 'Alcool Cetilstearilico', '25/S008', 'ACS-01', '2029-10-31', 5000.00, 'g', 0.0150, 'Acef', 1, 0, 0, 0, NULL),
-(9, 'Glicerolo', '25/S009', 'GLI-02', '2030-01-31', 3000.00, 'ml', 0.0100, 'Farmalabor', 1, 0, 0, 0, NULL),
-(10, 'Niacinamide', '25/S010', 'NIA-007', '2027-08-31', 450.00, 'g', 0.2000, 'Galeno', 0, 0, 0, 0, NULL),
-(11, 'Vaso per unguento 50g', '25/C001', 'VAS-50', '2030-12-31', 200.00, 'n.', 0.5000, 'Plastilab', 0, 1, 0, 0, NULL),
-(12, 'Flacone vetro 200ml', '25/C002', 'FLV-200', '2030-12-31', 100.00, 'n.', 1.2000, 'Vetreria Scienza', 0, 1, 0, 0, NULL),
-(13, 'Tubetto alluminio 100g', '25/C003', 'TUB-AL-100', '2030-12-31', 150.00, 'n.', 0.8000, 'Plastilab', 0, 1, 0, 0, NULL),
-(14, 'Capsule Gelatina Dura N.1', '25/C004', 'CAPS-1', '2028-06-30', 5000.00, 'n.', 0.0200, 'Farmalabor', 0, 1, 0, 0, NULL),
-(15, 'Siringa graduata 1ml', '25/C005', 'SIR-1ML', '2029-12-31', 300.00, 'n.', 0.1500, 'Plastilab', 0, 1, 0, 0, NULL);
+(1, 'Minoxidil Base', '24/S001', 'MX-2401', '2026-12-31', 480.00, 'g', 0.90, 'Farma-Chemical', 0, 0, 0, 0, '{"pictograms":["GHS07"]}'),
+(2, 'Idrocortisone Butirrato', '24/S002', 'HCB-2402', '2025-11-30', 99.00, 'g', 1.25, 'Pharma-Actives', 0, 0, 1, 0, '{"pictograms":["GHS08"]}'),
+(3, 'Sildenafil Citrato', '24/S003', 'SIL-2403', '2026-05-31', 198.00, 'g', 2.75, 'Pharma-Actives', 0, 0, 0, 0, '{"pictograms":["GHS07", "GHS08"]}'),
+(4, 'Acido Salicilico', '24/S004', 'AS-2401', '2027-01-31', 950.00, 'g', 0.10, 'Farma-Chemical', 0, 0, 0, 0, '{"pictograms":["GHS05", "GHS07"]}'),
+(5, 'Melatonina', '24/S005', 'MLT-2404', '2026-08-31', 250.00, 'g', 3.50, 'NaturePharma', 0, 0, 0, 0, '{"pictograms":[]}'),
+(6, 'Clotrimazolo', '24/S006', 'CLT-2312', '2025-12-31', 200.00, 'g', 1.10, 'Farma-Chemical', 0, 0, 0, 0, '{"pictograms":["GHS07"]}'),
+(7, 'Glicole Propilenico', '24/E001', 'GP-2401', '2025-10-31', 4800.00, 'ml', 0.04, 'Farma-Chemical', 1, 0, 0, 0, '{"pictograms":[]}'),
+(8, 'Alcool Etilico 96°', '24/E002', 'ALC-2402', '2027-03-31', 8500.00, 'ml', 0.02, 'Distillerie Nazionali', 1, 0, 0, 0, '{"pictograms":["GHS02"]}'),
+(9, 'Crema Base Lipo', '24/E003', 'CBL-2401', '2025-09-30', 1850.00, 'g', 0.05, 'Galenica Srl', 1, 0, 0, 0, '{"pictograms":[]}'),
+(10, 'Lattosio Monoidrato', '24/E004', 'LAC-2403', '2026-06-30', 4000.00, 'g', 0.01, 'Galenica Srl', 1, 0, 0, 0, '{"pictograms":[]}'),
+(11, 'Camomilla Fiori T.T.', '24/E005', 'CAM-2311', '2025-11-30', 500.00, 'g', 0.11, 'HerbalSana', 1, 0, 0, 0, '{"pictograms":[]}'),
+(12, 'Flacone vetro 100ml c/contagocce', '24/C001', 'FLV-24', '2029-01-01', 95, 'n.', 0.80, 'Pharma-Packaging', 0, 1, 0, 0, '{"pictograms":[]}'),
+(13, 'Vasetto unguento 50g', '24/C002', 'VAS-24', '2029-01-01', 198, 'n.', 0.45, 'Pharma-Packaging', 0, 1, 0, 0, '{"pictograms":[]}'),
+(14, 'Capsule Gelatina Dura Tipo 0', '24/C003', 'CAPS-0-24', '2028-01-01', 880, 'n.', 0.02, 'Capsul-It', 0, 1, 0, 0, '{"pictograms":[]}'),
+(15, 'Busta per tisana 100g', '24/C004', 'BUST-24', '2029-01-01', 300, 'n.', 0.15, 'Pharma-Packaging', 0, 1, 0, 0, '{"pictograms":[]}');
 
--- Popolamento tabella `preparations` (10 preparazioni)
-INSERT INTO `preparations` (`id`, `prepNumber`, `name`, `pharmaceuticalForm`, `quantity`, `prepUnit`, `date`, `expiryDate`, `patient`, `doctor`, `recipeDate`, `posology`, `prepType`, `status`, `totalPrice`, `usage`, `operatingProcedures`, `labelWarnings`, `techOps`, `worksheetItems`, `batches`) VALUES
-(101, '25/P001', 'Crema Idrocortisone Butirrato 0.1%', 'Crema', 50, 'g', '2025-12-01', '2026-06-01', 'Mario Rossi', 'Dr. Verdi', '2025-11-28', 'Applicare 1-2 volte al dì sulla zona interessata.', 'magistrale', 'Completata', 25.50, 'Topica', '', '[]', '[]', '[]', NULL),
-(102, '25/P002', 'Niacinamide 10% Gel', 'Gel', 30, 'g', '2025-12-02', '2026-03-02', 'Laura Bianchi', 'Dr. Gialli', '2025-12-01', 'Applicare mattina e sera.', 'magistrale', 'Completata', 22.00, 'Topica', 'Preparare il gel secondo farmacopea.', '[]', '["Pesata","Miscelazione"]', '[]', NULL),
-(103, '25/P003', 'Ketoconazolo 2% Shampoo', 'Shampoo', 200, 'ml', '2025-12-03', '2026-06-03', 'Paolo Neri', 'Dr. Blu', '2025-12-01', 'Usare 2-3 volte a settimana.', 'magistrale', 'Completata', 35.00, 'Topica', 'Disperdere il chetoconazolo in base.', '[]', '["Dissoluzione","Miscelazione","Misura di volume"]', '[]', NULL),
-(104, '25/P004', 'Testosterone Propionato 5% in Olio', 'Soluzione Orale', 100, 'ml', '2025-12-05', '2026-06-05', 'Marco Gialli', 'Dr. Rossi', '2025-12-04', 'Secondo prescrizione medica.', 'magistrale', 'Completata', 75.00, 'Orale', 'Solubilizzare l''attivo nell''olio scaldato.', '["Tenere fuori dalla portata dei bambini"]', '["Pesata","Riscaldamento / Fusione / Evaporazione","Misura di volume"]', '[]', NULL),
-(105, '25/P005', 'Crema all''Urea 10%', 'Crema', 100, 'g', '2025-12-08', '2026-03-08', 'Anna Verdi', 'Dr. Rossi', '2025-12-05', 'Applicare al bisogno sulle zone secche.', 'magistrale', 'Completata', 28.00, 'Topica', 'Emulsionare a caldo le fasi.', '[]', '["Pesata","Miscelazione","Emulsionare"]', '[]', NULL),
-(106, '25/P006', 'Acido Salicilico 2% Lozione', 'Lozione', 100, 'ml', '2025-12-10', '2026-02-10', 'Luca Verdi', 'Dr. Gialli', '2025-12-09', 'Applicare con un batuffolo di cotone la sera.', 'magistrale', 'Bozza', 18.00, 'Topica', '', '[]', '[]', '[]', NULL),
-(107, '25/P007', 'Capsule di Amni Visnaga', 'Capsule', 60, 'n.', '2025-12-11', '2026-06-11', 'Giulia Neri', 'Dr. Blu', '2025-12-10', '1 capsula al giorno.', 'magistrale', 'Completata', 45.00, 'Orale', 'Ripartire la polvere in capsule.', '[]', '["Pesata","Polverizzazione / Triturazione","Ripartizione in capsule/cartine"]', '[]', NULL),
-(108, '25/P008', 'Crema base idratante', 'Crema', 500, 'g', '2025-12-12', '2026-06-12', '', '', NULL, 'Uso esterno.', 'officinale', 'Completata', 15.00, 'Topica', 'Preparazione standard per base emulsionante.', '[]', '["Pesata","Miscelazione","Emulsionare"]', '[]', '[{"containerId":11,"productQuantity":50,"unitPrice":15}]'),
-(109, '25/P009', 'Olio da massaggio', 'Olio', 1000, 'ml', '2025-12-15', '2026-12-15', '', '', NULL, 'Applicare sulla pelle e massaggiare.', 'officinale', 'Completata', 12.00, 'Topica', 'Miscelare gli oli in proporzione.', '["Tenere al riparo da luce e fonti di calore"]', '["Misura di volume","Miscelazione"]', '[]', '[{"containerId":12,"productQuantity":100,"unitPrice":12}]'),
-(110, '25/P010', 'Gel Rinfrescante', 'Gel', 300, 'g', '2025-12-16', '2026-04-16', '', '', NULL, 'Applicare al bisogno.', 'officinale', 'Bozza', 0.00, 'Topica', '', '[]', '[]', '[]', '[{"containerId":13,"productQuantity":3,"unitPrice":5}]');
 
---
--- Popolamento tabella `preparation_ingredients`
---
+-- PREPARAZIONI (7 magistrali, 3 officinali, 2 in bozza)
+INSERT INTO `preparations` (`id`, `prepNumber`, `name`, `date`, `patient`, `doctor`, `recipeDate`, `prepType`, `pharmaceuticalForm`, `quantity`, `prepUnit`, `expiryDate`, `posology`, `status`, `totalPrice`, `patientPhone`, `usage`, `techOps`) VALUES
+(1, '24/P001', 'Minoxidil 5% Lozione', '2024-04-15', 'Mario Rossi', 'Dr. Bianchi', '2024-04-10', 'magistrale', 'Preparazioni liquide (soluzioni)', 100, 'ml', '2024-07-15', '1ml sul cuoio capelluto due volte al giorno.', 'Completata', 28.50, '3331234567', 'Topica', '["SOLUBILIZZAZIONE"]'),
+(2, '24/P002', 'Idrocortisone 1% Crema', '2024-04-14', 'Laura Verdi', 'Dr. Neri', '2024-04-14', 'magistrale', 'Preparazioni semisolide per applicazione cutanea e paste', 50, 'g', '2024-10-14', 'Applicare 1-2 volte al giorno.', 'Completata', 22.50, '3478901234', 'Topica', '["MISCELAZIONE"]'),
+(3, '24/P003', 'Sildenafil 100mg', '2024-04-12', 'Giovanni Gialli', 'Dr. Azzurri', '2024-04-01', 'magistrale', 'Capsule', 10, 'n.', '2024-10-12', 'Una capsula al bisogno.', 'Completata', 55.20, '3385566778', 'Orale', '["MISCELAZIONE", "RIEMPIMENTO", "DIVISIONE_IN_DOSI"]'),
+(4, '24/P004', 'Melatonina 5mg - Bozza', '2024-04-11', 'Paola Neri', 'Autoprescrizione', '2024-04-11', 'magistrale', 'Capsule', 60, 'n.', '2024-10-11', 'Una capsula la sera.', 'Bozza', 32.80, '3358877665', 'Orale', '[]'),
+(5, '24/P005', 'Acido Salicilico 5% Unguento', '2024-04-10', 'Franco Marroni', 'Dr. Rossi', '2024-04-09', 'magistrale', 'Preparazioni semisolide per applicazione cutanea e paste', 100, 'g', '2024-07-10', 'Applicare localmente.', 'Completata', 19.40, '', 'Topica', '[]'),
+(6, '24/P006', 'Cartine di Fermenti', '2024-04-08', 'Bambino Rossi', 'Dr. Pediatra', '2024-04-08', 'magistrale', 'Cartine e cialdini', 20, 'n.', '2024-06-08', 'Una al giorno.', 'Completata', 17.60, '3331234567', 'Orale', '[]'),
+(7, '24/P007', 'Clotrimazolo Ovuli', '2024-04-02', 'Giovanna Verdi', 'Dr. Ginecologo', '2024-04-01', 'magistrale', 'Suppositori e ovuli', 12, 'n.', '2024-07-02', 'Un ovulo la sera per 12 giorni.', 'Completata', 28.90, '3478901234', 'Vaginale', '["FUSIONE", "RIEMPIMENTO_STAMPI"]'),
+(8, '24/P008', 'Alcool Borico 3%', '2024-04-15', NULL, NULL, NULL, 'officinale', 'Preparazioni liquide (soluzioni)', 100, 'ml', '2025-04-15', 'Uso esterno.', 'Completata', 12.50, NULL, 'Topica', '[]'),
+(9, '24/P009', 'Tisana Rilassante - Bozza', '2024-04-12', NULL, NULL, NULL, 'officinale', 'Polveri composte e piante per tisane', 100, 'g', '2024-12-12', 'Un cucchiaio in acqua calda.', 'Bozza', 15.80, NULL, 'Orale', '["MISCELAZIONE"]'),
+(10, '24/P010', 'Eosina 1% Soluzione Acquosa', '2024-03-25', NULL, NULL, NULL, 'officinale', 'Preparazioni liquide (soluzioni)', 50, 'ml', '2024-09-25', 'Applicare sulla parte interessata.', 'Completata', 10.20, NULL, 'Topica', '[]');
+
+-- INGREDIENTI DELLE PREPARAZIONI
 INSERT INTO `preparation_ingredients` (`preparationId`, `inventoryId`, `amountUsed`) VALUES
-(101, 1, 0.05),
-(101, 8, 20.00),
-(101, 11, 29.95), -- Per Crema idrocortisone
-(108, 6, 200.00), -- Per Crema base
-(108, 7, 200.00),
-(108, 8, 100.00),
-(109, 7, 1000.00), -- Per Olio da massaggio
-(110, 9, 290.00), -- Per Gel Rinfrescante
-(110, 13, 10.00), -- Tubetto per Gel Rinfrescante
-(102, 10, 3.00), -- Per Niacinamide Gel
-(102, 9, 27.00),
-(102, 13, 1.00), -- Tubetto per Niacinamide Gel
-(103, 2, 4.00), -- Per Ketoconazolo Shampoo
-(103, 12, 1.00), -- Flacone per Ketoconazolo Shampoo
-(104, 4, 5.00), -- Per Testosterone Propionato
-(104, 7, 95.00),
-(104, 12, 1.00),
-(105, 6, 10.00), -- Per Crema Urea
-(105, 8, 30.00),
-(105, 13, 2.00),
-(106, 3, 2.00), -- Per Acido Salicilico Lozione
-(106, 9, 98.00),
-(106, 12, 1.00),
-(107, 5, 30.00), -- Per Capsule Amni Visnaga
-(107, 14, 60.00); -- Capsule per Amni Visnaga
+(1, 1, 5.00), (1, 7, 20.00), (1, 8, 50.00), (1, 12, 1.00),
+(2, 2, 0.50), (2, 9, 49.50), (2, 13, 1.00),
+(3, 3, 1.00), (3, 10, 4.00), (3, 14, 10.00),
+(4, 5, 0.30), (4, 10, 20.00), (4, 14, 60.00),
+(5, 4, 5.00), (5, 9, 95.00), (5, 13, 2.00),
+(6, 10, 15.00),
+(7, 6, 1.20),
+(8, 4, 3.00), (8, 8, 97.00),
+(9, 11, 100.00), (9, 15, 1.00),
+(10, 8, 50.00);
 
 
---
--- Popolamento tabella `logs`
---
-INSERT INTO `logs` (`id`, `date`, `type`, `substance`, `ni`, `quantity`, `unit`, `notes`, `operator`, `preparationId`) VALUES
-(1, '2025-11-15', 'CARICO', 'Idrocortisone Butirrato', '25/S001', 50.00, 'g', 'Carico iniziale lotto', 'Sistema', NULL),
-(2, '2025-11-15', 'CARICO', 'Ketoconazolo', '25/S002', 250.00, 'g', 'Carico iniziale lotto', 'Sistema', NULL),
-(3, '2025-11-15', 'CARICO', 'Acido Salicilico', '25/S003', 500.00, 'g', 'Carico iniziale lotto', 'Sistema', NULL),
-(4, '2025-12-01', 'SCARICO', 'Idrocortisone Butirrato', '25/S001', 0.05, 'g', 'Preparazione #25/P001', 'Sistema', 101),
-(5, '2025-12-01', 'SCARICO', 'Alcool Cetilstearilico', '25/S008', 20.00, 'g', 'Preparazione #25/P001', 'Sistema', 101),
-(6, '2025-12-02', 'SCARICO', 'Niacinamide', '25/S010', 3.00, 'g', 'Preparazione #25/P002', 'Sistema', 102),
-(7, '2025-12-03', 'SCARICO', 'Ketoconazolo', '25/S002', 4.00, 'g', 'Preparazione #25/P003', 'Sistema', 103),
-(8, '2025-12-05', 'SCARICO', 'Testosterone Propionato', '25/S004', 5.00, 'g', 'Preparazione #25/P004', 'Sistema', 104),
-(9, '2025-12-08', 'SCARICO', 'Urea', '25/S006', 10.00, 'g', 'Preparazione #25/P005', 'Sistema', 105),
-(10, '2025-12-11', 'SCARICO', 'Amni Visnaga Glicolico 5%', '25/S005', 30.00, 'ml', 'Preparazione #25/P007', 'Sistema', 107),
-(11, '2025-12-12', 'SCARICO', 'Alcool Cetilstearilico', '25/S008', 150.00, 'g', 'Preparazione #25/P008', 'Sistema', 108);
-
-
-COMMIT;
+-- LOG
+INSERT INTO `logs` (`date`, `type`, `substance`, `ni`, `quantity`, `unit`, `notes`, `operator`, `preparationId`) VALUES
+('2024-04-15', 'SCARICO', 'Minoxidil Base', '24/S001', 5.00, 'g', 'Prep. #24/P001', 'Sistema', 1),
+('2024-04-14', 'SCARICO', 'Idrocortisone Butirrato', '24/S002', 0.50, 'g', 'Prep. #24/P002', 'Sistema', 2),
+('2024-04-12', 'SCARICO', 'Sildenafil Citrato', '24/S003', 1.00, 'g', 'Prep. #24/P003', 'Sistema', 3),
+('2024-04-02', 'CARICO', 'Sildenafil Citrato', '24/S003', 200.00, 'g', 'DDT 123', 'Sistema', NULL),
+('2024-03-25', 'CARICO', 'Minoxidil Base', '24/S001', 500.00, 'g', 'DDT 119', 'Sistema', NULL);
