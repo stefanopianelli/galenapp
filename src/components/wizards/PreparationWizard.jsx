@@ -33,7 +33,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   }, [initialStep, initialData]);
 
   const [details, setDetails] = useState({ 
-    name: '', patient: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
+    name: '', patient: '', patientPhone: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
     expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', recipeDate: '', usage: 'Orale', operatingProcedures: '', prepType: 'magistrale', labelWarnings: [], customLabelWarning: '', techOps: []
   });
 
@@ -53,7 +53,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
   useEffect(() => {
     const defaultDetails = {
-      name: '', patient: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
+      name: '', patient: '', patientPhone: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
       expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', recipeDate: '', usage: 'Orale', operatingProcedures: '', status: 'Bozza', prepType: 'magistrale', batches: [], worksheetItems: [], labelWarnings: [], customLabelWarning: '', techOps: []
     };
 
@@ -542,9 +542,14 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                       <div><label className="block text-sm font-bold">Scadenza *</label><input type="date" className="w-full border p-3 rounded-md outline-none" value={details.expiryDate} onChange={e => setDetails({...details, expiryDate: e.target.value})} /></div>
                       {!isOfficinale && (
                         <>
-                          <div><label className="block text-sm font-bold">Paziente *</label><input className="w-full border p-3 rounded-md outline-none" value={details.patient} onChange={e => setDetails({...details, patient: e.target.value})} /></div>
-                          <div><label className="block text-sm font-bold">Medico *</label><input className="w-full border p-3 rounded-md outline-none" value={details.doctor} onChange={e => setDetails({...details, doctor: e.target.value})} /></div>
-                          <div><label className="block text-sm font-bold">Data Ricetta *</label><input type="date" className="w-full border p-3 rounded-md outline-none" value={details.recipeDate} onChange={e => setDetails({...details, recipeDate: e.target.value})} /></div>
+                          <div className="col-span-2 grid grid-cols-2 gap-4">
+                            <div><label className="block text-sm font-bold">Paziente *</label><input className="w-full border p-3 rounded-md outline-none" value={details.patient} onChange={e => setDetails({...details, patient: e.target.value})} /></div>
+                            <div><label className="block text-sm font-bold">Telefono Paziente</label><input className="w-full border p-3 rounded-md outline-none" value={details.patientPhone} onChange={e => setDetails({...details, patientPhone: e.target.value})} placeholder="Opzionale" /></div>
+                          </div>
+                          <div className="col-span-2 grid grid-cols-2 gap-4">
+                            <div><label className="block text-sm font-bold">Medico *</label><input className="w-full border p-3 rounded-md outline-none" value={details.doctor} onChange={e => setDetails({...details, doctor: e.target.value})} /></div>
+                            <div><label className="block text-sm font-bold">Data Ricetta *</label><input type="date" className="w-full border p-3 rounded-md outline-none" value={details.recipeDate} onChange={e => setDetails({...details, recipeDate: e.target.value})} /></div>
+                          </div>
                         </>
                       )}
                       <div className="col-span-2"><label className="block text-sm font-bold">Uso *</label>

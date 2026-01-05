@@ -73,6 +73,7 @@ CREATE TABLE `preparations` (
   `posology` text DEFAULT NULL,
   `date` date DEFAULT NULL,
   `patient` varchar(255) DEFAULT NULL,
+  `patientPhone` varchar(50) DEFAULT NULL,
   `doctor` varchar(255) DEFAULT NULL,
   `status` varchar(50) DEFAULT 'Bozza',
   `totalPrice` decimal(10,2) DEFAULT NULL,
