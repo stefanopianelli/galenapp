@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { VAT_RATE } from '../constants/tariffs';
+import { TechOpsList } from '../components/modals/TechOpsModal';
 
 const formatDate = (dateString) => {
   if (!dateString) return '';
@@ -278,6 +279,26 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
   }
 
   if (y > 220) { doc.addPage(); y = 20; }
+
+  // --- OPERAZIONI TECNOLOGICHE ---
+  const hasTechOps = details.techOps && details.techOps.length > 0;
+  if (hasTechOps) {
+    if (y > 260) { doc.addPage(); y = 20; }
+    y = drawSectionHeader("OPERAZIONI TECNOLOGICHE", y);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    
+    const opsText = details.techOps.map(opCode => {
+      const op = TechOpsList.find(o => o.code === opCode);
+      return op ? `• ${op.text} (${op.code})` : '';
+    }).filter(Boolean).join('   '); // Aggiunge spazio tra le operazioni
+
+    const splitText = doc.splitTextToSize(opsText, 180);
+    doc.text(splitText, 16, y - 3); // Via di mezzo per lo spazio
+    y += (splitText.length * 4) + 10; // Aumentato lo spazio sotto la sezione
+  }
+  
+  if (y > 260) { doc.addPage(); y = 20; }
 
   // --- CONTROLLI E FASI ---
   y = drawSectionHeader("Controlli e Fasi Operative", y);
