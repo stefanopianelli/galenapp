@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Sparkles, Send, Loader2 } from 'lucide-react';
 import Card from '../ui/Card';
-import { callGemini } from '../../services/gemini';
+import { useApi } from '../../hooks/useApi';
 
-const AIAssistant = ({ pharmacySettings, handleTabChange }) => {
+const AIAssistant = ({ handleTabChange }) => {
   const [messages, setMessages] = useState([
-    { role: 'ai', text: 'Buongiorno Collega. Sono il tuo assistente galenico virtuale.' }
+    { role: 'ai', text: 'Buongiorno Collega. Sono il tuo assistente galenico virtuale. Come posso aiutarti oggi?' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
+  
+  const { createApiRequest } = useApi();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -26,30 +28,22 @@ const AIAssistant = ({ pharmacySettings, handleTabChange }) => {
     setInput('');
     setIsLoading(true);
 
-    const prompt = `Sei un esperto farmacista formulatore galenico in Italia. Rispondi in modo tecnico ma conciso. Domanda dell'utente: "${userMsg}"`;
-
-    const apiKey = pharmacySettings.geminiApiKey;
-    const response = await callGemini(prompt, apiKey);
-
-    setMessages(prev => [...prev, { role: 'ai', text: response }]);
-    setIsLoading(false);
+    try {
+        const result = await createApiRequest('ask_ai', { prompt: userMsg });
+        
+        let aiResponse = "Mi dispiace, si è verificato un errore.";
+        if (result.success) {
+            aiResponse = result.response;
+        } else {
+            aiResponse = `Errore: ${result.error || 'Risposta non valida dal server.'}`;
+        }
+        setMessages(prev => [...prev, { role: 'ai', text: aiResponse }]);
+    } catch (error) {
+        setMessages(prev => [...prev, { role: 'ai', text: "Errore di comunicazione con l'assistente." }]);
+    } finally {
+        setIsLoading(false);
+    }
   };
-
-  if (!pharmacySettings.geminiApiKey) {
-    return (
-      <Card className="flex flex-col items-center justify-center h-[600px] text-center p-8 border-slate-200">
-        <Sparkles className="text-purple-400 w-16 h-16 mb-4" />
-        <h3 className="text-xl font-bold text-slate-800 mb-2">Chiave API Gemini mancante!</h3>
-        <p className="text-slate-600 mb-4">Per utilizzare l'Assistente Galenico IA, devi inserire la tua chiave API di Google Gemini nelle impostazioni.</p>
-        <button
-          onClick={() => handleTabChange('settings')}
-          className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-md transition-colors"
-        >
-          Vai alle Impostazioni
-        </button>
-      </Card>
-    );
-  }
 
   return (
     <Card className="flex flex-col h-[600px] border-slate-200">
@@ -82,7 +76,7 @@ const AIAssistant = ({ pharmacySettings, handleTabChange }) => {
         {isLoading && (
           <div className="flex justify-start">
             <div className="bg-white border border-slate-200 rounded-2xl rounded-bl-none px-4 py-3 flex items-center gap-2 text-slate-400 text-sm">
-              <Loader2 className="animate-spin w-4 h-4" /> Sto consultando la farmacopea...
+              <Loader2 className="animate-spin w-4 h-4" /> Sto elaborando...
             </div>
           </div>
         )}

@@ -1,15 +1,20 @@
 <?php
-// File di Configurazione del Database
+// Configurazione Database
+$host = getenv('DB_HOST') ?: 'db5019179163.hosting-data.io';
+$dbname = getenv('DB_DATABASE') ?: 'dbs15060154';
+$username = getenv('DB_USER') ?: 'dbu4199584';
+$password = getenv('DB_PASSWORD') ?: 'Pa4rucca__';
+$socket_path = getenv('DB_SOCKET_PATH') ?: ''; // Lasciare vuoto se non si usa un socket
 
-// Attenzione: Modifica queste credenziali con quelle fornite dal tuo hosting.
-define('DB_HOST', 'localhost');          // Solitamente 'localhost' o un indirizzo IP/dominio specifico
-define('DB_USERNAME', 'tuo_utente_db');    // Il nome utente per il tuo database
-define('DB_PASSWORD', 'tua_password_db'); // La password per il tuo database
-define('DB_NAME', 'tuo_nome_db');          // Il nome del tuo database
+// Configurazione AI
+const GEMINI_API_KEY = 'AIzaSyBvdnkwcplEH0IyjPJzZgJ4yUXzwSOUEBw'; // Sostituisci con la tua chiave da Google AI Studio
 
-// Impostazioni per la connessione
-$charset = 'utf8mb4';
-$dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . $charset;
+// DSN di connessione
+if (!empty($socket_path)) {
+    $dsn = "mysql:unix_socket=$socket_path;dbname=$dbname;charset=utf8mb4";
+} else {
+    $dsn = "mysql:host=$host;dbname=$dbname;charset=utf8mb4";
+}
 
 $options = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
@@ -18,7 +23,7 @@ $options = [
 ];
 
 try {
-    $pdo = new PDO($dsn, DB_USERNAME, DB_PASSWORD, $options);
+    $pdo = new PDO($dsn, $username, $password, $options);
 } catch (\PDOException $e) {
     // In un ambiente di produzione reale, non dovresti mostrare l'errore dettagliato
     // ma loggarlo e mostrare un messaggio generico.

@@ -1,6 +1,21 @@
 <?php
 // Gestione API per GalenicoLab
 
+// --- ERROR HANDLING GLOBALE ---
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+
+register_shutdown_function(function() {
+    $error = error_get_last();
+    if ($error && ($error['type'] === E_ERROR || $error['type'] === E_PARSE || $error['type'] === E_CORE_ERROR || $error['type'] === E_COMPILE_ERROR)) {
+        if (!headers_sent()) {
+            header('Content-Type: application/json; charset=UTF-8');
+            http_response_code(500);
+        }
+        echo json_encode(['error' => 'Errore Fatale PHP: ' . $error['message'] . ' in ' . $error['file'] . ' on line ' . $error['line']]);
+    }
+});
+
 // --- INTESTAZIONI E SICUREZZA ---
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
@@ -102,7 +117,7 @@ function checkPermission($action, $role) {
     $readers = ['operator']; // Possono solo leggere
     
     // Azioni di sola lettura
-    $readActions = ['get_all_data'];
+    $readActions = ['get_all_data', 'ask_ai'];
     
     if (in_array($role, $admins)) return true; // Admin/Farmacisti fanno tutto
     if (in_array($role, $readers) && in_array($action, $readActions)) return true; // Operatori solo lettura
@@ -175,6 +190,10 @@ try {
             break;
         case 'delete_user':
             if ($method === 'POST') deleteUser($pdo, $userData['user_id']);
+            else sendError(405, 'Metodo non consentito.');
+            break;
+        case 'ask_ai':
+            if ($method === 'POST') askAI($pdo);
             else sendError(405, 'Metodo non consentito.');
             break;
         default:
@@ -602,6 +621,65 @@ function deleteUser($pdo, $requesterId) {
     $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
     $stmt->execute([$id]);
     echo json_encode(['success' => true]);
+}
+
+function askAI($pdo) {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $userPrompt = $data['prompt'] ?? '';
+
+    if (empty($userPrompt)) {
+        sendError(400, 'Domanda vuota.');
+        return;
+    }
+
+    if (!defined('GEMINI_API_KEY') || GEMINI_API_KEY === 'INSERISCI_QUI_LA_TUA_CHIAVE') {
+        sendError(500, 'Chiave API AI non configurata sul server.');
+        return;
+    }
+
+    $apiKey = trim(GEMINI_API_KEY);
+    $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey";
+
+    // Prompt di sistema
+    $systemInstruction = "Sei un esperto Farmacista Galenista in un laboratorio italiano. Rispondi in modo tecnico, preciso e professionale. Usi le norme NBP come riferimento. Sii conciso ma esaustivo.";
+
+    $requestBody = [
+        "contents" => [
+            [
+                "parts" => [
+                    ["text" => $systemInstruction . "\n\nDomanda Utente: " . $userPrompt]
+                ]
+            ]
+        ]
+    ];
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($requestBody));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    
+    if (curl_errno($ch)) {
+        sendError(500, 'Errore connessione AI: ' . curl_error($ch));
+        curl_close($ch);
+        return;
+    }
+    curl_close($ch);
+
+    if ($httpCode !== 200) {
+        $errorData = json_decode($response, true);
+        $errorMsg = $errorData['error']['message'] ?? 'Errore sconosciuto da Google AI';
+        sendError(500, "Errore AI ($httpCode): $errorMsg");
+        return;
+    }
+
+    $responseData = json_decode($response, true);
+    $aiText = $responseData['candidates'][0]['content']['parts'][0]['text'] ?? 'Nessuna risposta.';
+
+    echo json_encode(['success' => true, 'response' => $aiText]);
 }
 
 function login($pdo) {
