@@ -16,12 +16,123 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // --- CONNESSIONE AL DATABASE ---
 require_once 'config.php';
 
+// --- GESTIONE JWT E RUOLI ---
+const JWT_SECRET_KEY = 'la-tua-chiave-segreta-super-sicura-da-cambiare'; 
+
+function create_jwt($user_id, $username, $role) {
+    $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
+    $payload = json_encode(['user_id' => $user_id, 'username' => $username, 'role' => $role, 'exp' => time() + (60*60*8)]);
+    $base64UrlHeader = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($header));
+    $base64UrlPayload = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($payload));
+    $signature = hash_hmac('sha256', $base64UrlHeader . "." . $base64UrlPayload, JWT_SECRET_KEY, true);
+    $base64UrlSignature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature));
+    return $base64UrlHeader . "." . $base64UrlPayload . "." . $base64UrlSignature;
+}
+
+function validate_jwt($jwt) {
+    $parts = explode('.', $jwt);
+    if (count($parts) !== 3) return null;
+    list($header, $payload, $signature) = $parts;
+    $signature_from_token = base64_decode(str_replace(['-', '_'], ['+', '/'], $signature));
+    $expected_signature = hash_hmac('sha256', $header . "." . $payload, JWT_SECRET_KEY, true);
+    if (!hash_equals($expected_signature, $signature_from_token)) return null;
+    $payload_data = json_decode(base64_decode($payload), true);
+    if ($payload_data['exp'] < time()) return null;
+    return $payload_data;
+}
+
+function get_jwt_from_header() {
+    $authHeader = null;
+    $token = null;
+    
+    // 1. Cerca negli headers (Case Insensitive)
+    if (function_exists('getallheaders')) {
+        $headers = getallheaders();
+        foreach ($headers as $key => $value) {
+            if (strtolower($key) === 'authorization') {
+                $authHeader = $value;
+                break;
+            }
+        }
+    }
+    
+    // 2. Fallback su $_SERVER
+    if (!$authHeader) {
+        if (isset($_SERVER['Authorization'])) $authHeader = $_SERVER['Authorization'];
+        elseif (isset($_SERVER['HTTP_AUTHORIZATION'])) $authHeader = $_SERVER['HTTP_AUTHORIZATION'];
+        elseif (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) $authHeader = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+    }
+
+    // 3. Estrazione da Header Bearer
+    if ($authHeader) {
+        if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+            $token = $matches[1];
+        } else {
+            // A volte arriva senza Bearer?
+            $token = $authHeader;
+        }
+    }
+
+    // 4. Fallback estremo: Parametro URL o POST
+    if (!$token) {
+        if (isset($_GET['token'])) $token = $_GET['token'];
+        elseif (isset($_POST['token'])) $token = $_POST['token'];
+    }
+
+    // 5. Fallback JSON Body (per richieste POST dove header e GET falliscono)
+    if (!$token && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $input = json_decode(file_get_contents('php://input'), true);
+        if (isset($input['token'])) {
+            $token = $input['token'];
+        }
+    }
+
+    return $token;
+}
+
+function checkPermission($action, $role) {
+    if ($action === 'login') return true;
+    
+    // Ruoli definiti
+    $admins = ['admin', 'pharmacist']; // Possono modificare
+    $readers = ['operator']; // Possono solo leggere
+    
+    // Azioni di sola lettura
+    $readActions = ['get_all_data'];
+    
+    if (in_array($role, $admins)) return true; // Admin/Farmacisti fanno tutto
+    if (in_array($role, $readers) && in_array($action, $readActions)) return true; // Operatori solo lettura
+    
+    return false;
+}
+
 // --- ROUTING DELLE AZIONI ---
 $action = $_GET['action'] ?? null;
 $method = $_SERVER['REQUEST_METHOD'];
 
 try {
+    // --- Middleware di Autenticazione e Autorizzazione ---
+    if ($action !== 'login') {
+        $jwt = get_jwt_from_header();
+        $userData = $jwt ? validate_jwt($jwt) : null;
+        
+        if (!$userData) {
+            sendError(401, 'Accesso non autorizzato. Token mancante o non valido.');
+            exit();
+        }
+        
+        $userRole = $userData['role'] ?? 'operator';
+        if (!checkPermission($action, $userRole)) {
+            sendError(403, 'Permesso negato per questa operazione.');
+            exit();
+        }
+    }
+
     switch ($action) {
+        case 'login':
+            if ($method === 'POST') login($pdo);
+            else sendError(405, 'Metodo non consentito.');
+            break;
         case 'get_all_data':
             if ($method === 'GET') getAllData($pdo);
             else sendError(405, 'Metodo non consentito.');
@@ -400,6 +511,30 @@ function clearLogs($pdo) {
 function sendError($statusCode, $message) {
     http_response_code($statusCode);
     echo json_encode(['error' => $message]);
+}
+
+function login($pdo) {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $username = $data['username'] ?? '';
+    $password = $data['password'] ?? '';
+
+    if (empty($username) || empty($password)) {
+        sendError(400, 'Username e password sono obbligatori.');
+        return;
+    }
+
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
+    $stmt->execute([$username]);
+    $user = $stmt->fetch();
+
+    if ($user && password_verify($password, $user['password_hash'])) {
+        // Usa il ruolo dal DB, o 'operator' come default se mancante
+        $role = $user['role'] ?? 'operator';
+        $token = create_jwt($user['id'], $user['username'], $role);
+        echo json_encode(['success' => true, 'token' => $token, 'role' => $role, 'username' => $user['username']]);
+    } else {
+        sendError(401, 'Credenziali non valide.');
+    }
 }
 
 ?>
