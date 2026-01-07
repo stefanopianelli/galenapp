@@ -88,10 +88,9 @@ function get_jwt_from_header() {
         }
     }
 
-    // 4. Fallback estremo: Parametro URL o POST
+    // 4. Fallback estremo: Parametro POST (GET rimosso per sicurezza)
     if (!$token) {
-        if (isset($_GET['token'])) $token = $_GET['token'];
-        elseif (isset($_POST['token'])) $token = $_POST['token'];
+        if (isset($_POST['token'])) $token = $_POST['token'];
     }
 
     // 5. Fallback JSON Body (per richieste POST dove header e GET falliscono)

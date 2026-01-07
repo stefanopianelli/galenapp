@@ -6,7 +6,7 @@ import { NATIONAL_TARIFF_FEES, VAT_RATE } from '../../constants/tariffs';
 import { generateWorkSheetPDF } from '../../services/pdfGenerator';
 import TechOpsModal, { TechOpsList } from '../modals/TechOpsModal';
 
-function PreparationWizard({ inventory, preparations, onComplete, initialData, pharmacySettings, initialStep }) {
+function PreparationWizard({ inventory, preparations, onComplete, initialData, pharmacySettings, initialStep, canEdit }) {
   const prepType = initialData?.prepType || 'magistrale';
   const isOfficinale = prepType === 'officinale';
   const totalSteps = isOfficinale ? 6 : 5;
@@ -547,12 +547,20 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
             <div className="flex items-center gap-2 mt-1">
               <Badge type={isOfficinale ? "info" : "success"}>{isOfficinale ? "Officinale" : "Magistrale"}</Badge>
               {details.status === 'Bozza' && <Badge type="neutral">Bozza</Badge>}
+              {!canEdit && <Badge type="danger">SOLA LETTURA</Badge>}
             </div>
           </div>
-          {(step < totalSteps) && (details.status !== 'Completata') && (
+          {(step < totalSteps) && (details.status !== 'Completata') && canEdit && (
             <button onClick={handleDraftSave} className="bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md hover:bg-slate-300 flex items-center gap-1 text-sm shadow-sm transition-colors" title="Salva come bozza per continuare più tardi"><Save size={16} /> Salva Bozza</button>
           )}
         </div>
+
+        {!canEdit && (
+            <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md mb-6 flex items-center gap-2">
+                <Info size={20} />
+                <strong>Accesso Limitato:</strong> Non hai i permessi per modificare o salvare questa preparazione.
+            </div>
+        )}
 
         <Card className="p-8 min-h-[500px]">
           {step === 1 && (
@@ -782,8 +790,8 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                     <button onClick={() => setStep(isOfficinale ? 5 : 4)} className="text-slate-500 hover:underline">Indietro</button>
                     <div className="flex items-center gap-3">
                       <button onClick={handleDownloadWorksheet} className="bg-slate-600 text-white px-6 py-2 rounded-md hover:bg-slate-700 flex items-center gap-2"><FileDown size={18}/> Scarica Foglio</button>
-                      {details.status !== 'Completata' && (<button onClick={handleDraftSave} className="bg-slate-200 text-slate-700 px-6 py-2 rounded-md hover:bg-slate-300 flex items-center gap-2 shadow-sm transition-colors"><Save size={18}/> Salva Bozza</button>)}
-                      <button onClick={handleFinalSave} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 flex items-center gap-2"><Save size={18}/> Salva e Completa</button>
+                      {details.status !== 'Completata' && canEdit && (<button onClick={handleDraftSave} className="bg-slate-200 text-slate-700 px-6 py-2 rounded-md hover:bg-slate-300 flex items-center gap-2 shadow-sm transition-colors"><Save size={18}/> Salva Bozza</button>)}
+                      {canEdit && <button onClick={handleFinalSave} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 flex items-center gap-2"><Save size={18}/> Salva e Completa</button>}
                     </div>
                   </div>
               </div>
