@@ -11,7 +11,7 @@ const Badge = ({ children, type = 'info' }) => {
     magic: 'bg-purple-100 text-purple-800 border border-purple-200'
   };
   const colorClass = colors[type] || colors['neutral'];
-  return <span className={`px-2 py-1 rounded-full text-xs font-semibold ${colorClass}`}>{children}</span>;
+  return <span className={`px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${colorClass}`}>{children}</span>;
 };
 
 export default Badge;

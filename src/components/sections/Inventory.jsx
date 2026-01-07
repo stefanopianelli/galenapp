@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Plus, X, Filter, Package, Archive, Pencil, Trash2, ArrowUp, ArrowDown, FlaskConical, Box, Eye } from 'lucide-react';
+import { Search, Plus, X, Filter, Package, Archive, Pencil, Trash2, ArrowUp, ArrowDown, FlaskConical, Box, Eye, ChevronRight, ChevronDown } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 
@@ -21,9 +21,47 @@ const Inventory = ({
   canEdit
 }) => {
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState({});
 
   const activeSubstances = sortedActiveInventory.filter(item => !item.isContainer);
   const activeContainers = sortedActiveInventory.filter(item => item.isContainer);
+
+  const toggleGroup = (name) => {
+    setExpandedGroups(prev => ({ ...prev, [name]: !prev[name] }));
+  };
+
+  const groupData = (items) => {
+    const groups = {};
+    items.forEach(item => {
+      if (!groups[item.name]) {
+        groups[item.name] = { 
+          name: item.name, 
+          items: [], 
+          totalQty: 0, 
+          unit: item.unit,
+          earliestExpiry: item.expiry 
+        };
+      }
+      groups[item.name].items.push(item);
+      groups[item.name].totalQty += parseFloat(item.quantity);
+      if (new Date(item.expiry) < new Date(groups[item.name].earliestExpiry)) {
+        groups[item.name].earliestExpiry = item.expiry;
+      }
+    });
+    // Convert to array and sort logic could be applied here if needed, 
+    // but we rely on the pre-sorted input 'items' mostly.
+    // However, since we grouped, the original sort order might be lost if we iterate object keys.
+    // To maintain sort order of names, we can iterate 'items' and pick unique names order.
+    const orderedGroups = [];
+    const seen = new Set();
+    items.forEach(item => {
+        if (!seen.has(item.name)) {
+            orderedGroups.push(groups[item.name]);
+            seen.add(item.name);
+        }
+    });
+    return orderedGroups;
+  };
 
   const SortIcon = ({ columnKey }) => {
     if (sortConfig.key !== columnKey) return null;
@@ -42,7 +80,50 @@ const Inventory = ({
     </th>
   );
 
-  const InventoryTable = ({ data, type }) => (
+  const InventoryRow = ({ item, isChild = false }) => {
+      const days = (new Date(item.expiry) - new Date()) / (1000 * 60 * 60 * 24);
+      const isExpiring = days > 0 && days <= 30;
+      const rowClass = isChild ? "bg-slate-50/50 hover:bg-slate-100" : (isExpiring ? "bg-yellow-50" : "hover:bg-slate-50");
+      const paddingClass = isChild ? "pl-12" : "pl-6";
+
+      return (
+        <tr className={rowClass}>
+          <td
+            className={`${paddingClass} pr-6 py-4 font-medium cursor-pointer hover:text-teal-600 hover:underline whitespace-nowrap flex items-center gap-2`}
+            onClick={() => handleOpenViewModal(item)}
+          >
+            {isChild && <div className="w-4 border-l-2 border-b-2 border-slate-300 h-4 mr-2 rounded-bl-sm"></div>}
+            {item.name}
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap"><span className="text-xs font-mono bg-slate-100 px-1 rounded">{item.ni}</span></td>
+          <td className="px-6 py-4 whitespace-nowrap">{item.expiry}</td>
+          <td className="px-6 py-4 whitespace-nowrap">{item.supplier}</td>
+          <td className="px-6 py-4 text-right font-mono font-medium whitespace-nowrap">{Number(item.quantity).toFixed(item.isContainer ? 0 : 2)} {item.unit}</td>
+          <td className="px-6 py-4 text-right font-mono whitespace-nowrap">{item.costPerGram ? `€ ${Number(item.costPerGram).toFixed(2)}` : '-'}</td>
+          <td className="px-6 py-4 text-center whitespace-nowrap">{item.usageCount}</td>
+          <td className="px-6 py-4 text-center whitespace-nowrap">
+            {item.quantity === 0 ? <Badge type="neutral">Terminata</Badge> : new Date(item.expiry) < new Date() ? <Badge type="danger">Scaduto</Badge> : days <= 30 ? <Badge type="warning">In Scadenza</Badge> : item.quantity <= (item.minStock || (item.isContainer ? 10 : 5)) ? <Badge type="warning">Scarso</Badge> : <Badge type="success">OK</Badge>}
+          </td>
+          <td className="px-6 py-4 text-center">
+            <div className="flex justify-center gap-2">
+              {canEdit ? (
+                <>
+                  <button onClick={() => handleOpenEditModal(item)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-full transition-colors" title="Modifica"><Pencil size={16} /></button>
+                  <button onClick={() => handleDispose(item.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="Smaltisci"><Trash2 size={16} /></button>
+                </>
+              ) : (
+                <button onClick={() => handleOpenEditModal(item)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-slate-50 rounded-full transition-colors" title="Visualizza"><Eye size={16} /></button>
+              )}
+            </div>
+          </td>
+        </tr>
+      );
+  };
+
+  const InventoryTable = ({ data, type }) => {
+    const groups = groupData(data);
+
+    return (
     <Card>
       <div className="overflow-auto" style={{ maxHeight: '60vh' }}>
         <table className="w-full text-left text-sm">
@@ -60,40 +141,46 @@ const Inventory = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {data.map(item => {
-              const days = (new Date(item.expiry) - new Date()) / (1000 * 60 * 60 * 24);
-              const isExpiring = days > 0 && days <= 30;
-              return (
-                <tr key={item.id} className={isExpiring ? "bg-yellow-50" : "hover:bg-slate-50"}>
-                  <td
-                    className="px-6 py-4 font-medium cursor-pointer hover:text-teal-600 hover:underline whitespace-nowrap"
-                    onClick={() => handleOpenViewModal(item)}
-                  >
-                    {item.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap"><span className="text-xs font-mono bg-slate-100 px-1 rounded">{item.ni}</span></td>
-                  <td className="px-6 py-4 whitespace-nowrap">{item.expiry}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{item.supplier}</td>
-                  <td className="px-6 py-4 text-right font-mono font-medium whitespace-nowrap">{Number(item.quantity).toFixed(type === 'container' ? 0 : 2)} {item.unit}</td>
-                  <td className="px-6 py-4 text-right font-mono whitespace-nowrap">{item.costPerGram ? `€ ${Number(item.costPerGram).toFixed(2)}` : '-'}</td>
-                  <td className="px-6 py-4 text-center whitespace-nowrap">{item.usageCount}</td>
-                  <td className="px-6 py-4 text-center whitespace-nowrap">
-                    {item.quantity === 0 ? <Badge type="neutral">Terminata</Badge> : new Date(item.expiry) < new Date() ? <Badge type="danger">Scaduto</Badge> : days <= 30 ? <Badge type="warning">In Scadenza</Badge> : item.quantity <= (item.minStock || (type === 'container' ? 10 : 5)) ? <Badge type="warning">Scarso</Badge> : <Badge type="success">OK</Badge>}
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <div className="flex justify-center gap-2">
-                      {canEdit ? (
-                        <>
-                          <button onClick={() => handleOpenEditModal(item)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-full transition-colors" title="Modifica"><Pencil size={16} /></button>
-                          <button onClick={() => handleDispose(item.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="Smaltisci"><Trash2 size={16} /></button>
-                        </>
-                      ) : (
-                        <button onClick={() => handleOpenEditModal(item)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-slate-50 rounded-full transition-colors" title="Visualizza"><Eye size={16} /></button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              )
+            {groups.map((group, groupIdx) => {
+                if (group.items.length === 1) {
+                    return <InventoryRow key={group.items[0].id} item={group.items[0]} />;
+                }
+                const isExpanded = expandedGroups[group.name];
+                
+                // Calcolo stati per il gruppo
+                const anyExpiring = group.items.some(i => {
+                    const days = (new Date(i.expiry) - new Date()) / (1000 * 60 * 60 * 24);
+                    return days > 0 && days <= 30;
+                });
+                const anyExpired = group.items.some(i => new Date(i.expiry) < new Date());
+                const totalStatus = anyExpired ? <Badge type="danger">Lotti Scaduti</Badge> : anyExpiring ? <Badge type="warning">In Scadenza</Badge> : <Badge type="success">OK</Badge>;
+
+                return (
+                    <React.Fragment key={groupIdx}>
+                        <tr className="bg-slate-50 hover:bg-slate-100 cursor-pointer font-semibold" onClick={() => toggleGroup(group.name)}>
+                            <td className="px-6 py-4 flex items-center gap-2 whitespace-nowrap">
+                                {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                {group.name} 
+                                <span className="ml-2 text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">{group.items.length} Lotti</span>
+                            </td>
+                            <td className="px-6 py-4 text-slate-400 text-xs italic">Multipli</td>
+                            <td className="px-6 py-4 text-teal-700">{group.earliestExpiry} (Prioritario)</td>
+                            <td className="px-6 py-4 text-slate-400 text-xs italic">Vari</td>
+                            <td className="px-6 py-4 text-right font-mono text-slate-800">{group.totalQty.toFixed(type === 'container' ? 0 : 2)} {group.unit}</td>
+                            <td className="px-6 py-4 text-right">-</td>
+                            <td className="px-6 py-4 text-center">-</td>
+                            <td className="px-6 py-4 text-center whitespace-nowrap">{totalStatus}</td>
+                            <td className="px-6 py-4 text-center">
+                                <button className="text-xs text-slate-500 hover:text-slate-800 underline">
+                                    {isExpanded ? 'Chiudi' : 'Dettagli'}
+                                </button>
+                            </td>
+                        </tr>
+                        {isExpanded && group.items.map(item => (
+                            <InventoryRow key={item.id} item={item} isChild={true} />
+                        ))}
+                    </React.Fragment>
+                );
             })}
             {data.length === 0 && (
               <tr><td colSpan="9" className="px-6 py-8 text-center text-slate-400 italic">Nessun elemento trovato</td></tr>
@@ -103,6 +190,7 @@ const Inventory = ({
       </div>
     </Card>
   );
+  };
 
   return (
     <div className="space-y-8">
