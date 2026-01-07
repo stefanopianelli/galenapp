@@ -39,6 +39,11 @@ export default function MainApp() {
   const { token, logout, AUTH_ENABLED, user } = useAuth();
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem('activeTab') || 'dashboard');
 
+  const canEdit = useMemo(() => {
+    if (!AUTH_ENABLED) return true;
+    return user?.role === 'admin' || user?.role === 'pharmacist';
+  }, [AUTH_ENABLED, user]);
+
   const [inventory, setInventory] = useState([]);
   const [logs, setLogs] = useState([]);
   const [preparations, setPreparations] = useState([]);
@@ -277,7 +282,13 @@ export default function MainApp() {
 
   useEffect(() => { loadData(); }, [loadData]);
   useEffect(() => { localStorage.setItem('galenico_settings', JSON.stringify(pharmacySettings)); }, [pharmacySettings]);
-  useEffect(() => { localStorage.setItem('activeTab', activeTab); }, [activeTab]);
+  useEffect(() => { 
+      // Sicurezza: se sono su user_management ma non sono admin, torno alla dashboard
+      if (AUTH_ENABLED && activeTab === 'user_management' && user?.role !== 'admin') {
+          setActiveTab('dashboard');
+      }
+      localStorage.setItem('activeTab', activeTab); 
+  }, [activeTab, AUTH_ENABLED, user]);
 
   const handleTabChange = (tab) => {
     if (activeTab === 'preparation' && window.confirm('Sei sicuro di voler uscire? Le modifiche non salvate andranno perse.')) {
@@ -390,12 +401,13 @@ export default function MainApp() {
     });
     setIsReadOnlyMode(false); setIsAddModalOpen(true);
   };
-  const handleOpenEditModal = (item) => {
-    setEditingSubstance(item);
-    setNewSubstance({ ...item, quantity: item.quantity.toString(), minStock: item.minStock || (item.isContainer ? '10' : '5'),
-      totalCost: item.totalCost ? item.totalCost.toString() : '', costPerGram: item.costPerGram?.toString() || '' });
-    setIsReadOnlyMode(false); setIsAddModalOpen(true);
-  };
+    const handleOpenEditModal = (item) => {
+      setEditingSubstance(item);
+      setNewSubstance({ ...item, quantity: item.quantity.toString(), minStock: item.minStock || (item.isContainer ? '10' : '5'),
+        totalCost: item.totalCost ? item.totalCost.toString() : '', costPerGram: item.costPerGram?.toString() || '' });
+      setIsReadOnlyMode(!canEdit);
+      setIsAddModalOpen(true);
+    };
   const handleOpenViewModal = (item) => {
     setEditingSubstance(item);
     setNewSubstance({ ...item, quantity: item.quantity.toString(), minStock: item.minStock || (item.isContainer ? '10' : '5'),
@@ -416,7 +428,9 @@ export default function MainApp() {
     }
   };
   const handleAddOrUpdateSubstance = async (e) => {
-    e.preventDefault(); const formData = new FormData();
+    e.preventDefault(); 
+    if (!canEdit) { alert("Permesso negato"); return; }
+    const formData = new FormData();
     const textFields = ['id', 'name', 'ni', 'lot', 'expiry', 'quantity', 'unit', 'totalCost', 'costPerGram', 'supplier', 'purity', 'receptionDate', 'ddtNumber', 'ddtDate', 'minStock', 'isExcipient', 'isContainer', 'isDoping', 'isNarcotic'];
     textFields.forEach(field => { if (newSubstance[field] !== undefined && newSubstance[field] !== null) formData.append(field, newSubstance[field]); });
     if (newSubstance.securityData) formData.append('securityData', JSON.stringify(newSubstance.securityData));
@@ -435,9 +449,9 @@ export default function MainApp() {
       console.error("Errore salvataggio sostanza:", error); alert("Errore durante il salvataggio della sostanza.");
     }
   };
-    const handleDispose = async (itemId) => {
-      if (!window.confirm(`Confermi di voler smaltire l'elemento?`)) return;
-      try {
+      const handleDispose = async (itemId) => {
+        if (!canEdit) { alert("Permesso negato"); return; }
+        if (!window.confirm(`Confermi di voler smaltire l'elemento?`)) return;      try {
         const result = await disposeInventoryData(itemId);
         if (result.error) throw new Error(result.error);
         if (!USE_MOCK_DATA && AUTH_ENABLED) await loadData();
@@ -446,9 +460,9 @@ export default function MainApp() {
         alert("Errore durante lo smaltimento.");
       }
     };
-    const handleDeletePreparation = async (prepId) => {
-      if (!window.confirm(`Eliminare la preparazione?`)) return;
-      try {
+      const handleDeletePreparation = async (prepId) => {
+        if (!canEdit) { alert("Permesso negato"); return; }
+        if (!window.confirm(`Eliminare la preparazione?`)) return;      try {
         const result = await deletePreparationData(prepId);
         if (result.error) throw new Error(result.error);
         if (!USE_MOCK_DATA && AUTH_ENABLED) await loadData();
@@ -457,9 +471,9 @@ export default function MainApp() {
         alert("Errore durante l'eliminazione della preparazione.");
       }
     };
-    const handleSavePreparation = async (itemsUsed, prepDetails, isDraft = false) => {
-      try {
-        const result = await savePreparationData(itemsUsed, prepDetails, isDraft);
+      const handleSavePreparation = async (itemsUsed, prepDetails, isDraft = false) => {
+        if (!canEdit) { alert("Permesso negato"); return; }
+        try {        const result = await savePreparationData(itemsUsed, prepDetails, isDraft);
         if (result.error) throw new Error(result.error);
         setEditingPrep(null); setActiveTab('preparations_log');
         if (!USE_MOCK_DATA && AUTH_ENABLED) await loadData();
@@ -490,13 +504,13 @@ export default function MainApp() {
       case 'dashboard':
         return <Dashboard stats={stats} logs={logs} inventory={inventory} preparations={preparations} setActiveTab={handleTabChange} setInventoryFilter={setInventoryFilter} handleDispose={handleDispose} handleShowPreparation={handleShowPreparation} handleShowSubstanceInInventory={handleShowSubstanceInInventory} />;
       case 'inventory':
-        return <Inventory inventoryFilter={inventoryFilter} setInventoryFilter={setInventoryFilter} searchTerm={searchTerm} setSearchTerm={setSearchTerm} sortedActiveInventory={sortedActiveInventory} sortedDisposedInventory={sortedDisposedInventory} handleOpenAddModal={handleOpenAddModal} handleOpenEditModal={handleOpenEditModal} handleOpenViewModal={handleOpenViewModal} handleDispose={handleDispose} sortConfig={sortConfig} requestSort={requestSort} activeSubstanceFilter={inventoryFilterSubstance} clearSubstanceFilter={() => setInventoryFilterSubstance(null)} />;
+        return <Inventory inventoryFilter={inventoryFilter} setInventoryFilter={setInventoryFilter} searchTerm={searchTerm} setSearchTerm={setSearchTerm} sortedActiveInventory={sortedActiveInventory} sortedDisposedInventory={sortedDisposedInventory} handleOpenAddModal={handleOpenAddModal} handleOpenEditModal={handleOpenEditModal} handleOpenViewModal={handleOpenViewModal} handleDispose={handleDispose} sortConfig={sortConfig} requestSort={requestSort} activeSubstanceFilter={inventoryFilterSubstance} clearSubstanceFilter={() => setInventoryFilterSubstance(null)} canEdit={canEdit} />;
       case 'preparations_log':
-        return <PreparationsLog preparations={filteredPreparations} handleJumpToStep={handleJumpToStep} handleDuplicatePreparation={handleDuplicatePreparation} handleDeletePreparation={handleDeletePreparation} activeFilter={preparationLogFilter} clearFilter={() => setPreparationLogFilter(null)} searchTerm={prepSearchTerm} setSearchTerm={setPrepSearchTerm} sortConfig={prepSortConfig} requestSort={requestPrepSort} prepTypeFilter={prepTypeFilter} setPrepTypeFilter={setPrepTypeFilter} />;
+        return <PreparationsLog preparations={filteredPreparations} handleJumpToStep={handleJumpToStep} handleDuplicatePreparation={handleDuplicatePreparation} handleDeletePreparation={handleDeletePreparation} activeFilter={preparationLogFilter} clearFilter={() => setPreparationLogFilter(null)} searchTerm={prepSearchTerm} setSearchTerm={setPrepSearchTerm} sortConfig={prepSortConfig} requestSort={requestPrepSort} prepTypeFilter={prepTypeFilter} setPrepTypeFilter={setPrepTypeFilter} canEdit={canEdit} />;
       case 'preparation':
         return <PreparationWizard inventory={inventory} preparations={preparations} onComplete={handleSavePreparation} initialData={editingPrep} pharmacySettings={pharmacySettings} initialStep={initialWizardStep} />;
       case 'logs':
-        return <Logs logs={logs} preparations={preparations} handleShowPreparation={handleShowPreparation} handleClearLogs={handleClearLogs} />;
+        return <Logs logs={logs} preparations={preparations} handleShowPreparation={handleShowPreparation} handleClearLogs={handleClearLogs} canEdit={canEdit} />;
       case 'settings':
         return <SettingsComponent settings={pharmacySettings} setSettings={setPharmacySettings} />;
       case 'user_management':
@@ -515,7 +529,7 @@ export default function MainApp() {
         <nav className="flex-1 p-4 space-y-2">
           <SidebarItem icon={<ClipboardList size={20} />} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => handleTabChange('dashboard')} />
           <SidebarItem icon={<Package size={20} />} label="Magazzino Sostanze" active={activeTab === 'inventory'} onClick={() => { setInventoryFilter('all'); handleTabChange('inventory'); }} />
-          <SidebarItem icon={<Pill size={20} />} label={editingPrep ? "Modifica Prep." : "Nuova Prep."} active={activeTab === 'preparation'} onClick={handleNewPreparation} />
+          {canEdit && <SidebarItem icon={<Pill size={20} />} label={editingPrep ? "Modifica Prep." : "Nuova Prep."} active={activeTab === 'preparation'} onClick={handleNewPreparation} />}
           <SidebarItem icon={<LayoutList size={20} />} label="Registro Preparazioni" active={activeTab === 'preparations_log'} onClick={() => handleTabChange('preparations_log')} />
           <SidebarItem icon={<History size={20} />} label="Registro Movimenti" active={activeTab === 'logs'} onClick={() => handleTabChange('logs')} />
                     <div className="pt-4 mt-4 border-t border-slate-700">

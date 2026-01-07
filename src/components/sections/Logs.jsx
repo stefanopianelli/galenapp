@@ -3,7 +3,7 @@ import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import { Trash2, Calendar, AlertTriangle } from 'lucide-react';
 
-const Logs = ({ logs, preparations, handleShowPreparation, handleClearLogs }) => {
+const Logs = ({ logs, preparations, handleShowPreparation, handleClearLogs, canEdit }) => {
   const [showClearPanel, setShowClearPanel] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -50,12 +50,14 @@ const Logs = ({ logs, preparations, handleShowPreparation, handleClearLogs }) =>
       <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm flex flex-col gap-4">
         <div className="flex justify-between items-center">
             <h2 className="text-lg font-bold text-slate-800">Opzioni Registro</h2>
-            <button
-                onClick={() => setShowClearPanel(!showClearPanel)}
-                className="flex items-center gap-2 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-md"
-            >
-                <Trash2 size={16} /> Pulisci Registro
-            </button>
+            {canEdit && (
+              <button
+                  onClick={() => setShowClearPanel(!showClearPanel)}
+                  className="flex items-center gap-2 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-md"
+              >
+                  <Trash2 size={16} /> Pulisci Registro
+              </button>
+            )}
         </div>
         {showClearPanel && (
             <div className="border-t pt-4 space-y-4 animate-in fade-in">

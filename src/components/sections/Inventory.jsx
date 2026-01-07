@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Plus, X, Filter, Package, Archive, Pencil, Trash2, ArrowUp, ArrowDown, FlaskConical, Box } from 'lucide-react';
+import { Search, Plus, X, Filter, Package, Archive, Pencil, Trash2, ArrowUp, ArrowDown, FlaskConical, Box, Eye } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 
@@ -18,6 +18,7 @@ const Inventory = ({
   requestSort,
   activeSubstanceFilter,
   clearSubstanceFilter,
+  canEdit
 }) => {
   const [showAddMenu, setShowAddMenu] = useState(false);
 
@@ -81,8 +82,14 @@ const Inventory = ({
                   </td>
                   <td className="px-6 py-4 text-center">
                     <div className="flex justify-center gap-2">
-                      <button onClick={() => handleOpenEditModal(item)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-full transition-colors" title="Modifica"><Pencil size={16} /></button>
-                      <button onClick={() => handleDispose(item.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="Smaltisci"><Trash2 size={16} /></button>
+                      {canEdit ? (
+                        <>
+                          <button onClick={() => handleOpenEditModal(item)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-full transition-colors" title="Modifica"><Pencil size={16} /></button>
+                          <button onClick={() => handleDispose(item.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="Smaltisci"><Trash2 size={16} /></button>
+                        </>
+                      ) : (
+                        <button onClick={() => handleOpenEditModal(item)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-slate-50 rounded-full transition-colors" title="Visualizza"><Eye size={16} /></button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -103,30 +110,32 @@ const Inventory = ({
         <div className="relative"><Search className="absolute left-3 top-2.5 text-slate-400 h-4 w-4" /><input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Cerca per nome, N.I. o lotto..." className="pl-9 pr-4 py-2 border border-slate-300 rounded-md text-sm w-64 focus:ring-2 focus:ring-teal-500 outline-none" /></div>
         <div className="flex gap-2">
           {inventoryFilter !== 'all' && (<div className="flex items-center gap-2 bg-amber-50 text-amber-800 px-3 py-1 rounded border border-amber-200 text-sm"><Filter size={14} /> Filtro: {inventoryFilter === 'expiring' ? 'In Scadenza' : 'Scadute'}<button onClick={() => setInventoryFilter('all')} className="hover:text-amber-900"><X size={14} /></button></div>)}
-          <div className="relative">
-            <button 
-              onClick={() => setShowAddMenu(!showAddMenu)} 
-              className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors shadow-sm"
-            >
-              <Plus size={16} /> Nuovo Carico
-            </button>
-            {showAddMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-slate-100 z-50 py-1 animate-in fade-in slide-in-from-top-2">
-                <button 
-                  onClick={() => { handleOpenAddModal('substance'); setShowAddMenu(false); }}
-                  className="w-full text-left px-4 py-3 hover:bg-slate-50 flex items-center gap-2 text-slate-700 text-sm"
-                >
-                  <FlaskConical size={16} className="text-teal-600"/> Nuova Sostanza
-                </button>
-                <button 
-                  onClick={() => { handleOpenAddModal('container'); setShowAddMenu(false); }}
-                  className="w-full text-left px-4 py-3 hover:bg-slate-50 flex items-center gap-2 text-slate-700 border-t border-slate-50 text-sm"
-                >
-                  <Box size={16} className="text-blue-600"/> Nuovo Contenitore
-                </button>
-              </div>
-            )}
-          </div>
+          {canEdit && (
+            <div className="relative">
+              <button 
+                onClick={() => setShowAddMenu(!showAddMenu)} 
+                className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors shadow-sm"
+              >
+                <Plus size={16} /> Nuovo Carico
+              </button>
+              {showAddMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-slate-100 z-50 py-1 animate-in fade-in slide-in-from-top-2">
+                  <button 
+                    onClick={() => { handleOpenAddModal('substance'); setShowAddMenu(false); }}
+                    className="w-full text-left px-4 py-3 hover:bg-slate-50 flex items-center gap-2 text-slate-700 text-sm"
+                  >
+                    <FlaskConical size={16} className="text-teal-600"/> Nuova Sostanza
+                  </button>
+                  <button 
+                    onClick={() => { handleOpenAddModal('container'); setShowAddMenu(false); }}
+                    className="w-full text-left px-4 py-3 hover:bg-slate-50 flex items-center gap-2 text-slate-700 border-t border-slate-50 text-sm"
+                  >
+                    <Box size={16} className="text-blue-600"/> Nuovo Contenitore
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

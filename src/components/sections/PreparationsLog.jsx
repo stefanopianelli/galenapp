@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Hash, Calendar, Pencil, Trash2, Filter, X, Search, ArrowUp, ArrowDown, Stethoscope, FlaskConical } from 'lucide-react';
+import { Hash, Calendar, Pencil, Trash2, Filter, X, Search, ArrowUp, ArrowDown, Stethoscope, FlaskConical, Eye } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 
-const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparation, handleDuplicatePreparation, activeFilter, clearFilter, searchTerm, setSearchTerm, sortConfig, requestSort, prepTypeFilter, setPrepTypeFilter }) => {
+const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparation, handleDuplicatePreparation, activeFilter, clearFilter, searchTerm, setSearchTerm, sortConfig, requestSort, prepTypeFilter, setPrepTypeFilter, canEdit }) => {
   const filteredPrepName = activeFilter && preparations.length === 1 ? preparations[0].name : null;
   const [openMenuId, setOpenMenuId] = useState(null);
   const menuRef = useRef(null);
@@ -151,10 +151,10 @@ const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparati
                     <div className="relative flex justify-center gap-2">
                       <button
                         onClick={() => setOpenMenuId(openMenuId === prep.id ? null : prep.id)}
-                        className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full transition-colors"
-                        title="Modifica"
+                        className={`p-1.5 rounded-full transition-colors ${canEdit ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' : 'text-slate-400 hover:text-blue-600 hover:bg-slate-50'}`}
+                        title={canEdit ? "Modifica" : "Visualizza"}
                       >
-                        <Pencil size={16} />
+                        {canEdit ? <Pencil size={16} /> : <Eye size={16} />}
                       </button>
                       {openMenuId === prep.id && (
                         <div 
@@ -162,29 +162,35 @@ const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparati
                           className="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg z-20 border"
                         >
                           {prep.status === 'Bozza' ? (
-                            <button onClick={() => { handleJumpToStep(prep, 1); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Riprendi Bozza</button>
+                            <button onClick={() => { handleJumpToStep(prep, 1); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">{canEdit ? 'Riprendi Bozza' : 'Visualizza Bozza'}</button>
                           ) : (
                             <>
-                              <button onClick={() => { handleJumpToStep(prep, 1); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Modifica Anagrafica</button>
-                              <button onClick={() => { handleJumpToStep(prep, 2); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Modifica Componenti</button>
-                              <button onClick={() => { handleJumpToStep(prep, 3); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Modifica Tariffa</button>
+                              <button onClick={() => { handleJumpToStep(prep, 1); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">{canEdit ? 'Modifica Anagrafica' : 'Visualizza Anagrafica'}</button>
+                              <button onClick={() => { handleJumpToStep(prep, 2); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">{canEdit ? 'Modifica Componenti' : 'Visualizza Componenti'}</button>
+                              <button onClick={() => { handleJumpToStep(prep, 3); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">{canEdit ? 'Modifica Tariffa' : 'Visualizza Tariffa'}</button>
                               {prep.prepType === 'officinale' && (
-                                <button onClick={() => { handleJumpToStep(prep, 4); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Modifica Lotti</button>
+                                <button onClick={() => { handleJumpToStep(prep, 4); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">{canEdit ? 'Modifica Lotti' : 'Visualizza Lotti'}</button>
                               )}
-                              <button onClick={() => { handleJumpToStep(prep, prep.prepType === 'officinale' ? 5 : 4); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Mod. Foglio Lav.</button>
+                              <button onClick={() => { handleJumpToStep(prep, prep.prepType === 'officinale' ? 5 : 4); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">{canEdit ? 'Mod. Foglio Lav.' : 'Vis. Foglio Lav.'}</button>
                             </>
                           )}
-                          <div className="border-t my-1"></div>
-                          <button onClick={() => { handleDuplicatePreparation(prep); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Duplica Preparazione</button>
+                          {canEdit && (
+                            <>
+                              <div className="border-t my-1"></div>
+                              <button onClick={() => { handleDuplicatePreparation(prep); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Duplica Preparazione</button>
+                            </>
+                          )}
                         </div>
                       )}
-                      <button
-                        onClick={() => handleDeletePreparation(prep.id)}
-                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
-                        title="Elimina"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      {canEdit && (
+                        <button
+                          onClick={() => handleDeletePreparation(prep.id)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                          title="Elimina"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

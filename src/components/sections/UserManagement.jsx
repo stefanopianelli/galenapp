@@ -23,9 +23,18 @@ const UserManagement = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
-      setUsers(data);
+      
+      if (data.error) {
+        console.error("Errore API:", data.error);
+        setUsers([]); // Evita il crash su .map
+      } else if (Array.isArray(data)) {
+        setUsers(data);
+      } else {
+        setUsers([]);
+      }
     } catch (error) {
       console.error("Errore recupero utenti:", error);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
