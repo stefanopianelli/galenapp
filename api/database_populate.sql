@@ -6,12 +6,20 @@ DELETE FROM `logs`;
 DELETE FROM `preparation_ingredients`;
 DELETE FROM `preparations`;
 DELETE FROM `inventory`;
+DELETE FROM `users`;
 
 -- Resettare l'auto-incremento
 ALTER TABLE `inventory` AUTO_INCREMENT = 1;
 ALTER TABLE `preparations` AUTO_INCREMENT = 1;
 ALTER TABLE `preparation_ingredients` AUTO_INCREMENT = 1;
 ALTER TABLE `logs` AUTO_INCREMENT = 1;
+ALTER TABLE `users` AUTO_INCREMENT = 1;
+
+-- UTENTI (Password per tutti: 'password')
+INSERT INTO `users` (`id`, `username`, `password_hash`, `role`) VALUES
+(1, 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin'),
+(2, 'farmacista', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'pharmacist'),
+(3, 'operatore', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'operator');
 
 -- INVENTARIO (15 sostanze, nessuna scaduta)
 INSERT INTO `inventory` (`id`, `name`, `ni`, `lot`, `expiry`, `quantity`, `unit`, `costPerGram`, `supplier`, `isExcipient`, `isContainer`, `isDoping`, `isNarcotic`, `securityData`) VALUES
