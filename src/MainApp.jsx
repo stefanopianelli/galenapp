@@ -104,17 +104,23 @@ export default function MainApp() {
             } else if (body && typeof body === 'object') {
                 bodyToSend = JSON.stringify({ ...body, token: token });
             }
+        } else if (!isFormData) {
+            bodyToSend = JSON.stringify(body);
         }
-    } else if (!isFormData) {
-        bodyToSend = JSON.stringify(body);
+    }
+
+    // Costruzione opzioni fetch per evitare body in GET
+    const fetchOptions = {
+        method: method,
+        headers,
+    };
+
+    if (method !== 'GET') {
+        fetchOptions.body = bodyToSend;
     }
 
     try {
-      const response = await fetch(url, {
-          method: method, 
-          headers,
-          body: bodyToSend,
-      });
+      const response = await fetch(url, fetchOptions);
 
       if (response.status === 401) {
           logout();
@@ -140,6 +146,7 @@ export default function MainApp() {
     }
 
     try {
+      // Usa l'helper specificando GET
       const data = await createApiRequest('get_all_data', null, false, 'GET');
       
       if (data.error) {
@@ -512,13 +519,12 @@ export default function MainApp() {
           <SidebarItem icon={<LayoutList size={20} />} label="Registro Preparazioni" active={activeTab === 'preparations_log'} onClick={() => handleTabChange('preparations_log')} />
           <SidebarItem icon={<History size={20} />} label="Registro Movimenti" active={activeTab === 'logs'} onClick={() => handleTabChange('logs')} />
                     <div className="pt-4 mt-4 border-t border-slate-700">
-                      <SidebarItem icon={<Sparkles size={20} className="text-purple-400" />} label="Assistente IA" active={activeTab === 'ai-assistant'} onClick={() => handleTabChange('ai-assistant')} />
-                      <SidebarItem icon={<Settings size={20} />} label="Impostazioni" active={activeTab === 'settings'} onClick={() => handleTabChange('settings')} />
-                      {AUTH_ENABLED && user?.role === 'admin' && (
-                        <SidebarItem icon={<Shield size={20} />} label="Gestione Utenti" active={activeTab === 'user_management'} onClick={() => handleTabChange('user_management')} />
-                      )}
-                    </div>
-        </nav>
+                                  <SidebarItem icon={<Sparkles size={20} className="text-purple-400" />} label="Assistente IA" active={activeTab === 'ai-assistant'} onClick={() => handleTabChange('ai-assistant')} />
+                                  <SidebarItem icon={<Settings size={20} />} label="Impostazioni" active={activeTab === 'settings'} onClick={() => handleTabChange('settings')} />
+                                  {(!AUTH_ENABLED || user?.role === 'admin') && (
+                                    <SidebarItem icon={<Shield size={20} />} label="Gestione Utenti" active={activeTab === 'user_management'} onClick={() => handleTabChange('user_management')} />
+                                  )}
+                                </div>        </nav>
         <div className="p-4 border-t border-slate-800">
             <div className="flex items-center gap-2 mb-2 text-xs">
                 {isOnline ? <span className="flex items-center gap-1 text-green-400"><Wifi size={12} /> Online</span> : <span className="flex items-center gap-1 text-slate-500"><WifiOff size={12} /> Locale</span>}
