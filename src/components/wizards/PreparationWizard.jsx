@@ -298,9 +298,36 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
     return item.quantity - used;
   };
 
-  const availableItems = (inventory || []).filter(i => !i.disposed && new Date(i.expiry) > new Date() && getRemainingQuantity(i) > 0);
+  // FIFO Logic: Sort by expiry date (oldest first)
+  const availableItems = (inventory || [])
+    .filter(i => !i.disposed && new Date(i.expiry) > new Date() && getRemainingQuantity(i) > 0)
+    .sort((a, b) => new Date(a.expiry) - new Date(b.expiry));
+
   const availableSubstances = availableItems.filter(i => !i.isContainer);
   const availableContainers = availableItems.filter(i => i.isContainer);
+
+  // Map to find the oldest batch for each substance name and count occurrences
+  const oldestBatches = {};
+  const batchCounts = {};
+  
+  availableSubstances.forEach(item => {
+      // Count batches
+      batchCounts[item.name] = (batchCounts[item.name] || 0) + 1;
+      
+      // Track oldest
+      if (!oldestBatches[item.name] || new Date(item.expiry) < new Date(oldestBatches[item.name].expiry)) {
+          oldestBatches[item.name] = item;
+      }
+  });
+
+  const isSelectedBatchOptimal = () => {
+      if (!currentIngredientId) return true;
+      const selectedItem = availableSubstances.find(i => i.id === parseInt(currentIngredientId));
+      if (!selectedItem) return true;
+      // Is optimal if it's the oldest OR if it's the only one
+      const bestItem = oldestBatches[selectedItem.name];
+      return (batchCounts[selectedItem.name] <= 1) || (bestItem && bestItem.id === selectedItem.id);
+  };
 
   const addIngredient = () => {
     if (!currentIngredientId || !amountNeeded) return;
@@ -570,10 +597,27 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                 <div className="space-y-1 mb-4">
                   <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1"><FlaskConical size={14}/> Aggiungi Sostanza</label>
                   <div className="flex gap-3 items-end bg-slate-50 p-4 rounded-md border border-slate-200">
-                      <div className="flex-1"><select className="w-full border p-2 rounded text-sm outline-none" value={currentIngredientId} onChange={e => setCurrentIngredientId(e.target.value)}><option value="">-- Seleziona Sostanza --</option>{availableSubstances.map(item => <option key={item.id} value={item.id}>{item.name} (N.I.: {item.ni} | Disp: {getRemainingQuantity(item).toFixed(2)} {item.unit})</option>)}</select></div>
+                      <div className="flex-1">
+                        <select className="w-full border p-2 rounded text-sm outline-none" value={currentIngredientId} onChange={e => setCurrentIngredientId(e.target.value)}>
+                          <option value="">-- Seleziona Sostanza --</option>
+                          {availableSubstances.map(item => {
+                             const isOldest = batchCounts[item.name] > 1 && oldestBatches[item.name] && oldestBatches[item.name].id === item.id;
+                             return (
+                               <option key={item.id} value={item.id} className={isOldest ? "font-bold text-green-700" : ""}>
+                                 {isOldest ? "[PRIORITARIO] " : ""}{item.name} (Scad: {item.expiry} | N.I.: {item.ni} | Disp: {getRemainingQuantity(item).toFixed(2)} {item.unit})
+                               </option>
+                             );
+                          })}
+                        </select>
+                      </div>
                       <div className="w-32"><input type="number" step="0.01" placeholder="Q.tà" className="w-full border p-2 rounded text-sm outline-none" value={amountNeeded} onChange={e => setAmountNeeded(e.target.value)} /></div>
                       <button onClick={addIngredient} className="bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700 mb-[1px]"><Plus size={18} /></button>
                   </div>
+                  {!isSelectedBatchOptimal() && (
+                      <div className="text-xs text-amber-600 font-bold px-1 animate-pulse">
+                          ⚠ Attenzione: Esiste un lotto con scadenza precedente per questa sostanza. Considera di usare quello prioritario.
+                      </div>
+                  )}
                 </div>
                 <div className="space-y-1 mb-6">
                   <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1"><Box size={14}/> Aggiungi Contenitore</label>

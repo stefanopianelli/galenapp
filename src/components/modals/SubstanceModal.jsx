@@ -17,9 +17,17 @@ const SubstanceModal = ({
   handleRemoveTechnicalSheet,
   handleDownloadPdf,
   preparations,
+  inventory,
   onShowPreparation,
 }) => {
   const [activeModalTab, setActiveModalTab] = useState('general');
+
+  // Estrai nomi univoci per autocompletamento
+  const uniqueNames = React.useMemo(() => {
+    if (!inventory) return [];
+    const names = inventory.map(i => i.name);
+    return [...new Set(names)].sort();
+  }, [inventory]);
 
   useEffect(() => {
     if (isOpen) {
@@ -97,7 +105,17 @@ const SubstanceModal = ({
                  <div className="col-span-2">
                   <label className="block text-sm font-medium text-slate-700 mb-1">{isContainer ? "Nome Contenitore" : "Nome Sostanza"}</label>
                   <input required className="w-full border p-2 rounded focus:ring-2 ring-teal-500 outline-none disabled:bg-slate-50 disabled:text-slate-500"
-                    value={substanceData.name} onChange={e => setSubstanceData({ ...substanceData, name: e.target.value })} placeholder={isContainer ? "Es. Flacone 100ml" : "Es. Minoxidil Base"} disabled={isReadOnly} />
+                    value={substanceData.name} 
+                    onChange={e => setSubstanceData({ ...substanceData, name: e.target.value })} 
+                    placeholder={isContainer ? "Es. Flacone 100ml" : "Es. Minoxidil Base"} 
+                    disabled={isReadOnly} 
+                    list="substance-names-list" 
+                  />
+                  <datalist id="substance-names-list">
+                    {uniqueNames.map((name, index) => (
+                      <option key={index} value={name} />
+                    ))}
+                  </datalist>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Numero Interno (N.I.)</label>
