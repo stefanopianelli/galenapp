@@ -93,6 +93,10 @@ function get_jwt_from_header() {
 function checkPermission($action, $role) {
     if ($action === 'login') return true;
     
+    // Azioni riservate esclusivamente agli ADMIN
+    $adminOnlyActions = ['get_users', 'create_user', 'update_user', 'delete_user', 'clear_logs'];
+    if (in_array($action, $adminOnlyActions) && $role !== 'admin') return false;
+
     // Ruoli definiti
     $admins = ['admin', 'pharmacist']; // Possono modificare
     $readers = ['operator']; // Possono solo leggere
@@ -134,7 +138,7 @@ try {
             else sendError(405, 'Metodo non consentito.');
             break;
         case 'get_all_data':
-            if ($method === 'GET') getAllData($pdo);
+            if ($method === 'GET' || $method === 'POST') getAllData($pdo);
             else sendError(405, 'Metodo non consentito.');
             break;
         case 'add_or_update_inventory':
@@ -155,6 +159,22 @@ try {
             break;
         case 'clear_logs':
             if ($method === 'POST') clearLogs($pdo);
+            else sendError(405, 'Metodo non consentito.');
+            break;
+        case 'get_users':
+            if ($method === 'GET' || $method === 'POST') getUsers($pdo);
+            else sendError(405, 'Metodo non consentito.');
+            break;
+        case 'create_user':
+            if ($method === 'POST') createUser($pdo);
+            else sendError(405, 'Metodo non consentito.');
+            break;
+        case 'update_user':
+            if ($method === 'POST') updateUser($pdo);
+            else sendError(405, 'Metodo non consentito.');
+            break;
+        case 'delete_user':
+            if ($method === 'POST') deleteUser($pdo);
             else sendError(405, 'Metodo non consentito.');
             break;
         default:
@@ -507,6 +527,76 @@ function clearLogs($pdo) {
 function sendError($statusCode, $message) {
     http_response_code($statusCode);
     echo json_encode(['error' => $message]);
+}
+
+// --- GESTIONE UTENTI (ADMIN ONLY) ---
+
+function getUsers($pdo) {
+    $stmt = $pdo->query("SELECT id, username, role, createdAt FROM users ORDER BY username ASC");
+    echo json_encode($stmt->fetchAll());
+}
+
+function createUser($pdo) {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $username = $data['username'] ?? '';
+    $password = $data['password'] ?? '';
+    $role = $data['role'] ?? 'operator';
+
+    if (empty($username) || empty($password)) {
+        sendError(400, 'Username e password obbligatori.');
+        return;
+    }
+
+    $password_hash = password_hash($password, PASSWORD_DEFAULT);
+    
+    try {
+        $stmt = $pdo->prepare("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)");
+        $stmt->execute([$username, $password_hash, $role]);
+        echo json_encode(['success' => true, 'id' => $pdo->lastInsertId()]);
+    } catch (PDOException $e) {
+        sendError(400, 'Errore: Username già esistente.');
+    }
+}
+
+function updateUser($pdo) {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $id = $data['id'] ?? null;
+    $username = $data['username'] ?? '';
+    $role = $data['role'] ?? '';
+    $password = $data['password'] ?? '';
+
+    if (!$id || empty($username) || empty($role)) {
+        sendError(400, 'Dati mancanti.');
+        return;
+    }
+
+    try {
+        if (!empty($password)) {
+            $password_hash = password_hash($password, PASSWORD_DEFAULT);
+            $stmt = $pdo->prepare("UPDATE users SET username = ?, role = ?, password_hash = ? WHERE id = ?");
+            $stmt->execute([$username, $role, $password_hash, $id]);
+        } else {
+            $stmt = $pdo->prepare("UPDATE users SET username = ?, role = ? WHERE id = ?");
+            $stmt->execute([$username, $role, $id]);
+        }
+        echo json_encode(['success' => true]);
+    } catch (PDOException $e) {
+        sendError(400, 'Errore durante l\'aggiornamento.');
+    }
+}
+
+function deleteUser($pdo) {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $id = $data['id'] ?? null;
+
+    if (!$id) {
+        sendError(400, 'ID mancante.');
+        return;
+    }
+
+    $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
+    $stmt->execute([$id]);
+    echo json_encode(['success' => true]);
 }
 
 function login($pdo) {

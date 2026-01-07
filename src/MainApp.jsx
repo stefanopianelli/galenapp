@@ -12,6 +12,7 @@ import {
   WifiOff,
   Loader2,
   Settings,
+  Shield,
 } from 'lucide-react';
 
 const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true';
@@ -30,6 +31,7 @@ import PreparationWizard from './components/wizards/PreparationWizard';
 import SubstanceModal from './components/modals/SubstanceModal';
 import PrepTypeSelectionModal from './components/modals/PrepTypeSelectionModal';
 import SettingsComponent from './components/sections/Settings';
+import UserManagement from './components/sections/UserManagement';
 
 const API_URL = './api/api.php';
 
@@ -77,7 +79,7 @@ export default function MainApp() {
   const [inventoryFilterSubstance, setInventoryFilterSubstance] = useState(null);
 
   // --- HELPER CHIAMATE API ---
-  const createApiRequest = useCallback(async (action, body, isFormData = false) => {
+  const createApiRequest = useCallback(async (action, body = null, isFormData = false, method = 'POST') => {
     const headers = {};
     if (!isFormData) {
         headers['Content-Type'] = 'application/json';
@@ -90,16 +92,18 @@ export default function MainApp() {
         url += `&token=${token}`;
     }
 
-    // Gestione Body: Inietta il token se JSON
+    // Gestione Body: Inietta il token se JSON e metodo non è GET
     let bodyToSend = body;
-    if (token) {
-        if (isFormData) {
-            if (body instanceof FormData && !body.has('token')) {
-                body.append('token', token);
+    if (method !== 'GET') {
+        if (token) {
+            if (isFormData) {
+                if (body instanceof FormData && !body.has('token')) {
+                    body.append('token', token);
+                }
+                bodyToSend = body;
+            } else if (body && typeof body === 'object') {
+                bodyToSend = JSON.stringify({ ...body, token: token });
             }
-            bodyToSend = body;
-        } else if (body && typeof body === 'object') {
-            bodyToSend = JSON.stringify({ ...body, token: token });
         }
     } else if (!isFormData) {
         bodyToSend = JSON.stringify(body);
@@ -107,7 +111,7 @@ export default function MainApp() {
 
     try {
       const response = await fetch(url, {
-          method: 'POST', 
+          method: method, 
           headers,
           body: bodyToSend,
       });
@@ -136,8 +140,7 @@ export default function MainApp() {
     }
 
     try {
-      // Use helper for consistent token handling
-      const data = await createApiRequest('get_all_data', {}); 
+      const data = await createApiRequest('get_all_data', null, false, 'GET');
       
       if (data.error) {
         console.error("Errore API:", data.error);
@@ -489,6 +492,8 @@ export default function MainApp() {
         return <Logs logs={logs} preparations={preparations} handleShowPreparation={handleShowPreparation} handleClearLogs={handleClearLogs} />;
       case 'settings':
         return <SettingsComponent settings={pharmacySettings} setSettings={setPharmacySettings} />;
+      case 'user_management':
+        return <UserManagement />;
       case 'ai-assistant':
         return <AIAssistant pharmacySettings={pharmacySettings} setPharmacySettings={setPharmacySettings} handleTabChange={handleTabChange} />;
       default:
@@ -506,7 +511,13 @@ export default function MainApp() {
           <SidebarItem icon={<Pill size={20} />} label={editingPrep ? "Modifica Prep." : "Nuova Prep."} active={activeTab === 'preparation'} onClick={handleNewPreparation} />
           <SidebarItem icon={<LayoutList size={20} />} label="Registro Preparazioni" active={activeTab === 'preparations_log'} onClick={() => handleTabChange('preparations_log')} />
           <SidebarItem icon={<History size={20} />} label="Registro Movimenti" active={activeTab === 'logs'} onClick={() => handleTabChange('logs')} />
-          <div className="pt-4 mt-4 border-t border-slate-700"><SidebarItem icon={<Sparkles size={20} className="text-purple-400" />} label="Assistente IA" active={activeTab === 'ai-assistant'} onClick={() => handleTabChange('ai-assistant')} /><SidebarItem icon={<Settings size={20} />} label="Impostazioni" active={activeTab === 'settings'} onClick={() => handleTabChange('settings')} /></div>
+                    <div className="pt-4 mt-4 border-t border-slate-700">
+                      <SidebarItem icon={<Sparkles size={20} className="text-purple-400" />} label="Assistente IA" active={activeTab === 'ai-assistant'} onClick={() => handleTabChange('ai-assistant')} />
+                      <SidebarItem icon={<Settings size={20} />} label="Impostazioni" active={activeTab === 'settings'} onClick={() => handleTabChange('settings')} />
+                      {AUTH_ENABLED && user?.role === 'admin' && (
+                        <SidebarItem icon={<Shield size={20} />} label="Gestione Utenti" active={activeTab === 'user_management'} onClick={() => handleTabChange('user_management')} />
+                      )}
+                    </div>
         </nav>
         <div className="p-4 border-t border-slate-800">
             <div className="flex items-center gap-2 mb-2 text-xs">
@@ -518,7 +529,7 @@ export default function MainApp() {
         </div>
       </aside>
       <main className="flex-1 overflow-auto">
-        <header className="bg-white border-b border-slate-200 p-6 flex justify-between items-center sticky top-0 z-10"><h1 className="text-2xl font-bold text-slate-800">{activeTab === 'dashboard' && 'Panoramica Laboratorio'}{activeTab === 'inventory' && 'Magazzino & Sostanze'}{activeTab === 'preparation' && (editingPrep ? `Modifica: ${editingPrep.prepNumber}` : 'Foglio di Lavorazione')}{activeTab === 'preparations_log' && 'Registro Generale Preparazioni'}{activeTab === 'logs' && 'Registro di Carico/Scarico'}{activeTab === 'ai-assistant' && 'Assistente Galenico IA'}{activeTab === 'settings' && 'Impostazioni Farmacia'}</h1><div className="flex items-center gap-4"><div className="bg-slate-100 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 border border-slate-200">{new Date().toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div></div></header>
+        <header className="bg-white border-b border-slate-200 p-6 flex justify-between items-center sticky top-0 z-10"><h1 className="text-2xl font-bold text-slate-800">{activeTab === 'dashboard' && 'Panoramica Laboratorio'}{activeTab === 'inventory' && 'Magazzino & Sostanze'}{activeTab === 'preparation' && (editingPrep ? `Modifica: ${editingPrep.prepNumber}` : 'Foglio di Lavorazione')}{activeTab === 'preparations_log' && 'Registro Generale Preparazioni'}{activeTab === 'logs' && 'Registro di Carico/Scarico'}{activeTab === 'ai-assistant' && 'Assistente Galenico IA'}{activeTab === 'settings' && 'Impostazioni Farmacia'}{activeTab === 'user_management' && 'Gestione Utenti Laboratorio'}</h1><div className="flex items-center gap-4"><div className="bg-slate-100 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 border border-slate-200">{new Date().toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div></div></header>
         <div className="p-6 max-w-7xl mx-auto">{renderContent()}</div>
       </main>
       <SubstanceModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} isReadOnly={isReadOnlyMode} editingSubstance={editingSubstance} substanceData={newSubstance} setSubstanceData={setNewSubstance} onSubmit={handleAddOrUpdateSubstance} getNextNi={getNextNi} preparations={preparations} onShowPreparation={handleShowPreparation} handleSdsUpload={handleSdsUpload} handleRemoveSds={handleRemoveSds} handleTechnicalSheetUpload={handleTechnicalSheetUpload} handleRemoveTechnicalSheet={handleRemoveTechnicalSheet} handleDownloadPdf={handleDownloadPdf} />
