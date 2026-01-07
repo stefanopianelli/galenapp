@@ -2,13 +2,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { UserPlus, Edit2, Trash2, Shield, User, Key, X, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useApi } from '../../hooks/useApi';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsAddModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
-  const { token, user: currentUser } = useAuth();
+  const { user: currentUser } = useAuth();
+  const { createApiRequest } = useApi();
 
   const [formData, setFormData] = useState({
     username: '',
@@ -19,14 +21,12 @@ const UserManagement = () => {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`./api/api.php?action=get_users&token=${token}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
+      const data = await createApiRequest('get_users', null, false, 'GET');
       
       if (data.error) {
         console.error("Errore API:", data.error);
-        setUsers([]); // Evita il crash su .map
+        alert(`Errore caricamento utenti: ${data.error}`);
+        setUsers([]); 
       } else if (Array.isArray(data)) {
         setUsers(data);
       } else {
@@ -34,11 +34,11 @@ const UserManagement = () => {
       }
     } catch (error) {
       console.error("Errore recupero utenti:", error);
-      setUsers([]);
+      // Non mostrare alert qui se è solo un errore di caricamento iniziale
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [createApiRequest]);
 
   useEffect(() => {
     fetchUsers();
@@ -62,12 +62,7 @@ const UserManagement = () => {
     const payload = editingUser ? { ...formData, id: editingUser.id } : formData;
 
     try {
-      const response = await fetch(`./api/api.php?action=${action}&token=${token}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(payload)
-      });
-      const result = await response.json();
+      const result = await createApiRequest(action, payload);
       if (result.success) {
         setIsAddModalOpen(false);
         fetchUsers();
@@ -76,6 +71,7 @@ const UserManagement = () => {
       }
     } catch (error) {
       console.error("Errore salvataggio utente:", error);
+      alert("Errore di comunicazione col server.");
     }
   };
 
@@ -87,15 +83,15 @@ const UserManagement = () => {
     if (!window.confirm("Sei sicuro di voler eliminare questo utente?")) return;
 
     try {
-      const response = await fetch(`./api/api.php?action=delete_user&token=${token}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ id })
-      });
-      const result = await response.json();
-      if (result.success) fetchUsers();
+      const result = await createApiRequest('delete_user', { id });
+      if (result.success) {
+        fetchUsers();
+      } else {
+        alert(result.error || "Impossibile eliminare l'utente.");
+      }
     } catch (error) {
       console.error("Errore eliminazione utente:", error);
+      alert("Errore durante l'eliminazione.");
     }
   };
 

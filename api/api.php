@@ -174,7 +174,7 @@ try {
             else sendError(405, 'Metodo non consentito.');
             break;
         case 'delete_user':
-            if ($method === 'POST') deleteUser($pdo);
+            if ($method === 'POST') deleteUser($pdo, $userData['user_id']);
             else sendError(405, 'Metodo non consentito.');
             break;
         default:
@@ -585,12 +585,17 @@ function updateUser($pdo) {
     }
 }
 
-function deleteUser($pdo) {
+function deleteUser($pdo, $requesterId) {
     $data = json_decode(file_get_contents('php://input'), true);
     $id = $data['id'] ?? null;
 
     if (!$id) {
         sendError(400, 'ID mancante.');
+        return;
+    }
+
+    if ($id == $requesterId) {
+        sendError(400, 'Non puoi eliminare il tuo stesso account.');
         return;
     }
 

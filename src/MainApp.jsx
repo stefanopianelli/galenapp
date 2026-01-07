@@ -32,8 +32,7 @@ import SubstanceModal from './components/modals/SubstanceModal';
 import PrepTypeSelectionModal from './components/modals/PrepTypeSelectionModal';
 import SettingsComponent from './components/sections/Settings';
 import UserManagement from './components/sections/UserManagement';
-
-const API_URL = './api/api.php';
+import { useApi } from './hooks/useApi';
 
 export default function MainApp() {
   const { token, logout, AUTH_ENABLED, user } = useAuth();
@@ -84,60 +83,7 @@ export default function MainApp() {
   const [inventoryFilterSubstance, setInventoryFilterSubstance] = useState(null);
 
   // --- HELPER CHIAMATE API ---
-  const createApiRequest = useCallback(async (action, body = null, isFormData = false, method = 'POST') => {
-    const headers = {};
-    if (!isFormData) {
-        headers['Content-Type'] = 'application/json';
-    }
-    
-    // Invia token sia nell'header che nell'URL per massima compatibilità
-    let url = `${API_URL}?action=${action}`;
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-        url += `&token=${token}`;
-    }
-
-    // Gestione Body: Inietta il token se JSON e metodo non è GET
-    let bodyToSend = body;
-    if (method !== 'GET') {
-        if (token) {
-            if (isFormData) {
-                if (body instanceof FormData && !body.has('token')) {
-                    body.append('token', token);
-                }
-                bodyToSend = body;
-            } else if (body && typeof body === 'object') {
-                bodyToSend = JSON.stringify({ ...body, token: token });
-            }
-        } else if (!isFormData) {
-            bodyToSend = JSON.stringify(body);
-        }
-    }
-
-    // Costruzione opzioni fetch per evitare body in GET
-    const fetchOptions = {
-        method: method,
-        headers,
-    };
-
-    if (method !== 'GET') {
-        fetchOptions.body = bodyToSend;
-    }
-
-    try {
-      const response = await fetch(url, fetchOptions);
-
-      if (response.status === 401) {
-          logout();
-          throw new Error("Unauthorized");
-      }
-      return await response.json();
-
-    } catch (error) {
-      console.error(`API request failed: ${action}`, error);
-      throw error;
-    }
-  }, [token, logout]);
+  const { createApiRequest } = useApi();
 
   const loadData = useCallback(async () => {
     setLoadingData(true);
