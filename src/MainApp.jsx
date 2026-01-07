@@ -13,6 +13,7 @@ import {
   Loader2,
   Settings,
   Shield,
+  QrCode,
 } from 'lucide-react';
 
 const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true';
@@ -32,6 +33,7 @@ import SubstanceModal from './components/modals/SubstanceModal';
 import PrepTypeSelectionModal from './components/modals/PrepTypeSelectionModal';
 import SettingsComponent from './components/sections/Settings';
 import UserManagement from './components/sections/UserManagement';
+import QRScannerModal from './components/modals/QRScannerModal';
 import { useApi } from './hooks/useApi';
 
 export default function MainApp() {
@@ -65,6 +67,12 @@ export default function MainApp() {
   const [editingSubstance, setEditingSubstance] = useState(null);
   const [isReadOnlyMode, setIsReadOnlyMode] = useState(false);
   const [isPrepTypeModalOpen, setIsPrepTypeModalOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  const handleScanSuccess = (prepId) => {
+      setPreparationLogFilter(parseInt(prepId));
+      handleTabChange('preparations_log');
+  };
 
   const [newSubstance, setNewSubstance] = useState({
     name: '', ni: '', lot: '', expiry: '', quantity: '', unit: 'g', costPerGram: '', totalCost: '', supplier: '', purity: '',
@@ -495,11 +503,27 @@ export default function MainApp() {
         </div>
       </aside>
       <main className="flex-1 overflow-auto">
-        <header className="bg-white border-b border-slate-200 p-6 flex justify-between items-center sticky top-0 z-10"><h1 className="text-2xl font-bold text-slate-800">{activeTab === 'dashboard' && 'Panoramica Laboratorio'}{activeTab === 'inventory' && 'Magazzino & Sostanze'}{activeTab === 'preparation' && (editingPrep ? `Modifica: ${editingPrep.prepNumber}` : 'Foglio di Lavorazione')}{activeTab === 'preparations_log' && 'Registro Generale Preparazioni'}{activeTab === 'logs' && 'Registro di Carico/Scarico'}{activeTab === 'ai-assistant' && 'Assistente Galenico IA'}{activeTab === 'settings' && 'Impostazioni Farmacia'}{activeTab === 'user_management' && 'Gestione Utenti Laboratorio'}</h1><div className="flex items-center gap-4"><div className="bg-slate-100 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 border border-slate-200">{new Date().toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div></div></header>
+        <header className="bg-white border-b border-slate-200 p-6 flex justify-between items-center sticky top-0 z-10">
+          <h1 className="text-2xl font-bold text-slate-800">
+            {activeTab === 'dashboard' && 'Panoramica Laboratorio'}
+            {activeTab === 'inventory' && 'Magazzino & Sostanze'}
+            {activeTab === 'preparation' && (editingPrep ? `Modifica: ${editingPrep.prepNumber}` : 'Foglio di Lavorazione')}
+            {activeTab === 'preparations_log' && 'Registro Generale Preparazioni'}
+            {activeTab === 'logs' && 'Registro di Carico/Scarico'}
+            {activeTab === 'ai-assistant' && 'Assistente Galenico IA'}
+            {activeTab === 'settings' && 'Impostazioni Farmacia'}
+            {activeTab === 'user_management' && 'Gestione Utenti Laboratorio'}
+          </h1>
+          <div className="flex items-center gap-4">
+            <button onClick={() => setIsScannerOpen(true)} className="bg-slate-100 p-2 rounded-md hover:bg-slate-200 text-slate-600 transition-colors" title="Scansiona QR"><QrCode size={20} /></button>
+            <div className="bg-slate-100 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 border border-slate-200">{new Date().toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+          </div>
+        </header>
         <div className="p-6 max-w-7xl mx-auto">{renderContent()}</div>
       </main>
       <SubstanceModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} isReadOnly={isReadOnlyMode} editingSubstance={editingSubstance} substanceData={newSubstance} setSubstanceData={setNewSubstance} onSubmit={handleAddOrUpdateSubstance} getNextNi={getNextNi} preparations={preparations} inventory={inventory} onShowPreparation={handleShowPreparation} handleSdsUpload={handleSdsUpload} handleRemoveSds={handleRemoveSds} handleTechnicalSheetUpload={handleTechnicalSheetUpload} handleRemoveTechnicalSheet={handleRemoveTechnicalSheet} handleDownloadPdf={handleDownloadPdf} />
       <PrepTypeSelectionModal isOpen={isPrepTypeModalOpen} onClose={() => setIsPrepTypeModalOpen(false)} onSelectType={startNewPreparation} />
+      <QRScannerModal isOpen={isScannerOpen} onClose={() => setIsScannerOpen(false)} onScanSuccess={handleScanSuccess} />
     </div>
   );
 }

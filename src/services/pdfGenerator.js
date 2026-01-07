@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import QRCode from 'qrcode';
 import { VAT_RATE } from '../constants/tariffs';
 import { TechOpsList } from '../components/modals/TechOpsModal';
 
@@ -21,7 +22,7 @@ const COLORS = {
   border: [209, 213, 219] // Gray-300
 };
 
-export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
+export const generateWorkSheetPDF = async (preparationData, pharmacySettings) => {
   const doc = new jsPDF();
   
   const { details, ingredients, pricing } = preparationData;
@@ -32,6 +33,15 @@ export const generateWorkSheetPDF = (preparationData, pharmacySettings) => {
   const pharmacyName = settings.name || "Farmacia (Nome non impostato)";
   const pharmacyAddress = `${settings.address || ''}, ${settings.zip || ''} ${settings.city || ''} (${settings.province || ''})`;
   const pharmacyContacts = settings.phone ? `Tel: ${settings.phone}` : '';
+
+  // Generazione QR Code
+  try {
+      const qrData = JSON.stringify({ type: 'prep', id: details.id });
+      const qrDataUrl = await QRCode.toDataURL(qrData, { margin: 1 });
+      doc.addImage(qrDataUrl, 'PNG', 175, 8, 20, 20); // Ridotto e spostato leggermente
+  } catch (err) {
+      console.error("Errore generazione QR:", err);
+  }
 
   // Helper per disegnare intestazioni di sezione
   const drawSectionHeader = (text, yPos) => {
