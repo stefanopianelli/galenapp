@@ -136,19 +136,9 @@ export default function MainApp() {
     }
 
     try {
-      const headers = { 'Content-Type': 'application/json' };
-      let url = `${API_URL}?action=get_all_data`;
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-        url += `&token=${token}`;
-      }
+      // Use helper for consistent token handling
+      const data = await createApiRequest('get_all_data', {}); 
       
-      const response = await fetch(url, { headers });
-      
-      if (response.status === 401) { logout(); return; }
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      
-      const data = await response.json();
       if (data.error) {
         console.error("Errore API:", data.error);
         setIsOnline(false);
@@ -164,7 +154,7 @@ export default function MainApp() {
     } finally {
       setLoadingData(false);
     }
-  }, [token, logout, AUTH_ENABLED]);
+  }, [createApiRequest, AUTH_ENABLED]);
 
   const saveInventoryData = useCallback(async (itemToSave) => {
     if (USE_MOCK_DATA || !AUTH_ENABLED) {

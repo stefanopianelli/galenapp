@@ -360,10 +360,6 @@ function savePreparation($pdo) {
             $prepParams[':' . $field] = is_array($value) ? json_encode($value) : $value;
         }
         $prepParams[':status'] = $isDraft ? 'Bozza' : 'Completata';
-        if (isset($prepDetails['warnings'])) {
-            $prepFields[] = 'warnings';
-            $prepParams[':warnings'] = $prepDetails['warnings'];
-        }
 
         $wasDraft = true;
         $oldIngredients = [];

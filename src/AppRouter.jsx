@@ -24,7 +24,11 @@ const AppRouter = () => {
   const { AUTH_ENABLED } = useAuth();
 
   if (!AUTH_ENABLED) {
-    return <MainApp />;
+    return (
+      <BrowserRouter>
+        <MainApp />
+      </BrowserRouter>
+    );
   }
 
   return (
