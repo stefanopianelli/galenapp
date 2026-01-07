@@ -87,7 +87,7 @@ const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparati
         </div>
       )}
       <Card>
-        <div className="overflow-auto" style={{ maxHeight: '80vh' }}>
+        <div className="overflow-auto h-[calc(100vh-240px)]">
           <table className="w-full text-left text-sm">
             <thead className="sticky top-0 z-10 bg-slate-50 text-slate-600 border-b border-slate-200">
               <tr>
