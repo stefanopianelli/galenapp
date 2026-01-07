@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Euro, Plus, Trash2, Save, FileDown, Pencil, Check, Info, Box, FlaskConical, ClipboardCheck, ListOrdered, FileText } from 'lucide-react';
+import { Euro, Plus, Trash2, Save, FileDown, Pencil, Check, Info, Box, FlaskConical, ClipboardCheck, ListOrdered, FileText, Printer } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import { NATIONAL_TARIFF_FEES, VAT_RATE } from '../../constants/tariffs';
 import { generateWorkSheetPDF } from '../../services/pdfGenerator';
+import { generateLabelPDF } from '../../services/labelGenerator';
 import TechOpsModal, { TechOpsList } from '../modals/TechOpsModal';
 
 function PreparationWizard({ inventory, preparations, onComplete, initialData, pharmacySettings, initialStep, canEdit }) {
@@ -454,6 +455,11 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   extraOpsFee = extraOpsCount * 2.30;
 
   const handleDownloadWorksheet = () => generateWorkSheetPDF({ details: { ...details, worksheetItems }, ingredients: selectedIngredients, pricing }, pharmacySettings);
+  
+  const handlePrintLabel = () => {
+      // Passiamo i dettagli correnti. Se non è salvata, l'ID potrebbe mancare per il QR, ma generiamo comunque.
+      generateLabelPDF({ ...details, id: initialData?.id }, pharmacySettings);
+  };
 
   const handleFinalSave = () => {
     if (details.name && selectedIngredients.length > 0) {
@@ -789,6 +795,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                   <div className="pt-4 flex justify-between border-t border-slate-100">
                     <button onClick={() => setStep(isOfficinale ? 5 : 4)} className="text-slate-500 hover:underline">Indietro</button>
                     <div className="flex items-center gap-3">
+                      <button onClick={handlePrintLabel} className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2"><Printer size={18}/> Stampa Etichetta</button>
                       <button onClick={handleDownloadWorksheet} className="bg-slate-600 text-white px-6 py-2 rounded-md hover:bg-slate-700 flex items-center gap-2"><FileDown size={18}/> Scarica Foglio</button>
                       {details.status !== 'Completata' && canEdit && (<button onClick={handleDraftSave} className="bg-slate-200 text-slate-700 px-6 py-2 rounded-md hover:bg-slate-300 flex items-center gap-2 shadow-sm transition-colors"><Save size={18}/> Salva Bozza</button>)}
                       {canEdit && <button onClick={handleFinalSave} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 flex items-center gap-2"><Save size={18}/> Salva e Completa</button>}

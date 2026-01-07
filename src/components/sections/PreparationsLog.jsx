@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Hash, Calendar, Pencil, Trash2, Filter, X, Search, ArrowUp, ArrowDown, Stethoscope, FlaskConical, Eye } from 'lucide-react';
+import { Hash, Calendar, Pencil, Trash2, Filter, X, Search, ArrowUp, ArrowDown, Stethoscope, FlaskConical, Eye, Printer } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
+import { generateLabelPDF } from '../../services/labelGenerator';
 
-const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparation, handleDuplicatePreparation, activeFilter, clearFilter, searchTerm, setSearchTerm, sortConfig, requestSort, prepTypeFilter, setPrepTypeFilter, canEdit }) => {
+const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparation, handleDuplicatePreparation, activeFilter, clearFilter, searchTerm, setSearchTerm, sortConfig, requestSort, prepTypeFilter, setPrepTypeFilter, canEdit, pharmacySettings }) => {
   const filteredPrepName = activeFilter && preparations.length === 1 ? preparations[0].name : null;
   const [openMenuId, setOpenMenuId] = useState(null);
   const menuRef = useRef(null);
@@ -174,9 +175,10 @@ const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparati
                               <button onClick={() => { handleJumpToStep(prep, prep.prepType === 'officinale' ? 5 : 4); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">{canEdit ? 'Mod. Foglio Lav.' : 'Vis. Foglio Lav.'}</button>
                             </>
                           )}
+                          <div className="border-t my-1"></div>
+                          <button onClick={() => { generateLabelPDF(prep, pharmacySettings); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"><Printer size={14}/> Stampa Etichetta</button>
                           {canEdit && (
                             <>
-                              <div className="border-t my-1"></div>
                               <button onClick={() => { handleDuplicatePreparation(prep); setOpenMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Duplica Preparazione</button>
                             </>
                           )}
