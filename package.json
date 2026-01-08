@@ -7,12 +7,12 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "node deploy.js"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
     "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "html5-qrcode": "^2.3.8",
     "jspdf": "^2.5.1",
@@ -30,6 +30,8 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "autoprefixer": "^10.4.23",
+    "basic-ftp": "^5.1.0",
+    "dotenv": "^17.2.3",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
