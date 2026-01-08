@@ -22,11 +22,15 @@ const SubstanceModal = ({
 }) => {
   const [activeModalTab, setActiveModalTab] = useState('general');
 
-  // Estrai nomi univoci per autocompletamento
-  const uniqueNames = React.useMemo(() => {
-    if (!inventory) return [];
+  // Estrai nomi e fornitori univoci per autocompletamento
+  const { uniqueNames, uniqueSuppliers } = React.useMemo(() => {
+    if (!inventory) return { uniqueNames: [], uniqueSuppliers: [] };
     const names = inventory.map(i => i.name);
-    return [...new Set(names)].sort();
+    const suppliers = inventory.map(i => i.supplier).filter(s => s && s.trim() !== '');
+    return {
+      uniqueNames: [...new Set(names)].sort(),
+      uniqueSuppliers: [...new Set(suppliers)].sort()
+    };
   }, [inventory]);
 
   useEffect(() => {
@@ -141,7 +145,17 @@ const SubstanceModal = ({
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Fornitore</label>
                   <input required className="w-full border p-2 rounded outline-none disabled:bg-slate-50 disabled:text-slate-500"
-                    value={substanceData.supplier} onChange={e => setSubstanceData({ ...substanceData, supplier: e.target.value })} disabled={isReadOnly} />
+                    value={substanceData.supplier} 
+                    onChange={e => setSubstanceData({ ...substanceData, supplier: e.target.value })} 
+                    disabled={isReadOnly} 
+                    placeholder="Es. Farmalabor"
+                    list="supplier-names-list"
+                  />
+                  <datalist id="supplier-names-list">
+                    {uniqueSuppliers.map((supplier, index) => (
+                      <option key={index} value={supplier} />
+                    ))}
+                  </datalist>
                 </div>
                 <div className="flex gap-2">
                   <div className="flex-1">
