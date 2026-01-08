@@ -116,7 +116,7 @@ function checkPermission($action, $role) {
     $readers = ['operator']; // Possono solo leggere
     
     // Azioni di sola lettura
-    $readActions = ['get_all_data', 'ask_ai'];
+    $readActions = ['get_all_data', 'ask_ai', 'get_settings'];
     
     if (in_array($role, $admins)) return true; // Admin/Farmacisti fanno tutto
     if (in_array($role, $readers) && in_array($action, $readActions)) return true; // Operatori solo lettura
@@ -153,6 +153,14 @@ try {
             break;
         case 'get_all_data':
             if ($method === 'GET' || $method === 'POST') getAllData($pdo);
+            else sendError(405, 'Metodo non consentito.');
+            break;
+        case 'get_settings':
+            if ($method === 'GET') getSettings($pdo);
+            else sendError(405, 'Metodo non consentito.');
+            break;
+        case 'save_settings':
+            if ($method === 'POST') saveSettings($pdo);
             else sendError(405, 'Metodo non consentito.');
             break;
         case 'add_or_update_inventory':
@@ -692,6 +700,46 @@ function askAI($pdo) {
     $aiText = $responseData['candidates'][0]['content']['parts'][0]['text'] ?? 'Nessuna risposta.';
 
     echo json_encode(['success' => true, 'response' => $aiText]);
+}
+
+function getSettings($pdo) {
+    try {
+        $stmt = $pdo->query("SELECT settingKey, settingValue FROM settings");
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $settings = [];
+        foreach ($rows as $row) {
+            $settings[$row['settingKey']] = $row['settingValue'];
+        }
+        echo json_encode($settings);
+    } catch (Exception $e) {
+        sendError(500, "Errore recupero impostazioni: " . $e->getMessage());
+    }
+}
+
+function saveSettings($pdo) {
+    $data = json_decode(file_get_contents('php://input'), true);
+    if (!is_array($data)) {
+        sendError(400, 'Dati non validi.');
+        return;
+    }
+    
+    $pdo->beginTransaction();
+    try {
+        $stmt = $pdo->prepare("INSERT INTO settings (settingKey, settingValue) VALUES (:key, :valInsert) ON DUPLICATE KEY UPDATE settingValue = :valUpdate");
+        foreach ($data as $key => $value) {
+            if (empty($key)) continue;
+            // Se il valore non è stringa o null, lo convertiamo in stringa (ma di solito settings sono stringhe)
+            $valToSave = $value;
+            if (!is_string($value) && !is_null($value)) $valToSave = (string)$value;
+            
+            $stmt->execute([':key' => $key, ':valInsert' => $valToSave, ':valUpdate' => $valToSave]);
+        }
+        $pdo->commit();
+        echo json_encode(['success' => true]);
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        sendError(500, "Errore salvataggio impostazioni: " . $e->getMessage());
+    }
 }
 
 function login($pdo) {

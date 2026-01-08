@@ -117,6 +117,13 @@ export default function MainApp() {
         setLogs(data.logs || []);
         setIsOnline(true);
       }
+
+      // Carica Settings
+      const settingsData = await createApiRequest('get_settings', null, false, 'GET');
+      if (settingsData && !settingsData.error) {
+          setPharmacySettings(prev => ({ ...prev, ...settingsData }));
+      }
+
     } catch (e) {
       console.error("Errore caricamento dati:", e);
       setIsOnline(false);
@@ -232,6 +239,21 @@ export default function MainApp() {
         alert("Errore durante la pulizia dei log.");
       }
     }
+  };
+
+  const handleSaveSettings = async (newSettings) => {
+      setPharmacySettings(newSettings);
+      if (USE_MOCK_DATA || !AUTH_ENABLED) {
+          localStorage.setItem('galenico_settings', JSON.stringify(newSettings));
+      } else {
+          try {
+              const result = await createApiRequest('save_settings', newSettings);
+              if (result.error) throw new Error(result.error);
+          } catch (e) {
+              console.error("Errore salvataggio settings:", e);
+              alert("Errore durante il salvataggio delle impostazioni.");
+          }
+      }
   };
 
   useEffect(() => { loadData(); }, [loadData]);
@@ -466,11 +488,11 @@ export default function MainApp() {
       case 'logs':
         return <Logs logs={logs} preparations={preparations} handleShowPreparation={handleShowPreparation} handleClearLogs={handleClearLogs} canEdit={canEdit} />;
       case 'settings':
-        return <SettingsComponent settings={pharmacySettings} setSettings={setPharmacySettings} />;
+        return <SettingsComponent settings={pharmacySettings} setSettings={handleSaveSettings} />;
       case 'user_management':
         return <UserManagement />;
       case 'ai-assistant':
-        return <AIAssistant pharmacySettings={pharmacySettings} setPharmacySettings={setPharmacySettings} handleTabChange={handleTabChange} />;
+        return <AIAssistant pharmacySettings={pharmacySettings} setPharmacySettings={handleSaveSettings} handleTabChange={handleTabChange} />;
       default:
         return null;
     }
