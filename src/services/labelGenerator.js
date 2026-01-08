@@ -21,67 +21,72 @@ export const generateLabelPDF = async (prep, pharmacySettings) => {
       pharmacySettings.phone
   ].filter(Boolean).join(" - ");
 
-  // Generazione QR Code (Subito, per posizionarlo in header)
+  // Generazione QR Code
   let qrDataUrl = null;
-  const qrSize = 13;
+  const qrSize = 9; // Dimensione finale scelta
   try {
       const qrData = JSON.stringify({ type: 'prep', id: prep.id });
       qrDataUrl = await QRCode.toDataURL(qrData, { margin: 0 });
   } catch (e) { console.error("QR Error", e); }
 
-  let cursorY = MARGIN + 4;
-
-  // --- 1. HEADER (Farmacia SX, Dati Ricetta Centro-DX, QR DX) ---
+  // --- 1. HEADER ---
+  const qrY = MARGIN + 1.5; // Abbassato per centratura ottica con le 3 righe di testo
+  const textPharmacyY = MARGIN + 4; 
+  const textNpY = MARGIN + 3.5; 
   const headerLeftW = 50;
-
-  // QR Code (Estrema Destra)
+  
+  // QR Code (Alto a Destra)
   if (qrDataUrl) {
-      doc.addImage(qrDataUrl, 'PNG', LABEL_WIDTH - MARGIN - qrSize, MARGIN, qrSize, qrSize);
+      doc.addImage(qrDataUrl, 'PNG', LABEL_WIDTH - MARGIN - qrSize, qrY, qrSize, qrSize);
   }
 
-  // SX: Farmacia (Con più risalto)
+  // Nome Farmacia (Alto a Sinistra)
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
-  doc.text(pharmacyName, MARGIN, cursorY);
+  doc.text(pharmacyName, MARGIN, textPharmacyY);
   
+  // N.P. (Alto a Destra)
+  const rightAlignX = LABEL_WIDTH - MARGIN - qrSize - 2;
+  
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "bold");
+  doc.text(`N.P.: ${prep.prepNumber}`, rightAlignX, textNpY, { align: 'right' });
+  
+  // Data e Scadenza (Scalati giù rispetto a N.P.)
+  doc.setFont("helvetica", "normal");
+  doc.text(`Data: ${new Date(prep.date).toLocaleDateString('it-IT')}`, rightAlignX, textNpY + 3.5, { align: 'right' });
+  
+  doc.setFont("helvetica", "bold");
+  doc.text(`SCADENZA: ${new Date(prep.expiryDate).toLocaleDateString('it-IT')}`, rightAlignX, textNpY + 7, { align: 'right' });
+
+  // Info Farmacia (Sotto Nome Farmacia)
   doc.setFontSize(5);
   doc.setFont("helvetica", "normal");
   const splitInfo = doc.splitTextToSize(pharmacyInfo, headerLeftW);
-  doc.text(splitInfo, MARGIN, cursorY + 2.5);
+  doc.text(splitInfo, MARGIN, textPharmacyY + 2.5);
 
-  // DX: Dati Ricetta & Scadenza (Spostati a sinistra del QR)
-  const rightAlignX = LABEL_WIDTH - MARGIN - qrSize - 3;
-  const headerFontSize = 7;
-  
-  doc.setFontSize(headerFontSize);
-  doc.setFont("helvetica", "bold");
-  doc.text(`N.P.: ${prep.prepNumber}`, rightAlignX, cursorY, { align: 'right' });
-  
-  doc.setFont("helvetica", "normal");
-  doc.text(`Data: ${new Date(prep.date).toLocaleDateString('it-IT')}`, rightAlignX, cursorY + 3.5, { align: 'right' });
-  
-  doc.setFont("helvetica", "bold");
-  doc.text(`SCADENZA: ${new Date(prep.expiryDate).toLocaleDateString('it-IT')}`, rightAlignX, cursorY + 7, { align: 'right' });
+  // Paziente & Medico (Sotto Info Farmacia)
+  let pzDocY = textPharmacyY + 2.5 + (splitInfo.length * 2) + 2; 
+  pzDocY = Math.max(pzDocY, textPharmacyY + 9);
 
-  // Paziente & Medico (Sotto Farmacia a sinistra)
-  let pzDocY = cursorY + 9;
   doc.setFontSize(6);
-  doc.setFont("helvetica", "normal");
   if (prep.patient) {
       doc.text(`Paziente: ${prep.patient}`, MARGIN, pzDocY);
-      pzDocY += 3;
+      pzDocY += 2.5;
   }
   if (prep.doctor) {
       doc.text(`Medico: ${prep.doctor}`, MARGIN, pzDocY);
+      pzDocY += 1; // Ridotto da 2.5
   }
 
-  cursorY = Math.max(pzDocY + 2, cursorY + 11); 
+  // Definizione cursorY per il blocco successivo (Header Divider)
+  let cursorY = Math.max(pzDocY + 0.5, textNpY + 10.5); 
   
   doc.setLineWidth(0.1);
   doc.line(MARGIN, cursorY, LABEL_WIDTH - MARGIN, cursorY);
-  cursorY += 4;
+  cursorY += 4; // Ripristinato spazio dopo la riga
 
-  // --- 2. TITOLO PREPARAZIONE (Centrato) ---
+  // --- 2. TITOLO PREPARAZIONE ---
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   const splitName = doc.splitTextToSize(prep.name, LABEL_WIDTH - (MARGIN * 2));
@@ -90,8 +95,9 @@ export const generateLabelPDF = async (prep, pharmacySettings) => {
 
   // --- 3. CORPO (Ingredienti SX, Costi DX) ---
   const bodyStartY = cursorY;
-  const colSplitX = LABEL_WIDTH - 45; 
+  const colSplitX = LABEL_WIDTH / 2; // Divisione esatta a metà (50/50)
   
+  // Variabili per i costi
   let costMatPrime = 0;
   let costContainers = 0;
   let costFee = 0;
@@ -103,8 +109,11 @@ export const generateLabelPDF = async (prep, pharmacySettings) => {
   const ingredients = prep.ingredients || [];
   ingredients.forEach(ing => {
       const cost = (ing.amountUsed * (ing.costPerGram || 0));
-      if (ing.isContainer) costContainers += cost;
-      else costMatPrime += cost;
+      if (ing.isContainer) {
+          costContainers += cost;
+      } else {
+          costMatPrime += cost;
+      }
   });
 
   if (hasPricingData) {
@@ -116,7 +125,8 @@ export const generateLabelPDF = async (prep, pharmacySettings) => {
   } else {
       const netPrice = finalPrice / (1 + VAT_RATE);
       vatAmount = finalPrice - netPrice;
-      costFee = netPrice - (costMatPrime + costContainers); 
+      const totalIngredients = costMatPrime + costContainers;
+      costFee = netPrice - totalIngredients; 
   }
   
   // COLONNA SX: Ingredienti
@@ -131,8 +141,11 @@ export const generateLabelPDF = async (prep, pharmacySettings) => {
           doc.setFont("helvetica", isExcipient ? "italic" : "bold");
           const nameText = isExcipient ? `${ing.name} (ecc.)` : ing.name;
           const qtyText = `${Number(ing.amountUsed).toFixed(2)}${ing.unit}`;
-          const maxNameWidth = (colSplitX - MARGIN - 2) - 12;
+          
+          const qtyWidthAllowance = 12;
+          const maxNameWidth = (colSplitX - MARGIN - 2) - qtyWidthAllowance;
           const nameLines = doc.splitTextToSize(nameText, maxNameWidth);
+          
           doc.text(nameLines, MARGIN, cursorY);
           doc.text(qtyText, colSplitX - 2, cursorY, { align: 'right' });
           cursorY += (nameLines.length * 2.5);
@@ -141,7 +154,6 @@ export const generateLabelPDF = async (prep, pharmacySettings) => {
 
   // COLONNA DX: Riepilogo Costi
   let costY = bodyStartY;
-  doc.setFontSize(6);
   doc.setFont("helvetica", "bold");
   doc.text("Dettaglio Costi:", colSplitX + 2, costY);
   costY += 3;
@@ -164,42 +176,39 @@ export const generateLabelPDF = async (prep, pharmacySettings) => {
       printCostLine("Mat. Prime/Cont.:", costMatPrime + costContainers);
       printCostLine("Onorari/Add.:", Math.max(0, costFee));
   }
+  
   printCostLine(`IVA (${(VAT_RATE*100).toFixed(0)}%):`, vatAmount);
   
-  costY += 2; // Spazio prima del totale
+  costY += 1.5; 
   doc.setFontSize(7);
   printCostLine("TOTALE:", finalPrice, true);
 
   // Linea verticale separatrice
   doc.line(colSplitX, bodyStartY - 2, colSplitX, Math.max(cursorY, costY) + 2);
+
   cursorY = Math.max(cursorY, costY) + 3;
 
   // --- 4. FOOTER (Avvertenze SX) ---
   doc.line(MARGIN, cursorY, LABEL_WIDTH - MARGIN, cursorY);
   cursorY += 3;
 
-  // Tutto lo spazio disponibile per le avvertenze
   const warnWidth = LABEL_WIDTH - (MARGIN*2);
   doc.setFontSize(5);
   doc.setFont("helvetica", "italic");
   
   const labelWarnings = prep.labelWarnings || [];
-  if (labelWarnings.length > 0 || (prep.customLabelWarning && prep.customLabelWarning.trim() !== '')) {
-      let warnY = cursorY;
-      labelWarnings.forEach(w => {
-          if (warnY > ROLL_HEIGHT - MARGIN) return;
-          if (w.toLowerCase().includes("doping")) { 
-              doc.setFont("helvetica", "bolditalic"); 
-          }
-          const splitW = doc.splitTextToSize(`• ${w}`, warnWidth);
-          doc.text(splitW, MARGIN, warnY);
-          warnY += (splitW.length * 2);
-          doc.setFont("helvetica", "italic");
-      });
-      if (prep.customLabelWarning && warnY < ROLL_HEIGHT - MARGIN) {
-          const splitC = doc.splitTextToSize(`• ${prep.customLabelWarning}`, warnWidth);
-          doc.text(splitC, MARGIN, warnY);
-      }
+  const customWarn = prep.customLabelWarning;
+  
+  if (labelWarnings.length > 0 || (customWarn && customWarn.trim() !== '')) {
+      const allWarns = [...labelWarnings];
+      if (customWarn && customWarn.trim() !== '') allWarns.push(customWarn.trim());
+      
+      const combinedText = allWarns.join(" - ");
+      doc.setFontSize(5);
+      doc.setFont("helvetica", "italic");
+      
+      const splitWarns = doc.splitTextToSize(combinedText, warnWidth);
+      doc.text(splitWarns, MARGIN, cursorY);
   }
 
   const pdfBlob = doc.output('bloburl');
