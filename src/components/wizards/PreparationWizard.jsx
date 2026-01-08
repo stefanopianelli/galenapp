@@ -572,7 +572,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
               {!canEdit && <Badge type="danger">SOLA LETTURA</Badge>}
             </div>
           </div>
-          {(step < totalSteps) && (details.status !== 'Completata') && canEdit && (
+          {(details.status !== 'Completata') && canEdit && (
             <button onClick={handleDraftSave} className="bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md hover:bg-slate-300 flex items-center gap-1 text-sm shadow-sm transition-colors" title="Salva come bozza per continuare più tardi"><Save size={16} /> Salva Bozza</button>
           )}
         </div>
@@ -836,13 +836,12 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
               <div className="space-y-6 animate-in fade-in">
                   <div className="text-center"><h2 className="text-xl font-bold text-slate-800 pt-4 flex items-center justify-center gap-2"><ClipboardCheck size={24} />Conferma Finale</h2><div className="bg-slate-50 p-6 border rounded-md mt-4 max-w-md mx-auto"><p className="text-slate-600">Confermi la produzione di <b>{details.name}</b>?</p><p className="text-3xl font-bold mt-2 text-teal-700">€ {pricing.final.toFixed(2)}</p></div></div>
                   {isOfficinale && batches.length > 0 && (<div className="bg-blue-50/50 p-6 border border-blue-100 rounded-md mt-4"><h3 className="text-sm font-bold text-blue-800 uppercase tracking-wider mb-4 flex items-center gap-2"><ListOrdered size={16}/> Riepilogo Lotti di Produzione</h3><div className="space-y-2">{batches.map((batch, i) => { const container = selectedIngredients.find(ing => ing.id === batch.containerId); return (<div key={i} className="flex justify-between items-center bg-white p-3 rounded border border-blue-100 shadow-sm"><div className="flex items-center gap-3"><Box size={18} className="text-blue-500" /><div><div className="font-bold text-sm text-slate-800">{container?.name || 'Contenitore'}</div><div className="text-xs text-slate-500"><span className="font-bold text-blue-600">{Number(container?.amountUsed || 0).toFixed(0)} confezioni</span> preparate con {batch.productQuantity} unità cad.</div></div></div><div className="text-right"><div className="font-mono font-bold text-blue-700">€ {parseFloat(batch.unitPrice || 0).toFixed(2)}</div><div className="text-[10px] text-slate-400 font-bold uppercase">Prezzo Unitario</div></div></div>)})}</div></div>)}
-                  <div className="pt-4 flex justify-between border-t border-slate-100">
-                    <button onClick={() => setStep(isOfficinale ? 5 : 4)} className="text-slate-500 hover:underline">Indietro</button>
-                    <div className="flex items-center gap-3">
-                      <button onClick={handlePrintLabel} className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2"><Printer size={18}/> Stampa Etichetta</button>
-                      <button onClick={handleDownloadWorksheet} className="bg-slate-600 text-white px-6 py-2 rounded-md hover:bg-slate-700 flex items-center gap-2"><FileDown size={18}/> Scarica Foglio</button>
-                      {details.status !== 'Completata' && canEdit && (<button onClick={handleDraftSave} className="bg-slate-200 text-slate-700 px-6 py-2 rounded-md hover:bg-slate-300 flex items-center gap-2 shadow-sm transition-colors"><Save size={18}/> Salva Bozza</button>)}
-                      {canEdit && <button onClick={handleFinalSave} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 flex items-center gap-2"><Save size={18}/> Salva e Completa</button>}
+                  <div className="pt-4 flex flex-col-reverse sm:flex-row sm:justify-between items-center gap-4 border-t border-slate-100">
+                    <button onClick={() => setStep(isOfficinale ? 5 : 4)} className="text-slate-500 hover:underline w-full sm:w-auto text-center sm:text-left">Indietro</button>
+                    <div className="flex flex-wrap justify-center sm:justify-end gap-3 w-full sm:w-auto">
+                      <button onClick={handlePrintLabel} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 whitespace-nowrap"><Printer size={18}/> Stampa Etichetta</button>
+                      <button onClick={handleDownloadWorksheet} className="bg-slate-600 text-white px-4 py-2 rounded-md hover:bg-slate-700 flex items-center gap-2 whitespace-nowrap"><FileDown size={18}/> Scarica Foglio</button>
+                      {canEdit && <button onClick={handleFinalSave} className="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 flex items-center gap-2 whitespace-nowrap"><Save size={18}/> Salva e Completa</button>}
                     </div>
                   </div>
               </div>
