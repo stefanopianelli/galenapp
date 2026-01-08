@@ -438,7 +438,7 @@ export default function MainApp() {
     };
   const handleJumpToStep = (prep, step = 1) => { setEditingPrep(prep); setInitialWizardStep(step); setActiveTab('preparation'); };
   const handleDuplicatePreparation = (prepToDuplicate) => {
-    const duplicatedData = { ...prepToDuplicate, isDuplicate: true };
+    const duplicatedData = { ...prepToDuplicate, isDuplicate: true, status: 'Bozza' };
     delete duplicatedData.id; delete duplicatedData.date;
     setEditingPrep(duplicatedData); setInitialWizardStep(1); setActiveTab('preparation');
   };
