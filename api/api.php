@@ -239,7 +239,7 @@ function getAllData($pdo) {
     if (!empty($prep_ids)) {
         $in_clause = implode(',', array_fill(0, count($prep_ids), '?'));
         $stmt_ingredients = $pdo->prepare(
-            "SELECT pi.`preparationId`, pi.`amountUsed`, pi.`isExcipient` AS isExcipientInPrep, i.`id`, i.`name`, i.`ni`, i.`unit`, i.`isContainer`, i.`isDoping`, i.`isNarcotic`, i.`securityData`
+            "SELECT pi.`preparationId`, pi.`amountUsed`, pi.`isExcipient` AS roleInPrep, i.`id`, i.`name`, i.`ni`, i.`unit`, i.`isContainer`, i.`isDoping`, i.`isNarcotic`, i.`securityData`
              FROM `preparation_ingredients` pi JOIN `inventory` i ON pi.`inventoryId` = i.`id`
              WHERE pi.`preparationId` IN ($in_clause)"
         );
@@ -248,10 +248,10 @@ function getAllData($pdo) {
         foreach ($preparations as $key => $prep) {
             $preparations[$key]['ingredients'] = array_map(function($ing) {
                 if (isset($ing['securityData']) && is_string($ing['securityData'])) $ing['securityData'] = json_decode($ing['securityData'], true);
-                // Usa il ruolo salvato nella preparazione, se presente
-                if (isset($ing['isExcipientInPrep'])) {
-                    $ing['isExcipient'] = $ing['isExcipientInPrep'] == 1;
-                }
+                
+                // Forza la presenza del campo isExcipient usando il nuovo alias
+                $ing['savedIsExcipient'] = (isset($ing['roleInPrep']) && $ing['roleInPrep'] == 1);
+                
                 return $ing;
             }, $all_ingredients[$prep['id']] ?? []);
             $preparations[$key]['labelWarnings'] = json_decode($prep['labelWarnings'] ?? '[]', true);
@@ -435,8 +435,9 @@ function savePreparation($pdo) {
         }
 
         foreach ($itemsUsed as $item) {
-            $stmt = $pdo->prepare("INSERT INTO `preparation_ingredients` (`preparationId`, `inventoryId`, `amountUsed`) VALUES (?, ?, ?)");
-            $stmt->execute([$newPrepId, $item['id'], $item['amountUsed']]);
+            $stmt = $pdo->prepare("INSERT INTO `preparation_ingredients` (`preparationId`, `inventoryId`, `amountUsed`, `isExcipient`) VALUES (?, ?, ?, ?)");
+            $isExcipient = filter_var($item['isExcipient'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            $stmt->execute([$newPrepId, $item['id'], $item['amountUsed'], $isExcipient ? 1 : 0]);
         }
 
         if (!$isDraft) {

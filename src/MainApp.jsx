@@ -483,7 +483,7 @@ export default function MainApp() {
         <nav className="flex-1 p-4 space-y-2">
           <SidebarItem icon={<ClipboardList size={20} />} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => handleTabChange('dashboard')} />
           <SidebarItem icon={<Package size={20} />} label="Magazzino Sostanze" active={activeTab === 'inventory'} onClick={() => { setInventoryFilter('all'); handleTabChange('inventory'); }} />
-          {canEdit && <SidebarItem icon={<Pill size={20} />} label={editingPrep ? "Modifica Prep." : "Nuova Prep."} active={activeTab === 'preparation'} onClick={handleNewPreparation} />}
+          {canEdit && <SidebarItem icon={<Pill size={20} />} label={editingPrep ? "Modifica Prep." : "Nuova Prep. (+)"} active={activeTab === 'preparation'} onClick={handleNewPreparation} />}
           <SidebarItem icon={<LayoutList size={20} />} label="Registro Preparazioni" active={activeTab === 'preparations_log'} onClick={() => handleTabChange('preparations_log')} />
           <SidebarItem icon={<History size={20} />} label="Registro Movimenti" active={activeTab === 'logs'} onClick={() => handleTabChange('logs')} />
                     <div className="pt-4 mt-4 border-t border-slate-700">

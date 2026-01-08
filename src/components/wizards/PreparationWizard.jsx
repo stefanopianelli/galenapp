@@ -90,11 +90,20 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
           if (!inventoryItem) {
             return { ...ing, securityData: ing.securityData || { pictograms: [] } };
           }
+          // Determina il ruolo (Attivo/Eccipiente)
+          let finalIsExcipient = inventoryItem.isExcipient || false; // Default Inventario
+          if (ing.savedIsExcipient !== undefined) {
+              finalIsExcipient = ing.savedIsExcipient; // Priorità assoluta al salvataggio
+          } else if (ing.isExcipient !== undefined) {
+              finalIsExcipient = ing.isExcipient; // Fallback legacy
+          }
+
           return {
             id: ing.id, amountUsed: ing.amountUsed,
             name: inventoryItem.name, ni: inventoryItem.ni, unit: inventoryItem.unit,
             costPerGram: inventoryItem.costPerGram || 0,
-            isExcipient: inventoryItem.isExcipient || false, isContainer: inventoryItem.isContainer || false,
+            isExcipient: finalIsExcipient,
+            isContainer: inventoryItem.isContainer || false,
             isDoping: inventoryItem.isDoping || false, isNarcotic: inventoryItem.isNarcotic || false,
             securityData: inventoryItem.securityData || { pictograms: [] }
           };
