@@ -362,6 +362,13 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
     setSelectedIngredients(newIngredients);
   };
 
+  const toggleExcipient = (idx) => {
+    if (!canEdit) return;
+    const newIngredients = [...selectedIngredients];
+    newIngredients[idx].isExcipient = !newIngredients[idx].isExcipient;
+    setSelectedIngredients(newIngredients);
+  };
+
   const handleIngredientAmountChange = (index, newAmount) => {
     const newAmountValue = parseFloat(newAmount);
     if (isNaN(newAmountValue) || newAmountValue < 0) return;
@@ -648,6 +655,14 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                       {ing.isContainer ? <Box size={20} className="text-blue-500"/> : <FlaskConical size={20} className="text-teal-500"/>}
                       <div><div className="font-bold text-slate-800">{ing.name}</div><div className="text-xs text-slate-500">N.I.: {ing.ni} | €{Number(ing.costPerGram).toFixed(ing.isContainer ? 2 : 4)}/{ing.unit}</div></div>
                     </div>
+                    {!ing.isContainer && (
+                        <div 
+                            onClick={() => canEdit && toggleExcipient(idx)}
+                            className={`px-2 py-1 rounded text-xs font-bold select-none ${canEdit ? 'cursor-pointer hover:opacity-80' : ''} ${ing.isExcipient ? 'bg-slate-200 text-slate-600' : 'bg-teal-100 text-teal-700'}`}
+                        >
+                            {ing.isExcipient ? "Eccipiente" : "Principio Attivo"}
+                        </div>
+                    )}
                     <div className="flex items-center gap-2">
                       {editingIngredientIndex === idx ? (<input type="number" step={ing.isContainer ? "1" : "0.01"} value={tempAmount} onChange={(e) => setTempAmount(e.target.value)} className="w-24 border text-right p-1 rounded-md font-mono font-bold" autoFocus onBlur={() => saveEditingAmount(idx)} onKeyDown={(e) => e.key === 'Enter' && saveEditingAmount(idx)}/>) : (<span className="font-mono font-bold w-24 text-right">{Number(ing.amountUsed).toFixed(ing.isContainer ? 0 : 2)}</span>)}
                       <span className="text-sm font-mono">{ing.unit}</span>
