@@ -18,7 +18,7 @@ const Dashboard = ({ stats, logs, preparations, inventory, setActiveTab, setInve
         <StatCard title="Scadute (Attive)" value={stats.expired} icon={<Trash2 className="text-red-500" />} color="border-l-4 border-red-500" alert={stats.expired > 0} onClick={() => { setInventoryFilter('expired'); setActiveTab('inventory'); }} />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="p-5 col-span-1"><h3 className="font-bold text-lg mb-4 flex items-center gap-2"><History size={18} /> Ultime Movimentazioni</h3><div className="space-y-3">{logs.slice(0, 5).map(log => {
+        <Card className="p-5 col-span-1"><h3 className="font-bold text-lg mb-4 flex items-center gap-2"><History size={18} /> Ultime Movimentazioni</h3><div className="space-y-3">{logs.filter(log => log.quantity && parseFloat(log.quantity) !== 0).slice(0, 5).map(log => {
           const substanceInInventory = inventory.find(item => item.ni === log.ni || item.name === log.substance);
           return (
             <div key={log.id} className="flex justify-between items-center text-sm border-b border-slate-100 pb-2 last:border-0">

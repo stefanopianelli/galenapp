@@ -496,14 +496,22 @@ function deletePreparation($pdo) {
 
     $pdo->beginTransaction();
     try {
-        $stmt = $pdo->prepare("SELECT i.name, i.ni, i.unit, pi.inventoryId, pi.amountUsed FROM `preparation_ingredients` pi JOIN `inventory` i ON pi.inventoryId = i.id WHERE pi.`preparationId` = ?");
-        $stmt->execute([$prepId]);
-        $ingredientsToRefund = $stmt->fetchAll();
+        // Verifica lo stato della preparazione
+        $stmtStatus = $pdo->prepare("SELECT `status` FROM `preparations` WHERE `id` = ?");
+        $stmtStatus->execute([$prepId]);
+        $status = $stmtStatus->fetchColumn();
 
-        foreach ($ingredientsToRefund as $item) {
-            $stmt = $pdo->prepare("UPDATE `inventory` SET `quantity` = `quantity` + ? WHERE `id` = ?");
-            $stmt->execute([$item['amountUsed'], $item['inventoryId']]);
-            createLog($pdo, 'ANNULLAMENTO', "Annullata preparazione", ['substance' => $item['name'], 'ni' => $item['ni'], 'quantity' => $item['amountUsed'], 'unit' => $item['unit'], 'preparationId' => $prepId]);
+        // Se NON è una bozza, ripristina le scorte
+        if ($status !== 'Bozza') {
+            $stmt = $pdo->prepare("SELECT i.name, i.ni, i.unit, pi.inventoryId, pi.amountUsed FROM `preparation_ingredients` pi JOIN `inventory` i ON pi.inventoryId = i.id WHERE pi.`preparationId` = ?");
+            $stmt->execute([$prepId]);
+            $ingredientsToRefund = $stmt->fetchAll();
+
+            foreach ($ingredientsToRefund as $item) {
+                $stmt = $pdo->prepare("UPDATE `inventory` SET `quantity` = `quantity` + ? WHERE `id` = ?");
+                $stmt->execute([$item['amountUsed'], $item['inventoryId']]);
+                createLog($pdo, 'ANNULLAMENTO', "Annullata preparazione", ['substance' => $item['name'], 'ni' => $item['ni'], 'quantity' => $item['amountUsed'], 'unit' => $item['unit'], 'preparationId' => $prepId]);
+            }
         }
 
         $stmt = $pdo->prepare("DELETE FROM `preparation_ingredients` WHERE `preparationId` = ?");
