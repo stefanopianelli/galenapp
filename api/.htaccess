@@ -1,0 +1,20 @@
+# Impedisce il listing dei file nelle cartelle
+Options -Indexes
+
+# Protezione globale: nega l'accesso a tutti i file per impostazione predefinita
+<FilesMatch "\.(php|sql|env|log)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Eccezione: Permetti l'accesso solo al file api.php (necessario per il frontend)
+<Files "api.php">
+    Order allow,deny
+    Allow from all
+</Files>
+
+# Eccezione temporanea: Se devi lanciare lo script di setup, scommenta le righe sotto
+# <Files "setup_database.php">
+#    Order allow,deny
+#    Allow from all
+# </Files>

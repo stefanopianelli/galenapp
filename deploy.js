@@ -1,32 +1,41 @@
-import ftp from 'basic-ftp';
+import Client from 'ssh2-sftp-client';
 import { exec } from 'child_process';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
-// Configurazione per leggere .env in moduli ES6
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config();
 
-const config = {
-    host: process.env.FTP_HOST,
-    user: process.env.FTP_USER,
-    password: process.env.FTP_PASSWORD,
-    secure: process.env.FTP_SECURE === 'true', // Imposta true per FTPS
-    remoteDir: process.env.FTP_REMOTE_DIR || '/' // Cartella di destinazione sul server (es. /public_html)
-};
+// Definizione Servers
+const servers = [
+    {
+        name: 'Server Primario',
+        host: process.env.FTP_HOST,
+        username: process.env.FTP_USER,
+        password: process.env.FTP_PASSWORD,
+        port: 22,
+        remoteDir: process.env.FTP_REMOTE_DIR || '/'
+    }
+];
 
-// Verifica configurazione
-if (!config.host || !config.user || !config.password) {
-    console.error('❌ Errore: Credenziali FTP mancanti nel file .env');
-    console.log('Assicurati di avere: FTP_HOST, FTP_USER, FTP_PASSWORD');
-    process.exit(1);
+// Aggiungi Server 2 se configurato
+if (process.env.FTP2_HOST && process.env.FTP2_USER) {
+    servers.push({
+        name: 'Server Secondario',
+        host: process.env.FTP2_HOST,
+        username: process.env.FTP2_USER,
+        password: process.env.FTP2_PASSWORD,
+        port: 22,
+        remoteDir: process.env.FTP2_REMOTE_DIR || '/'
+    });
 }
 
 const runBuild = () => {
     return new Promise((resolve, reject) => {
-        console.log('🔨 Avvio build di produzione...');
+        console.log('🔨 [BUILD] Avvio build di produzione...');
         const build = exec('npm run build');
 
         build.stdout.on('data', (data) => console.log(data.toString().trim()));
@@ -34,7 +43,7 @@ const runBuild = () => {
 
         build.on('exit', (code) => {
             if (code === 0) {
-                console.log('✅ Build completata con successo.');
+                console.log('✅ [BUILD] Completata con successo.');
                 resolve();
             } else {
                 reject(new Error(`Build fallita con codice ${code}`));
@@ -43,47 +52,72 @@ const runBuild = () => {
     });
 };
 
-const uploadFiles = async () => {
-    const client = new ftp.Client();
-    client.ftp.verbose = true; // Log dettagliati dell'FTP
+const deployToServer = async (serverConfig) => {
+    const sftp = new Client();
+    console.log(`\n🚀 [DEPLOY] Avvio deploy su: ${serverConfig.name} (${serverConfig.host})...`);
 
     try {
-        console.log(`🔌 Connessione a ${config.host}...`);
-        await client.access({
-            host: config.host,
-            user: config.user,
-            password: config.password,
-            secure: config.secure,
-            secureOptions: { rejectUnauthorized: false } // Utile per certificati self-signed, rimuovere se necessario
+        console.log(`🔌 Connessione SFTP...`);
+        await sftp.connect(serverConfig);
+
+        console.log(`📂 Caricamento Frontend in '${serverConfig.remoteDir}'...`);
+        
+        const remoteExists = await sftp.exists(serverConfig.remoteDir);
+        if (!remoteExists) {
+            console.log(`   Creazione cartella remota: ${serverConfig.remoteDir}`);
+            await sftp.mkdir(serverConfig.remoteDir, true);
+        }
+
+        const localDir = path.join(__dirname, 'dist');
+        
+        sftp.on('upload', info => {
+            console.log(`   ⬆️  Frontend: ${path.basename(info.source)}`);
         });
 
-        console.log(`📂 Caricamento cartella 'dist' in '${config.remoteDir}'...`);
+        await sftp.uploadDir(localDir, serverConfig.remoteDir);
         
-        // Assicurati che la cartella remota esista o vai alla root
-        await client.ensureDir(config.remoteDir);
+        // --- DEPLOY BACKEND ---
+        console.log('🐘 Aggiornamento Backend (API)...');
+        const localApiDir = path.join(__dirname, 'api');
+        const remoteApiDir = path.posix.join(serverConfig.remoteDir, 'api');
         
-        // Pulisce la cartella remota prima di caricare (OPZIONALE - Rimuovi se vuoi solo sovrascrivere)
-        // Attenzione: cancella tutto nella remoteDir!
-        // await client.clearWorkingDir(); 
+        await sftp.mkdir(remoteApiDir, true);
 
-        await client.uploadFromDir("dist");
+        const backendFiles = ['api.php', '.htaccess', 'setup_database.php', 'database_setup.sql', 'database_populate.sql'];
         
-        console.log('🚀 Deploy completato con successo!');
+        for (const file of backendFiles) {
+            const localFilePath = path.join(localApiDir, file);
+            const remoteFilePath = path.posix.join(remoteApiDir, file);
+
+            if (fs.existsSync(localFilePath)) {
+                await sftp.put(localFilePath, remoteFilePath);
+                console.log(`   ⬆️  Backend: ${file}`);
+            }
+        }
+        console.log('   🚫 Config.php preservato.');
+        console.log(`✅ [DEPLOY] Completato su ${serverConfig.name}!`);
+
     } catch (err) {
-        console.error('❌ Errore durante il deploy FTP:', err);
-        process.exit(1);
+        console.error(`❌ [ERROR] Fallito deploy su ${serverConfig.name}:`, err.message);
+        throw err; // Rilancia per fermare o gestire
     } finally {
-        client.close();
+        await sftp.end();
     }
 };
 
-// Flusso principale
 const main = async () => {
     try {
+        // 1. Build una volta sola
         await runBuild();
-        await uploadFiles();
+
+        // 2. Deploy su tutti i server configurati
+        for (const server of servers) {
+            await deployToServer(server);
+        }
+        
+        console.log('\n✨ TUTTI I DEPLOY COMPLETATI CON SUCCESSO! ✨');
     } catch (error) {
-        console.error('❌', error.message);
+        console.error('\n❌ PROCESSO TERMINATO CON ERRORI.');
         process.exit(1);
     }
 };
