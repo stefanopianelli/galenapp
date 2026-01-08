@@ -88,6 +88,7 @@ CREATE TABLE `preparations` (
   `worksheetItems` text DEFAULT NULL,
   `recipeDate` date DEFAULT NULL,
   `batches` text DEFAULT NULL,
+  `pricingData` text DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `prepNumber` (`prepNumber`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

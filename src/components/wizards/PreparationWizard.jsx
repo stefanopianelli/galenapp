@@ -479,7 +479,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
   const handleFinalSave = () => {
     if (details.name && selectedIngredients.length > 0) {
-      onComplete(selectedIngredients, { ...details, prepUnit: getPrepUnit(details.pharmaceuticalForm), totalPrice: pricing.final, batches, worksheetItems }, false);
+      onComplete(selectedIngredients, { ...details, prepUnit: getPrepUnit(details.pharmaceuticalForm), totalPrice: pricing.final, batches, worksheetItems, pricingData: pricing }, false);
     }
   };
 
@@ -488,7 +488,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
       alert("Per salvare una bozza, il nome della preparazione è obbligatorio.");
       return;
     }
-    onComplete(selectedIngredients, { ...details, prepUnit: getPrepUnit(details.pharmaceuticalForm), totalPrice: pricing.final, batches, worksheetItems }, true);
+    onComplete(selectedIngredients, { ...details, prepUnit: getPrepUnit(details.pharmaceuticalForm), totalPrice: pricing.final, batches, worksheetItems, pricingData: pricing }, true);
   };
 
   const handleStepClick = (targetStep) => {

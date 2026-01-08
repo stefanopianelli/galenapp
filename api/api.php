@@ -247,7 +247,7 @@ function getAllData($pdo) {
     if (!empty($prep_ids)) {
         $in_clause = implode(',', array_fill(0, count($prep_ids), '?'));
         $stmt_ingredients = $pdo->prepare(
-            "SELECT pi.`preparationId`, pi.`amountUsed`, pi.`isExcipient` AS roleInPrep, i.`id`, i.`name`, i.`ni`, i.`unit`, i.`isContainer`, i.`isDoping`, i.`isNarcotic`, i.`securityData`
+            "SELECT pi.`preparationId`, pi.`amountUsed`, pi.`isExcipient` AS roleInPrep, i.`id`, i.`name`, i.`ni`, i.`unit`, i.`costPerGram`, i.`isContainer`, i.`isDoping`, i.`isNarcotic`, i.`securityData`
              FROM `preparation_ingredients` pi JOIN `inventory` i ON pi.`inventoryId` = i.`id`
              WHERE pi.`preparationId` IN ($in_clause)"
         );
@@ -266,6 +266,7 @@ function getAllData($pdo) {
             $preparations[$key]['techOps'] = json_decode($prep['techOps'] ?? '[]', true);
             $preparations[$key]['worksheetItems'] = json_decode($prep['worksheetItems'] ?? '[]', true);
             $preparations[$key]['batches'] = json_decode($prep['batches'] ?? '[]', true);
+            $preparations[$key]['pricingData'] = json_decode($prep['pricingData'] ?? '{}', true);
         }
     }
     
@@ -403,7 +404,7 @@ function savePreparation($pdo) {
 
     $pdo->beginTransaction();
     try {
-        $prepFields = ['prepNumber', 'name', 'pharmaceuticalForm', 'quantity', 'prepUnit', 'expiryDate', 'posology', 'date', 'patient', 'patientPhone', 'doctor', 'status', 'totalPrice', 'prepType', 'notes', 'usage', 'operatingProcedures', 'labelWarnings', 'customLabelWarning', 'techOps', 'worksheetItems', 'recipeDate', 'batches'];
+        $prepFields = ['prepNumber', 'name', 'pharmaceuticalForm', 'quantity', 'prepUnit', 'expiryDate', 'posology', 'date', 'patient', 'patientPhone', 'doctor', 'status', 'totalPrice', 'prepType', 'notes', 'usage', 'operatingProcedures', 'labelWarnings', 'customLabelWarning', 'techOps', 'worksheetItems', 'recipeDate', 'batches', 'pricingData'];
         $prepParams = [];
         foreach ($prepFields as $field) {
             $value = $prepDetails[$field] ?? null;
