@@ -111,13 +111,26 @@ const main = async () => {
         await runBuild();
 
         // 2. Deploy su tutti i server configurati
+        let successCount = 0;
         for (const server of servers) {
-            await deployToServer(server);
+            try {
+                await deployToServer(server);
+                successCount++;
+            } catch (err) {
+                console.error(`⚠️  Salto ${server.name} a causa dell'errore.`);
+            }
         }
         
-        console.log('\n✨ TUTTI I DEPLOY COMPLETATI CON SUCCESSO! ✨');
+        if (successCount === servers.length) {
+            console.log('\n✨ TUTTI I DEPLOY COMPLETATI CON SUCCESSO! ✨');
+        } else if (successCount > 0) {
+            console.log(`\n🟠 DEPLOY PARZIALE: Completato su ${successCount}/${servers.length} server.`);
+        } else {
+            console.error('\n❌ TUTTI I DEPLOY SONO FALLITI.');
+            process.exit(1);
+        }
     } catch (error) {
-        console.error('\n❌ PROCESSO TERMINATO CON ERRORI.');
+        console.error('\n❌ PROCESSO DI BUILD FALLITO. Deploy annullato.');
         process.exit(1);
     }
 };

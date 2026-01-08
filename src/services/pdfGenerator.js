@@ -173,8 +173,12 @@ export const generateWorkSheetPDF = async (preparationData, pharmacySettings) =>
       if(ing.isDoping) flags.push("Doping");
       if(ing.isNarcotic) flags.push("Stupefacente");
       const identifier = ing.lot || ing.ni || '-';
+      
+      const isExcipient = ing.isExcipient === true || ing.isExcipient == 1;
+      const displayName = isExcipient ? `${ing.name} (Eccipiente)` : ing.name;
+
       return [
-        { content: ing.name, styles: { fontStyle: 'bold' } },
+        { content: displayName, styles: { fontStyle: isExcipient ? 'italic' : 'bold' } },
         identifier,
         { content: `${Number(ing.amountUsed).toFixed(2)} ${ing.unit}`, styles: { halign: 'right' } },
         flags.join(', ')
