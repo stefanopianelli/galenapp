@@ -658,28 +658,48 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                   </div>
                 </div>
                 <div className="space-y-2">
-                  {selectedIngredients.map((ing, idx) => (
-                  <div key={idx} className={`flex justify-between items-center p-3 border rounded shadow-sm ${ing.isContainer ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200'}`}>
-                    <div className="flex items-center gap-3">
-                      {ing.isContainer ? <Box size={20} className="text-blue-500"/> : <FlaskConical size={20} className="text-teal-500"/>}
-                      <div><div className="font-bold text-slate-800">{ing.name}</div><div className="text-xs text-slate-500">N.I.: {ing.ni} | €{Number(ing.costPerGram).toFixed(ing.isContainer ? 2 : 4)}/{ing.unit}</div></div>
-                    </div>
-                    {!ing.isContainer && (
-                        <div 
-                            onClick={() => canEdit && toggleExcipient(idx)}
-                            className={`px-2 py-1 rounded text-xs font-bold select-none ${canEdit ? 'cursor-pointer hover:opacity-80' : ''} ${ing.isExcipient ? 'bg-slate-200 text-slate-600' : 'bg-teal-100 text-teal-700'}`}
-                        >
-                            {ing.isExcipient ? "Eccipiente" : "Principio Attivo"}
+                  {selectedIngredients.map((ing, idx) => {
+                    const originalItem = inventory.find(i => String(i.id) === String(ing.id));
+                    // Calcolo validazione giacenza per bozze riprese
+                    // Se l'ingrediente è un contenitore, usiamo amountUsed direttamente (pezzi), altrimenti grammi/ml
+                    const currentStock = originalItem ? parseFloat(originalItem.quantity) : 0;
+                    const isInsufficient = originalItem && ing.amountUsed > currentStock;
+
+                    return (
+                    <div key={idx} className={`flex justify-between items-center p-3 border rounded shadow-sm transition-colors ${
+                        isInsufficient 
+                            ? 'bg-red-50 border-red-300' 
+                            : (ing.isContainer ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200')
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        {ing.isContainer ? <Box size={20} className={isInsufficient ? "text-red-500" : "text-blue-500"}/> : <FlaskConical size={20} className={isInsufficient ? "text-red-500" : "text-teal-500"}/>}
+                        <div>
+                            <div className={`font-bold ${isInsufficient ? "text-red-700" : "text-slate-800"}`}>{ing.name}</div>
+                            <div className="text-xs text-slate-500">N.I.: {ing.ni} | €{Number(ing.costPerGram).toFixed(ing.isContainer ? 2 : 4)}/{ing.unit}</div>
+                            {isInsufficient && (
+                                <div className="text-xs font-bold text-red-600 flex items-center gap-1 mt-1 animate-pulse">
+                                    ⚠ GIACENZA INSUFFICIENTE (Disp: {currentStock.toFixed(2)} {ing.unit})
+                                </div>
+                            )}
                         </div>
-                    )}
-                    <div className="flex items-center gap-2">
-                      {editingIngredientIndex === idx ? (<input type="number" step={ing.isContainer ? "1" : "0.01"} value={tempAmount} onChange={(e) => setTempAmount(e.target.value)} className="w-24 border text-right p-1 rounded-md font-mono font-bold" autoFocus onBlur={() => saveEditingAmount(idx)} onKeyDown={(e) => e.key === 'Enter' && saveEditingAmount(idx)}/>) : (<span className="font-mono font-bold w-24 text-right">{Number(ing.amountUsed).toFixed(ing.isContainer ? 0 : 2)}</span>)}
-                      <span className="text-sm font-mono">{ing.unit}</span>
-                      {editingIngredientIndex === idx ? (<button type="button" onClick={() => saveEditingAmount(idx)} className="text-green-600 hover:bg-green-50 p-1.5 rounded-full"><Check size={16} /></button>) : (<button type="button" onClick={() => startEditingAmount(idx)} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded-full"><Pencil size={16} /></button>)}
-                      <button type="button" onClick={() => removeIngredient(idx)} className="text-red-500 hover:bg-red-50 p-1.5 rounded-full"><Trash2 size={16} /></button>
+                      </div>
+                      {!ing.isContainer && (
+                          <div 
+                              onClick={() => canEdit && toggleExcipient(idx)}
+                              className={`px-2 py-1 rounded text-xs font-bold select-none ${canEdit ? 'cursor-pointer hover:opacity-80' : ''} ${ing.isExcipient ? 'bg-slate-200 text-slate-600' : 'bg-teal-100 text-teal-700'}`}
+                          >
+                              {ing.isExcipient ? "Eccipiente" : "Principio Attivo"}
+                          </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        {editingIngredientIndex === idx ? (<input type="number" step={ing.isContainer ? "1" : "0.01"} value={tempAmount} onChange={(e) => setTempAmount(e.target.value)} className="w-24 border text-right p-1 rounded-md font-mono font-bold" autoFocus onBlur={() => saveEditingAmount(idx)} onKeyDown={(e) => e.key === 'Enter' && saveEditingAmount(idx)}/>) : (<span className={`font-mono font-bold w-24 text-right ${isInsufficient ? 'text-red-600' : ''}`}>{Number(ing.amountUsed).toFixed(ing.isContainer ? 0 : 2)}</span>)}
+                        <span className="text-sm font-mono">{ing.unit}</span>
+                        {editingIngredientIndex === idx ? (<button type="button" onClick={() => saveEditingAmount(idx)} className="text-green-600 hover:bg-green-50 p-1.5 rounded-full"><Check size={16} /></button>) : (<button type="button" onClick={() => startEditingAmount(idx)} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded-full"><Pencil size={16} /></button>)}
+                        <button type="button" onClick={() => removeIngredient(idx)} className="text-red-500 hover:bg-red-50 p-1.5 rounded-full"><Trash2 size={16} /></button>
+                      </div>
                     </div>
-                  </div>
-                  ))}
+                    );
+                  })}
                   {selectedIngredients.length === 0 && <p className="text-center text-slate-400 italic py-4">Nessun componente selezionato.</p>}
                 </div>
                               {/* Operazioni Tecnologiche */}
@@ -700,7 +720,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                                       Modifica Operazioni Tecnologiche
                                   </button>
                                 </div>
-                              )}                <div className="flex justify-between pt-4"><button onClick={() => setStep(1)} className="text-slate-500 hover:underline">Indietro</button><button disabled={selectedIngredients.length === 0} onClick={() => setStep(3)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 disabled:opacity-50">Calcola Prezzo</button></div>
+                              )}                <div className="flex justify-between pt-4"><button onClick={() => setStep(1)} className="text-slate-500 hover:underline">Indietro</button><button disabled={selectedIngredients.length === 0 || selectedIngredients.some(ing => { const item = inventory.find(i => String(i.id) === String(ing.id)); return item && ing.amountUsed > parseFloat(item.quantity); })} onClick={() => setStep(3)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 disabled:opacity-50 disabled:bg-slate-400 disabled:cursor-not-allowed">Calcola Prezzo</button></div>
             </div>
           )}
           
