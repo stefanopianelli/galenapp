@@ -170,12 +170,12 @@ const SubstanceModal = ({
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-[150px]">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Quantità</label>
-                    <input required type="number" step={isContainer ? "1" : "0.01"} className="w-full border p-2 rounded outline-none disabled:bg-slate-50 disabled:text-slate-500"
+                    <input required type="number" step={isContainer ? "1" : "0.01"} className="w-full border p-2 rounded outline-none font-bold text-teal-700 disabled:bg-slate-50 disabled:text-slate-500"
                       value={substanceData.quantity} onChange={e => setSubstanceData({ ...substanceData, quantity: e.target.value })} disabled={isReadOnly} />
                   </div>
-                  <div className="w-24">
+                  <div className="w-20">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Unità</label>
                     <select className="w-full border p-2 rounded outline-none disabled:bg-slate-50 disabled:text-slate-500"
                       value={substanceData.unit} onChange={e => setSubstanceData({ ...substanceData, unit: e.target.value })} disabled={isReadOnly || isContainer}>
@@ -191,8 +191,8 @@ const SubstanceModal = ({
                       )}
                     </select>
                   </div>
-                  <div className="w-32">
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Scorta Minima</label>
+                  <div className="w-28">
+                    <label className="block text-sm font-medium text-slate-700 mb-1 text-xs sm:text-sm">Scorta Min.</label>
                     <input type="number" step={isContainer ? "1" : "0.01"} className="w-full border p-2 rounded outline-none disabled:bg-slate-50 disabled:text-slate-500"
                       value={substanceData.minStock || ''} onChange={e => setSubstanceData({ ...substanceData, minStock: e.target.value })} placeholder="Es. 10" disabled={isReadOnly} />
                   </div>
