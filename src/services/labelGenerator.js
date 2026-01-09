@@ -109,6 +109,7 @@ export const generateLabelPDF = async (prep, pharmacySettings) => {
           if (prep.patient) { doc.text(`Paziente: ${prep.patient}`, MARGIN, pzDocY); pzDocY += 2.5; }
           if (prep.doctor) { doc.text(`Medico: ${prep.doctor}`, MARGIN, pzDocY); pzDocY += 1; }
       } else {
+          pzDocY += 3; // Spazio extra ridotto
           doc.setFontSize(7); doc.setFont("helvetica", "bold");
           const container = prep.ingredients.find(i => String(i.id) === String(batchData.containerId));
           const containerName = container ? container.name : "Confezione";
@@ -198,23 +199,23 @@ export const generateLabelPDF = async (prep, pharmacySettings) => {
           costY += 1.5; doc.setFontSize(7);
           printL("TOTALE:", tot, true);
       } else {
-          // Officinale Restyling (Box Prezzo)
+          // --- OFFICINALE ---
           const priceBoxX = colSplitX + 2;
           const priceBoxW = LABEL_WIDTH - MARGIN - priceBoxX;
-          const priceBoxH = 18;
+          const priceBoxH = 14; // Ridotto da 18
           
           doc.setDrawColor(200);
           doc.setFillColor(245, 245, 245);
           doc.roundedRect(priceBoxX, costY, priceBoxW, priceBoxH, 2, 2, 'FD');
           
-          doc.setTextColor(80); doc.setFontSize(7); doc.setFont("helvetica", "bold");
-          doc.text("PREZZO AL PUBBLICO", priceBoxX + (priceBoxW/2), costY + 4, { align: 'center' });
+          doc.setTextColor(80); doc.setFontSize(6); doc.setFont("helvetica", "bold");
+          doc.text("PREZZO AL PUBBLICO", priceBoxX + (priceBoxW/2), costY + 3, { align: 'center' });
           
           doc.setTextColor(0); doc.setFontSize(14); doc.setFont("helvetica", "bold");
-          doc.text(`€ ${parseFloat(batchData.unitPrice || 0).toFixed(2)}`, priceBoxX + (priceBoxW/2), costY + 11, { align: 'center' });
+          doc.text(`€ ${parseFloat(batchData.unitPrice || 0).toFixed(2)}`, priceBoxX + (priceBoxW/2), costY + 9, { align: 'center' });
           
           doc.setFontSize(5); doc.setFont("helvetica", "normal");
-          doc.text("(IVA inclusa)", priceBoxX + (priceBoxW/2), costY + 14.5, { align: 'center' });
+          doc.text("(IVA inclusa)", priceBoxX + (priceBoxW/2), costY + 12, { align: 'center' });
           
           costY += priceBoxH + 2;
       }
@@ -227,17 +228,7 @@ export const generateLabelPDF = async (prep, pharmacySettings) => {
       doc.line(MARGIN, currentCursorY, LABEL_WIDTH - MARGIN, currentCursorY);
       currentCursorY += 3;
       
-      // Logo Centrato in Basso (Solo per Officinali)
-      let footerBottomLimit = ROLL_HEIGHT - MARGIN;
-      const logoSize = 12;
-      
-      if (isOfficinale && logoDataUrl) {
-          const logoX = (LABEL_WIDTH - logoSize) / 2;
-          const logoY = ROLL_HEIGHT - MARGIN - logoSize;
-          doc.addImage(logoDataUrl, 'PNG', logoX, logoY, logoSize, logoSize);
-          footerBottomLimit -= (logoSize + 2); 
-      }
-
+      const footerBottomLimit = ROLL_HEIGHT - MARGIN;
       const warnWidth = LABEL_WIDTH - (MARGIN*2);
       doc.setFontSize(5); doc.setFont("helvetica", "italic");
       const allWarns = [...(prep.labelWarnings || [])];
