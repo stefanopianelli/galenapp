@@ -718,7 +718,23 @@ function getSettings($pdo) {
 }
 
 function saveSettings($pdo) {
-    $data = json_decode(file_get_contents('php://input'), true);
+    $data = [];
+    $contentType = $_SERVER["CONTENT_TYPE"] ?? '';
+
+    // Gestione Multipart (File Upload)
+    if (strpos($contentType, 'multipart/form-data') !== false) {
+        $data = $_POST;
+        if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
+            $logoName = handleFileUpload('logo');
+            if ($logoName) {
+                $data['logo'] = $logoName;
+            }
+        }
+    } else {
+        // Gestione JSON
+        $data = json_decode(file_get_contents('php://input'), true);
+    }
+
     if (!is_array($data)) {
         sendError(400, 'Dati non validi.');
         return;
@@ -729,14 +745,14 @@ function saveSettings($pdo) {
         $stmt = $pdo->prepare("INSERT INTO settings (settingKey, settingValue) VALUES (:key, :valInsert) ON DUPLICATE KEY UPDATE settingValue = :valUpdate");
         foreach ($data as $key => $value) {
             if (empty($key)) continue;
-            // Se il valore non è stringa o null, lo convertiamo in stringa (ma di solito settings sono stringhe)
+            // Se il valore non è stringa o null, lo convertiamo in stringa
             $valToSave = $value;
             if (!is_string($value) && !is_null($value)) $valToSave = (string)$value;
             
             $stmt->execute([':key' => $key, ':valInsert' => $valToSave, ':valUpdate' => $valToSave]);
         }
         $pdo->commit();
-        echo json_encode(['success' => true]);
+        echo json_encode(['success' => true, 'data' => $data]); // Ritorna i dati salvati (utile per aggiornare stato frontend col logo nuovo)
     } catch (Exception $e) {
         $pdo->rollBack();
         sendError(500, "Errore salvataggio impostazioni: " . $e->getMessage());

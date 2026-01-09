@@ -242,13 +242,30 @@ export default function MainApp() {
   };
 
   const handleSaveSettings = async (newSettings) => {
-      setPharmacySettings(newSettings);
+      let settingsObj = newSettings;
+      let isMultipart = false;
+
+      if (newSettings instanceof FormData) {
+          isMultipart = true;
+          settingsObj = {};
+          newSettings.forEach((value, key) => {
+              // Ignoriamo il file binario nello stato locale immediato
+              if (typeof value === 'string') settingsObj[key] = value;
+          });
+      }
+
+      setPharmacySettings(prev => ({ ...prev, ...settingsObj }));
+      
       if (USE_MOCK_DATA || !AUTH_ENABLED) {
-          localStorage.setItem('galenico_settings', JSON.stringify(newSettings));
+          localStorage.setItem('galenico_settings', JSON.stringify(settingsObj));
       } else {
           try {
-              const result = await createApiRequest('save_settings', newSettings);
+              const result = await createApiRequest('save_settings', newSettings, isMultipart);
               if (result.error) throw new Error(result.error);
+              // Aggiorna con i dati ritornati dal server (es. path del logo nuovo)
+              if (result.data) {
+                  setPharmacySettings(prev => ({ ...prev, ...result.data }));
+              }
           } catch (e) {
               console.error("Errore salvataggio settings:", e);
               alert("Errore durante il salvataggio delle impostazioni.");

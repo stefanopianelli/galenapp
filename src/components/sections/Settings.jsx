@@ -18,10 +18,13 @@ const InputField = ({ label, name, value, onChange, ...props }) => (
 
 const SettingsComponent = ({ settings, setSettings }) => {
   const [localSettings, setLocalSettings] = useState(settings);
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(settings.logo ? `./api/uploads/${settings.logo}` : null);
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     setLocalSettings(settings);
+    if (settings.logo) setLogoPreview(`./api/uploads/${settings.logo}`);
   }, [settings]);
 
   const handleChange = (e) => {
@@ -29,9 +32,28 @@ const SettingsComponent = ({ settings, setSettings }) => {
     setLocalSettings(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleLogoChange = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+          setLogoFile(file);
+          setLogoPreview(URL.createObjectURL(file));
+      }
+  };
+
   const handleSave = (e) => {
     e.preventDefault();
-    setSettings(localSettings);
+    
+    // Usiamo FormData per gestire sia testo che file
+    const formData = new FormData();
+    Object.keys(localSettings).forEach(key => {
+        formData.append(key, localSettings[key]);
+    });
+    
+    if (logoFile) {
+        formData.append('logo', logoFile);
+    }
+
+    setSettings(formData); // setSettings in MainApp deve gestire FormData
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 2000);
   };
@@ -39,7 +61,22 @@ const SettingsComponent = ({ settings, setSettings }) => {
   return (
     <Card className="p-8">
       <form onSubmit={handleSave} className="space-y-6">
-        <h2 className="text-xl font-bold text-slate-800">Anagrafica Farmacia</h2>
+        <div className="flex justify-between items-start">
+            <h2 className="text-xl font-bold text-slate-800">Anagrafica Farmacia</h2>
+            <div className="flex flex-col items-center gap-2">
+                <div className="w-24 h-24 border-2 border-dashed border-slate-300 rounded-md flex items-center justify-center bg-slate-50 overflow-hidden relative">
+                    {logoPreview ? (
+                        <img src={logoPreview} alt="Logo Farmacia" className="w-full h-full object-contain" />
+                    ) : (
+                        <span className="text-xs text-slate-400 text-center px-1">Nessun Logo</span>
+                    )}
+                </div>
+                <label className="cursor-pointer text-xs bg-slate-200 hover:bg-slate-300 px-2 py-1 rounded text-slate-700">
+                    Carica Logo
+                    <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
+                </label>
+            </div>
+        </div>
         
         <InputField label="Nome Farmacia" name="name" value={localSettings.name} onChange={handleChange} />
         
