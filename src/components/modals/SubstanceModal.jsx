@@ -58,6 +58,17 @@ const SubstanceModal = ({
     }));
   };
 
+  const handlePositiveChange = (field, value) => {
+      // Se il campo è vuoto, lo permettiamo (per poter cancellare)
+      if (value === '') {
+          setSubstanceData(prev => ({ ...prev, [field]: value }));
+          return;
+      }
+      const num = parseFloat(value);
+      if (num < 0) return; // Ignora input negativi
+      setSubstanceData(prev => ({ ...prev, [field]: value }));
+  };
+
   const relatedPreparations = substanceData?.id && preparations
     ? preparations.filter(p => 
         p.ingredients.some(ing => Number(ing.id) === Number(substanceData.id))
@@ -65,6 +76,7 @@ const SubstanceModal = ({
     : [];
 
   const isContainer = substanceData.isContainer;
+  const today = new Date().toISOString().split('T')[0];
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -134,12 +146,12 @@ const SubstanceModal = ({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Data Scadenza</label>
-                  <input required type="date" className="w-full border p-2 rounded outline-none disabled:bg-slate-50 disabled:text-slate-500"
+                  <input required type="date" min={today} className="w-full border p-2 rounded outline-none disabled:bg-slate-50 disabled:text-slate-500"
                     value={substanceData.expiry} onChange={e => setSubstanceData({ ...substanceData, expiry: e.target.value })} disabled={isReadOnly} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Data Ricezione</label>
-                  <input type="date" className="w-full border p-2 rounded outline-none disabled:bg-slate-50 disabled:text-slate-500"
+                  <input type="date" max={today} className="w-full border p-2 rounded outline-none disabled:bg-slate-50 disabled:text-slate-500"
                     value={substanceData.receptionDate} onChange={e => setSubstanceData({ ...substanceData, receptionDate: e.target.value })} disabled={isReadOnly} />
                 </div>
                 <div>
@@ -165,15 +177,15 @@ const SubstanceModal = ({
                   </div>
                   <div className="flex-1">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Data DDT</label>
-                    <input type="date" className="w-full border p-2 rounded outline-none disabled:bg-slate-50 disabled:text-slate-500"
+                    <input type="date" max={today} className="w-full border p-2 rounded outline-none disabled:bg-slate-50 disabled:text-slate-500"
                       value={substanceData.ddtDate} onChange={e => setSubstanceData({ ...substanceData, ddtDate: e.target.value })} disabled={isReadOnly} />
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <div className="flex-1 min-w-[150px]">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Quantità</label>
-                    <input required type="number" step={isContainer ? "1" : "0.01"} className="w-full border p-2 rounded outline-none font-bold text-teal-700 disabled:bg-slate-50 disabled:text-slate-500"
-                      value={substanceData.quantity} onChange={e => setSubstanceData({ ...substanceData, quantity: e.target.value })} disabled={isReadOnly} />
+                    <input required type="number" min={isContainer ? "1" : "0.01"} step={isContainer ? "1" : "0.01"} className="w-full border p-2 rounded outline-none font-bold text-teal-700 disabled:bg-slate-50 disabled:text-slate-500"
+                      value={substanceData.quantity} onChange={e => handlePositiveChange('quantity', e.target.value)} disabled={isReadOnly} />
                   </div>
                   <div className="w-20">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Unità</label>
@@ -193,15 +205,15 @@ const SubstanceModal = ({
                   </div>
                   <div className="w-28">
                     <label className="block text-sm font-medium text-slate-700 mb-1 text-xs sm:text-sm">Scorta Min.</label>
-                    <input type="number" step={isContainer ? "1" : "0.01"} className="w-full border p-2 rounded outline-none disabled:bg-slate-50 disabled:text-slate-500"
-                      value={substanceData.minStock || ''} onChange={e => setSubstanceData({ ...substanceData, minStock: e.target.value })} placeholder="Es. 10" disabled={isReadOnly} />
+                    <input type="number" min="0" step={isContainer ? "1" : "0.01"} className="w-full border p-2 rounded outline-none disabled:bg-slate-50 disabled:text-slate-500"
+                      value={substanceData.minStock || ''} onChange={e => handlePositiveChange('minStock', e.target.value)} placeholder="Es. 10" disabled={isReadOnly} />
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Costo Totale (€)</label>
-                    <input type="number" step="0.01" className="w-full border p-2 rounded outline-none disabled:bg-slate-50 disabled:text-slate-500"
-                      value={substanceData.totalCost} onChange={e => setSubstanceData({ ...substanceData, totalCost: e.target.value })} placeholder="0.00" disabled={isReadOnly} />
+                    <input type="number" min="0" step="0.01" className="w-full border p-2 rounded outline-none disabled:bg-slate-50 disabled:text-slate-500"
+                      value={substanceData.totalCost} onChange={e => handlePositiveChange('totalCost', e.target.value)} placeholder="0.00" disabled={isReadOnly} />
                   </div>
                   <div className="w-32">
                     <label className="block text-sm font-medium text-slate-700 mb-1">{isContainer ? "Costo Unitario" : "€/g (Auto)"}</label>

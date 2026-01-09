@@ -31,7 +31,6 @@ const PreparationCard = ({ prep, isExpanded, toggleExpand, handleJumpToStep, han
             </div>
             <div className="flex items-center gap-3 mt-1 text-sm text-slate-500">
               <span className="flex items-center gap-1"><Pill size={12}/> {prep.pharmaceuticalForm}</span>
-              {prep.patient && <span className="flex items-center gap-1 text-slate-600"><User size={12}/> {prep.patient}</span>}
             </div>
           </div>
         </div>
@@ -59,6 +58,7 @@ const PreparationCard = ({ prep, isExpanded, toggleExpand, handleJumpToStep, han
             <div className="space-y-3 text-sm">
               <h4 className="font-bold text-slate-700 uppercase text-xs tracking-wider">Dettagli Ricetta</h4>
               <div className="grid grid-cols-2 gap-y-2">
+                <span className="text-slate-500">Paziente:</span> <span className="font-bold text-slate-800">{prep.patient || '-'}</span>
                 <span className="text-slate-500">Medico:</span> <span className="font-medium">{prep.doctor || '-'}</span>
                 <span className="text-slate-500">Scadenza:</span> <span className="font-medium text-red-600">{prep.expiryDate}</span>
                 <span className="text-slate-500">Quantità:</span> <span className="font-medium">{prep.quantity} {prep.prepUnit}</span>
