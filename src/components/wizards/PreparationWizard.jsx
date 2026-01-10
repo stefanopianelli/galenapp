@@ -408,13 +408,18 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   const calculateTotal = () => {
     const substancesCost = selectedIngredients.reduce((acc, ing) => acc + (ing.costPerGram ? ing.costPerGram * ing.amountUsed : 0), 0);
     const currentFee = parseFloat(professionalFee);
+    
     let additional = 0;
-    const hasHighRisk = selectedIngredients.some(ing => (ing.securityData?.pictograms?.length > 0) && ing.isNarcotic);
-    if (hasHighRisk) additional = 5.00;
-    else {
-      const hasMediumRisk = selectedIngredients.some(ing => (ing.securityData?.pictograms?.length > 0) || ing.isDoping || ing.isNarcotic);
-      if (hasMediumRisk) additional = 2.50;
-    }
+    
+    // Logica cumulativa per categoria (Max 7.50€)
+    const hasPictograms = selectedIngredients.some(ing => ing.securityData?.pictograms?.length > 0);
+    const hasNarcotic = selectedIngredients.some(ing => ing.isNarcotic);
+    const hasDoping = selectedIngredients.some(ing => ing.isDoping);
+
+    if (hasPictograms) additional += 2.50;
+    if (hasNarcotic) additional += 2.50;
+    if (hasDoping) additional += 2.50;
+
     const net = substancesCost + currentFee + additional;
     const vat = net * VAT_RATE;
     return { substances: substancesCost, fee: currentFee, disposal: 0, additional, net, vat, final: net + vat };
