@@ -8,7 +8,9 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "deploy": "node deploy.js"
+    "deploy": "node deploy.js prod",
+    "deploy:prod": "node deploy.js prod",
+    "deploy:test": "node deploy.js test"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",

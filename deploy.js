@@ -9,28 +9,54 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config();
 
-// Definizione Servers
-const servers = [
-    {
-        name: 'Server Primario',
-        host: process.env.FTP_HOST,
-        username: process.env.FTP_USER,
-        password: process.env.FTP_PASSWORD,
-        port: 22,
-        remoteDir: process.env.FTP_REMOTE_DIR || '/'
-    }
-];
+// Recupera l'ambiente target dagli argomenti (default: prod)
+const targetEnv = process.argv[2] || 'prod';
 
-// Aggiungi Server 2 se configurato
-if (process.env.FTP2_HOST && process.env.FTP2_USER) {
+console.log(`🎯 Target Environment: ${targetEnv.toUpperCase()}`);
+
+const servers = [];
+
+if (targetEnv === 'test') {
+    if (!process.env.FTP_TEST_HOST) {
+        console.error('❌ Errore: Credenziali FTP_TEST mancanti nel file .env');
+        process.exit(1);
+    }
     servers.push({
-        name: 'Server Secondario',
-        host: process.env.FTP2_HOST,
-        username: process.env.FTP2_USER,
-        password: process.env.FTP2_PASSWORD,
+        name: 'Ambiente di TEST',
+        host: process.env.FTP_TEST_HOST,
+        username: process.env.FTP_TEST_USER,
+        password: process.env.FTP_TEST_PASSWORD,
         port: 22,
-        remoteDir: process.env.FTP2_REMOTE_DIR || '/'
+        remoteDir: process.env.FTP_TEST_REMOTE_DIR || '/'
     });
+} else {
+    // PROD (Farmacia 1)
+    if (process.env.FTP_HOST) {
+        servers.push({
+            name: 'Farmacia 1 (Prod)',
+            host: process.env.FTP_HOST,
+            username: process.env.FTP_USER,
+            password: process.env.FTP_PASSWORD,
+            port: 22,
+            remoteDir: process.env.FTP_REMOTE_DIR || '/'
+        });
+    }
+    // PROD (Farmacia 2)
+    if (process.env.FTP2_HOST) {
+        servers.push({
+            name: 'Farmacia 2 (Prod)',
+            host: process.env.FTP2_HOST,
+            username: process.env.FTP2_USER,
+            password: process.env.FTP2_PASSWORD,
+            port: 22,
+            remoteDir: process.env.FTP2_REMOTE_DIR || '/'
+        });
+    }
+}
+
+if (servers.length === 0) {
+    console.error('❌ Nessun server configurato per questo ambiente.');
+    process.exit(1);
 }
 
 const runBuild = () => {
@@ -99,7 +125,7 @@ const deployToServer = async (serverConfig) => {
 
     } catch (err) {
         console.error(`❌ [ERROR] Fallito deploy su ${serverConfig.name}:`, err.message);
-        throw err; // Rilancia per fermare o gestire
+        throw err; 
     } finally {
         await sftp.end();
     }
@@ -107,10 +133,10 @@ const deployToServer = async (serverConfig) => {
 
 const main = async () => {
     try {
-        // 1. Build una volta sola
+        // 1. Build unica
         await runBuild();
 
-        // 2. Deploy su tutti i server configurati
+        // 2. Deploy su tutti i server del target
         let successCount = 0;
         for (const server of servers) {
             try {
@@ -130,7 +156,7 @@ const main = async () => {
             process.exit(1);
         }
     } catch (error) {
-        console.error('\n❌ PROCESSO DI BUILD FALLITO. Deploy annullato.');
+        console.error('\n❌ PROCESSO INTERROTTO:', error.message);
         process.exit(1);
     }
 };
