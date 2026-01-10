@@ -15,7 +15,7 @@ const LoginPage = () => {
     setError('');
     const { success, message } = await login(username, password);
     if (success) {
-      navigate('/'); 
+      navigate('/app'); 
     } else {
       setError(message);
     }
