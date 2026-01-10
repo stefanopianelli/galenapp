@@ -63,8 +63,6 @@ export const generateLabelPDF = async (prep, pharmacySettings) => {
           ratio = parseFloat(batchData.productQuantity) / parseFloat(prep.quantity);
       }
 
-      let cursorY = MARGIN + 3;
-
       // --- 1. HEADER (Farmacia SX, Dati Ricetta Centro-DX, QR DX) ---
       const headerLeftW = 50;
       const qrY = MARGIN + 1.5; 
@@ -135,7 +133,7 @@ export const generateLabelPDF = async (prep, pharmacySettings) => {
       const colSplitX = isOfficinale ? (LABEL_WIDTH * 0.65) : (LABEL_WIDTH / 2);
       
       // SX: Composizione
-      doc.setFontSize(isOfficinale ? 7 : 6);
+      doc.setFontSize(7); // Portato a 7 sia per Magistrale che Officinale
       doc.setFont("helvetica", "bold");
       doc.text("Composizione:", MARGIN, currentCursorY);
       currentCursorY += 3.5;
@@ -153,18 +151,19 @@ export const generateLabelPDF = async (prep, pharmacySettings) => {
               const nameLines = doc.splitTextToSize(nameText, maxNameWidth);
               doc.text(nameLines, MARGIN, currentCursorY);
               doc.text(qtyText, colSplitX - 2, currentCursorY, { align: 'right' });
-              currentCursorY += (nameLines.length * (isOfficinale ? 3.5 : 2.5));
+              currentCursorY += (nameLines.length * (isOfficinale ? 3.5 : 3.0));
           }
       });
 
       // DX: Costi
       let costY = bodyStartY;
       if (!isOfficinale) {
-          // Magistrale Standard
-          doc.setFontSize(6); doc.setFont("helvetica", "bold");
+          doc.setFontSize(7); // Aumentato da 6
+          doc.setFont("helvetica", "bold");
           doc.text("Dettaglio Costi:", colSplitX + 2, costY);
           costY += 3;
-          doc.setFontSize(5); doc.setFont("helvetica", "normal");
+          doc.setFontSize(6); // Aumentato da 5
+          doc.setFont("helvetica", "normal");
 
           let costMatP = 0, costCont = 0;
           prep.ingredients.forEach(ing => {
@@ -188,7 +187,7 @@ export const generateLabelPDF = async (prep, pharmacySettings) => {
               doc.setFont("helvetica", b ? "bold" : "normal");
               doc.text(l, colSplitX + 2, costY);
               doc.text(`€ ${v.toFixed(2)}`, LABEL_WIDTH - MARGIN, costY, { align: 'right' });
-              costY += 2.5;
+              costY += 3; // Interlinea aumentata
           };
 
           printL("Mat. Prime:", costMatP);
@@ -196,13 +195,14 @@ export const generateLabelPDF = async (prep, pharmacySettings) => {
           printL("Onorario Prof.:", fee);
           if (add > 0) printL("Addizionali:", add);
           printL(`IVA (${(VAT_RATE*100).toFixed(0)}%):`, vat);
-          costY += 1.5; doc.setFontSize(7);
+          costY += 1.5; 
+          doc.setFontSize(8); // Aumentato da 7
           printL("TOTALE:", tot, true);
       } else {
-          // --- OFFICINALE ---
+          // Officinale Box Prezzo
           const priceBoxX = colSplitX + 2;
           const priceBoxW = LABEL_WIDTH - MARGIN - priceBoxX;
-          const priceBoxH = 14; // Ridotto da 18
+          const priceBoxH = 14;
           
           doc.setDrawColor(200);
           doc.setFillColor(245, 245, 245);
@@ -221,32 +221,38 @@ export const generateLabelPDF = async (prep, pharmacySettings) => {
       }
 
       doc.setLineWidth(0.1); doc.setDrawColor(0);
-      doc.line(colSplitX, bodyStartY - 2, colSplitX, Math.max(currentCursorY, costY) + 2);
-      currentCursorY = Math.max(currentCursorY, costY) + 4; 
+      // Linea verticale finisce esattamente col contenuto più lungo (compensando l'ultimo incremento cursore)
+      const endOfContentY = Math.max(currentCursorY, costY);
+      doc.line(colSplitX, bodyStartY - 2, colSplitX, endOfContentY - 2.5);
+      
+      currentCursorY = endOfContentY - 1; // Footer inizia subito dopo il testo visivo
 
       // --- 4. FOOTER ---
       doc.line(MARGIN, currentCursorY, LABEL_WIDTH - MARGIN, currentCursorY);
-      currentCursorY += 3;
+      currentCursorY += 2; // Spazio ridotto dopo la riga
       
       const footerBottomLimit = ROLL_HEIGHT - MARGIN;
       const warnWidth = LABEL_WIDTH - (MARGIN*2);
       doc.setFontSize(5); doc.setFont("helvetica", "italic");
-      const allWarns = [...(prep.labelWarnings || [])];
-      if (prep.customLabelWarning) allWarns.push(prep.customLabelWarning.trim());
       
-      if (allWarns.length > 0) {
-          let warnY = currentCursorY;
-          const splitWarns = doc.splitTextToSize(allWarns.join(" - "), warnWidth);
+      const labelWarnings = prep.labelWarnings || [];
+      const customWarn = prep.customLabelWarning;
+      
+      if (labelWarnings.length > 0 || (customWarn && customWarn.trim() !== '')) {
+          const allWarns = [...labelWarnings];
+          if (customWarn && customWarn.trim() !== '') allWarns.push(customWarn.trim());
+          const combinedText = allWarns.join(" - ");
+          const splitWarns = doc.splitTextToSize(combinedText, warnWidth);
           
+          let warnY = currentCursorY;
           splitWarns.forEach(line => {
-              if (warnY + 2 > footerBottomLimit) return; // Stop prima del logo
+              if (warnY + 2 > footerBottomLimit) return;
               doc.text(line, MARGIN, warnY);
               warnY += 2.2;
           });
       }
   };
 
-  // Esecuzione
   if (prep.prepType === 'officinale' && prep.batches && prep.batches.length > 0) {
       prep.batches.forEach((batch, index) => {
           if (index > 0) doc.addPage();
