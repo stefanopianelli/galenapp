@@ -112,7 +112,7 @@ function checkPermission($action, $role) {
     if ($action === 'login') return true;
     
     // Azioni riservate esclusivamente agli ADMIN
-    $adminOnlyActions = ['get_users', 'create_user', 'update_user', 'delete_user', 'clear_logs'];
+    $adminOnlyActions = ['get_users', 'create_user', 'update_user', 'delete_user', 'clear_logs', 'delete_log'];
     if (in_array($action, $adminOnlyActions) && $role !== 'admin') return false;
 
     // Ruoli definiti
@@ -185,6 +185,10 @@ try {
             break;
         case 'clear_logs':
             if ($method === 'POST') clearLogs($pdo);
+            else sendError(405, 'Metodo non consentito.');
+            break;
+        case 'delete_log':
+            if ($method === 'POST') deleteLog($pdo);
             else sendError(405, 'Metodo non consentito.');
             break;
         case 'get_users':
@@ -575,6 +579,20 @@ function clearLogs($pdo) {
     } catch (\Exception $e) {
         $pdo->rollBack();
         sendError(500, "Errore cancellazione log: " . $e->getMessage());
+    }
+}
+
+function deleteLog($pdo) {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $id = $data['id'] ?? null;
+    if (!$id) { sendError(400, 'ID mancante.'); return; }
+
+    try {
+        $stmt = $pdo->prepare("DELETE FROM `logs` WHERE `id` = ?");
+        $stmt->execute([$id]);
+        echo json_encode(['success' => true]);
+    } catch (Exception $e) {
+        sendError(500, "Errore eliminazione log: " . $e->getMessage());
     }
 }
 

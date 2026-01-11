@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
-import { Trash2, Calendar, AlertTriangle } from 'lucide-react';
+import { Trash2, Calendar, AlertTriangle, X } from 'lucide-react';
 
-const Logs = ({ logs, preparations, handleShowPreparation, handleClearLogs, canEdit }) => {
+const Logs = ({ logs, preparations, handleShowPreparation, handleClearLogs, handleDeleteLog, canEdit }) => {
   const [showClearPanel, setShowClearPanel] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -23,6 +23,12 @@ const Logs = ({ logs, preparations, handleShowPreparation, handleClearLogs, canE
         {parts[1]}
       </span>
     );
+  };
+
+  const handleConfirmDelete = (id) => {
+      if (window.confirm("Sei sicuro di voler eliminare questa riga di log? Questa azione non ripristina la giacenza, elimina solo la traccia.")) {
+          handleDeleteLog(id);
+      }
   };
 
   const handleClearByDate = () => {
@@ -100,6 +106,7 @@ const Logs = ({ logs, preparations, handleShowPreparation, handleClearLogs, canE
                 <th className="px-6 py-3 font-semibold whitespace-nowrap">N.I.</th>
                 <th className="px-6 py-3 font-semibold text-right whitespace-nowrap">Quantità</th>
                 <th className="px-6 py-3 font-semibold whitespace-nowrap">Note</th>
+                <th className="px-6 py-3 font-semibold text-center whitespace-nowrap">Azioni</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -117,6 +124,17 @@ const Logs = ({ logs, preparations, handleShowPreparation, handleClearLogs, canE
                     )}
                   </td>
                   <td className="px-6 py-3 text-slate-500 text-xs whitespace-nowrap">{renderNote(log.notes)}</td>
+                  <td className="px-6 py-3 text-center whitespace-nowrap">
+                      {canEdit && (
+                          <button 
+                              onClick={() => handleConfirmDelete(log.id)} 
+                              className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-full transition-colors"
+                              title="Elimina riga"
+                          >
+                              <X size={16} />
+                          </button>
+                      )}
+                  </td>
                 </tr>
               ))}
             </tbody>

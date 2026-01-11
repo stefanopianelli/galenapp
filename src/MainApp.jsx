@@ -260,6 +260,21 @@ export default function MainApp() {
     }
   };
 
+  const handleDeleteLog = async (id) => {
+      if (USE_MOCK_DATA || !AUTH_ENABLED) {
+          setLogs(logs.filter(log => log.id !== id));
+      } else {
+          try {
+              const result = await createApiRequest('delete_log', { id });
+              if (result.error) throw new Error(result.error);
+              await loadData();
+          } catch (error) {
+              console.error("Errore eliminazione log:", error);
+              alert("Errore durante l'eliminazione del log.");
+          }
+      }
+  };
+
   const handleSaveSettings = async (newSettings) => {
       let settingsObj = newSettings;
       let isMultipart = false;
@@ -526,7 +541,7 @@ export default function MainApp() {
       case 'preparation':
         return <PreparationWizard inventory={inventory} preparations={preparations} onComplete={handleSavePreparation} initialData={editingPrep} pharmacySettings={pharmacySettings} initialStep={initialWizardStep} canEdit={canEdit} onPrintLabel={handleOpenPrintModal} />;
       case 'logs':
-        return <Logs logs={logs} preparations={preparations} handleShowPreparation={handleShowPreparation} handleClearLogs={handleClearLogs} canEdit={canEdit} />;
+        return <Logs logs={logs} preparations={preparations} handleShowPreparation={handleShowPreparation} handleClearLogs={handleClearLogs} handleDeleteLog={handleDeleteLog} canEdit={canEdit} />;
       case 'reporting':
         return <Reporting preparations={preparations} inventory={inventory} />;
       case 'settings':
