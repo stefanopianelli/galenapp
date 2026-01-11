@@ -14,6 +14,7 @@ import {
   Settings,
   Shield,
   QrCode,
+  BarChart2,
 } from 'lucide-react';
 
 const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true';
@@ -27,6 +28,7 @@ import Dashboard from './components/sections/Dashboard';
 import Inventory from './components/sections/Inventory';
 import PreparationsLog from './components/sections/PreparationsLog';
 import Logs from './components/sections/Logs';
+import Reporting from './components/sections/Reporting';
 import AIAssistant from './components/sections/AIAssistant';
 import PreparationWizard from './components/wizards/PreparationWizard';
 import SubstanceModal from './components/modals/SubstanceModal';
@@ -504,6 +506,8 @@ export default function MainApp() {
         return <PreparationWizard inventory={inventory} preparations={preparations} onComplete={handleSavePreparation} initialData={editingPrep} pharmacySettings={pharmacySettings} initialStep={initialWizardStep} canEdit={canEdit} />;
       case 'logs':
         return <Logs logs={logs} preparations={preparations} handleShowPreparation={handleShowPreparation} handleClearLogs={handleClearLogs} canEdit={canEdit} />;
+      case 'reporting':
+        return <Reporting preparations={preparations} inventory={inventory} />;
       case 'settings':
         return <SettingsComponent settings={pharmacySettings} setSettings={handleSaveSettings} />;
       case 'user_management':
@@ -525,6 +529,7 @@ export default function MainApp() {
           {canEdit && <SidebarItem icon={<Pill size={20} />} label={editingPrep ? "Modifica Prep." : "Nuova Prep. (+)"} active={activeTab === 'preparation'} onClick={handleNewPreparation} />}
           <SidebarItem icon={<LayoutList size={20} />} label="Registro Preparazioni" active={activeTab === 'preparations_log'} onClick={() => handleTabChange('preparations_log')} />
           <SidebarItem icon={<History size={20} />} label="Registro Movimenti" active={activeTab === 'logs'} onClick={() => handleTabChange('logs')} />
+          {canEdit && <SidebarItem icon={<BarChart2 size={20} />} label="Analisi & Report" active={activeTab === 'reporting'} onClick={() => handleTabChange('reporting')} />}
                     <div className="pt-4 mt-4 border-t border-slate-700">
                                   <SidebarItem icon={<Sparkles size={20} className="text-purple-400" />} label="Assistente IA" active={activeTab === 'ai-assistant'} onClick={() => handleTabChange('ai-assistant')} />
                                   <SidebarItem icon={<Settings size={20} />} label="Impostazioni" active={activeTab === 'settings'} onClick={() => handleTabChange('settings')} />
@@ -549,6 +554,7 @@ export default function MainApp() {
             {activeTab === 'preparation' && (editingPrep ? `Modifica: ${editingPrep.prepNumber}` : 'Foglio di Lavorazione')}
             {activeTab === 'preparations_log' && 'Registro Generale Preparazioni'}
             {activeTab === 'logs' && 'Registro di Carico/Scarico'}
+            {activeTab === 'reporting' && 'Analisi e Reportistica'}
             {activeTab === 'ai-assistant' && 'Assistente Galenico IA'}
             {activeTab === 'settings' && 'Impostazioni Farmacia'}
             {activeTab === 'user_management' && 'Gestione Utenti Laboratorio'}
