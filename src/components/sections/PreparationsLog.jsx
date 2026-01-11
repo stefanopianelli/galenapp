@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import { Hash, Calendar, Pencil, Trash2, Filter, X, Search, ChevronDown, ChevronUp, Stethoscope, FlaskConical, Printer, Copy, User, Pill, ArrowRight } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
-import { generateLabelPDF } from '../../services/labelGenerator';
 
-const PreparationCard = ({ prep, isExpanded, toggleExpand, handleJumpToStep, handleDeletePreparation, handleDuplicatePreparation, canEdit, pharmacySettings }) => {
+const PreparationCard = ({ prep, isExpanded, toggleExpand, handleJumpToStep, handleDeletePreparation, handleDuplicatePreparation, canEdit, pharmacySettings, onPrintLabel }) => {
   return (
     <div className={`border rounded-lg transition-all duration-200 ${isExpanded ? 'bg-white border-teal-200 shadow-md ring-1 ring-teal-100' : 'bg-white border-slate-200 hover:border-teal-200'}`}>
       {/* HEADER CARD (Sempre visibile) */}
@@ -89,7 +88,7 @@ const PreparationCard = ({ prep, isExpanded, toggleExpand, handleJumpToStep, han
             <div className="flex flex-col gap-2 justify-start">
               <h4 className="font-bold text-slate-700 uppercase text-xs tracking-wider mb-1">Azioni Rapide</h4>
               <button 
-                onClick={(e) => { e.stopPropagation(); generateLabelPDF(prep, pharmacySettings); }} 
+                onClick={(e) => { e.stopPropagation(); onPrintLabel(prep); }} 
                 className="w-full text-left px-3 py-2 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 flex items-center gap-2 transition-colors text-sm font-medium"
               >
                 <Printer size={16} /> Stampa Etichetta
@@ -129,7 +128,7 @@ const PreparationCard = ({ prep, isExpanded, toggleExpand, handleJumpToStep, han
   );
 };
 
-const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparation, handleDuplicatePreparation, activeFilter, clearFilter, searchTerm, setSearchTerm, prepTypeFilter, setPrepTypeFilter, canEdit, pharmacySettings }) => {
+const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparation, handleDuplicatePreparation, activeFilter, clearFilter, searchTerm, setSearchTerm, prepTypeFilter, setPrepTypeFilter, canEdit, pharmacySettings, onPrintLabel }) => {
   const [expandedId, setExpandedId] = useState(null);
   const filteredPrepName = activeFilter && preparations.length === 1 ? preparations[0].name : null;
 
@@ -192,6 +191,7 @@ const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparati
               handleDuplicatePreparation={handleDuplicatePreparation}
               canEdit={canEdit}
               pharmacySettings={pharmacySettings}
+              onPrintLabel={onPrintLabel}
             />
           ))
         ) : (

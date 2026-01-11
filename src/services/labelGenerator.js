@@ -3,8 +3,6 @@ import QRCode from 'qrcode';
 import { VAT_RATE } from '../constants/tariffs'; 
 
 // Configurazione standard Landscape per rotolo 62mm
-const ROLL_HEIGHT = 62; 
-const LABEL_WIDTH = 100;
 const MARGIN = 3;
 
 // Helper per caricare immagini
@@ -25,11 +23,17 @@ const getImageDataUrl = (url) => {
   });
 };
 
-export const generateLabelPDF = async (prep, pharmacySettings) => {
+export const generateLabelPDF = async (prep, pharmacySettings, rollFormat = 62) => {
+  const CURRENT_ROLL_HEIGHT = parseInt(rollFormat) || 62;
+  const isSmall = CURRENT_ROLL_HEIGHT < 40; 
+  const isMedium = CURRENT_ROLL_HEIGHT >= 40 && CURRENT_ROLL_HEIGHT < 60;
+  
+  const CURRENT_LABEL_WIDTH = isSmall ? 130 : 100;
+
   const doc = new jsPDF({
     orientation: 'l',
     unit: 'mm',
-    format: [LABEL_WIDTH, ROLL_HEIGHT]
+    format: [CURRENT_LABEL_WIDTH, CURRENT_ROLL_HEIGHT]
   });
 
   const pharmacyName = (pharmacySettings.name || "Farmacia Galenica").toUpperCase();
@@ -39,227 +43,253 @@ export const generateLabelPDF = async (prep, pharmacySettings) => {
       pharmacySettings.phone
   ].filter(Boolean).join(" - ");
 
-  // Caricamento Logo
   let logoDataUrl = null;
   if (pharmacySettings.logo) {
       logoDataUrl = await getImageDataUrl(`./api/uploads/${pharmacySettings.logo}`);
   }
 
-  // Generazione QR Code
   let qrDataUrl = null;
-  const qrSize = 9; 
+  const qrSize = isSmall ? 0 : (isMedium ? 8 : 9); 
   try {
       const qrData = JSON.stringify({ type: 'prep', id: prep.id });
       qrDataUrl = await QRCode.toDataURL(qrData, { margin: 0 });
   } catch (e) { console.error("QR Error", e); }
 
-  // Funzione che disegna una singola etichetta
-  const drawLabelContent = (batchData = null) => {
+  // Funzione CORE di disegno
+  // Accetta il documento su cui disegnare, l'offset verticale e i dati del batch
+  const drawOnDoc = (targetDoc, startOffsetY, batchData) => {
       const isOfficinale = !!batchData;
-      
-      // Calcolo fattore di scala per Officinali
       let ratio = 1;
       if (isOfficinale && prep.quantity > 0) {
           ratio = parseFloat(batchData.productQuantity) / parseFloat(prep.quantity);
       }
 
-      // --- 1. HEADER (Farmacia SX, Dati Ricetta Centro-DX, QR DX) ---
-      const headerLeftW = 50;
-      const qrY = MARGIN + 1.5; 
-      const textPharmacyY = MARGIN + 4; 
-      const textNpY = MARGIN + 3.5; 
+      // --- CONFIGURAZIONE FONT & SPAZI ---
+      const F_H1 = isSmall ? 8 : (isMedium ? 9 : 10); 
+      const F_H2 = isSmall ? 6 : (isMedium ? 6 : 7); 
+      const F_TITLE = isSmall ? 8 : (isMedium ? 10 : (isOfficinale ? 12 : 10)); 
+      const F_BODY = isSmall ? 5 : (isMedium ? 6 : 7); 
+      const F_COST = isSmall ? 5 : (isMedium ? 5 : 6); 
+      const F_WARN = isSmall ? 4 : (isMedium ? 4.5 : 5); 
+      
+      const GAP_H = isSmall ? 2.5 : (isMedium ? 3 : 3.5); 
+      const GAP_B = isSmall ? 2.2 : (isMedium ? 2.8 : 3.5); 
 
-      // QR Code (Alto a Destra)
-      if (qrDataUrl) {
-          doc.addImage(qrDataUrl, 'PNG', LABEL_WIDTH - MARGIN - qrSize, qrY, qrSize, qrSize);
+      // Applico l'offset iniziale a cursorY
+      let cursorY = MARGIN + (isSmall ? 1 : 3) + startOffsetY;
+
+      // --- 1. HEADER ---
+      const headerLeftW = isSmall ? 70 : 50;
+      const textPharmacyY = cursorY; 
+      const textNpY = cursorY; 
+
+      // QR Code
+      if (qrDataUrl && !isSmall) {
+          targetDoc.addImage(qrDataUrl, 'PNG', CURRENT_LABEL_WIDTH - MARGIN - qrSize, MARGIN + (isMedium ? 1 : 1.5) + startOffsetY, qrSize, qrSize);
       }
 
-      // SX: Farmacia
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.text(pharmacyName, MARGIN, textPharmacyY);
+      // Farmacia
+      targetDoc.setFontSize(F_H1); targetDoc.setFont("helvetica", "bold");
+      targetDoc.text(pharmacyName, MARGIN, textPharmacyY);
       
-      doc.setFontSize(5);
-      doc.setFont("helvetica", "normal");
-      const splitInfo = doc.splitTextToSize(pharmacyInfo, headerLeftW);
-      doc.text(splitInfo, MARGIN, textPharmacyY + 2.5);
+      if (!isSmall) {
+          targetDoc.setFontSize(5); targetDoc.setFont("helvetica", "normal");
+          const splitInfo = targetDoc.splitTextToSize(pharmacyInfo, headerLeftW);
+          targetDoc.text(splitInfo, MARGIN, textPharmacyY + 2.5);
+      }
 
       // DX: N.P. & Data
-      const rightAlignX = LABEL_WIDTH - MARGIN - qrSize - 2;
-      doc.setFontSize(7);
-      doc.setFont("helvetica", "bold");
-      doc.text(`N.P.: ${prep.prepNumber}`, rightAlignX, textNpY, { align: 'right' });
-      
-      doc.setFont("helvetica", "normal");
-      doc.text(`Data: ${new Date(prep.date).toLocaleDateString('it-IT')}`, rightAlignX, textNpY + 3.5, { align: 'right' });
-      
-      doc.setFont("helvetica", "bold");
-      doc.text(`SCADENZA: ${new Date(prep.expiryDate).toLocaleDateString('it-IT')}`, rightAlignX, textNpY + 7, { align: 'right' });
+      const rightAlignX = CURRENT_LABEL_WIDTH - MARGIN - (isSmall ? 0 : (qrSize + 2));
+      targetDoc.setFontSize(F_H2); targetDoc.setFont("helvetica", "bold");
+      targetDoc.text(`N.P.: ${prep.prepNumber}`, rightAlignX, textNpY, { align: 'right' });
+      targetDoc.setFont("helvetica", "normal");
+      targetDoc.text(`Data: ${new Date(prep.date).toLocaleDateString('it-IT')}`, rightAlignX, textNpY + GAP_H, { align: 'right' });
+      targetDoc.setFont("helvetica", "bold");
+      targetDoc.text(`Scad: ${new Date(prep.expiryDate).toLocaleDateString('it-IT')}`, rightAlignX, textNpY + (GAP_H * 2), { align: 'right' });
 
-      // Sotto Farmacia: Paziente/Medico o Info Lotto
-      const infoH = splitInfo.length * 2.2;
-      let pzDocY = textPharmacyY + 2.5 + infoH + 2; 
-      pzDocY = Math.max(pzDocY, textPharmacyY + 9);
-
+      // Sotto Farmacia
+      let pzDocY = textPharmacyY + (isSmall ? 4 : 9); 
       if (!isOfficinale) {
-          doc.setFontSize(6);
-          doc.setFont("helvetica", "normal");
-          if (prep.patient) { doc.text(`Paziente: ${prep.patient}`, MARGIN, pzDocY); pzDocY += 2.5; }
-          if (prep.doctor) { doc.text(`Medico: ${prep.doctor}`, MARGIN, pzDocY); pzDocY += 1; }
+          targetDoc.setFontSize(isSmall ? 5 : 6); targetDoc.setFont("helvetica", "normal");
+          if (prep.patient) { targetDoc.text(`Pz: ${prep.patient}`, MARGIN, pzDocY); pzDocY += (isSmall ? 2 : 2.5); }
+          if (prep.doctor) { targetDoc.text(`Dr: ${prep.doctor}`, MARGIN, pzDocY); pzDocY += 1; }
       } else {
-          pzDocY += 3; // Spazio extra ridotto
-          doc.setFontSize(7); doc.setFont("helvetica", "bold");
+          targetDoc.setFontSize(isSmall ? 6 : 7); targetDoc.setFont("helvetica", "bold");
           const container = prep.ingredients.find(i => String(i.id) === String(batchData.containerId));
-          const containerName = container ? container.name : "Confezione";
-          doc.text(`Lotto: ${batchData.productQuantity} ${prep.prepUnit} in ${containerName}`, MARGIN, pzDocY);
-          pzDocY += 2.5;
+          const containerName = container ? container.name : "Conf.";
+          const lotText = `Lotto: ${batchData.productQuantity} ${prep.prepUnit}` + (isSmall ? '' : ` in ${containerName}`);
+          targetDoc.text(lotText, MARGIN, pzDocY);
+          pzDocY += (isMedium ? 2 : 2.5);
       }
 
       // Divider
-      let currentCursorY = Math.max(pzDocY + 0.5, textNpY + 10.5); 
-      doc.setLineWidth(0.1); doc.setDrawColor(0);
-      doc.line(MARGIN, currentCursorY, LABEL_WIDTH - MARGIN, currentCursorY);
-      currentCursorY += 4; 
+      let currentCursorY = Math.max(pzDocY + 0.5, textNpY + (GAP_H * 3)); 
+      targetDoc.setLineWidth(0.1); targetDoc.setDrawColor(0);
+      targetDoc.line(MARGIN, currentCursorY, CURRENT_LABEL_WIDTH - MARGIN, currentCursorY);
+      currentCursorY += (isSmall ? 2 : (isMedium ? 3.5 : 4)); 
 
-      // --- 2. TITOLO PREPARAZIONE ---
-      doc.setFontSize(isOfficinale ? 12 : 10);
-      doc.setFont("helvetica", "bold");
-      const splitName = doc.splitTextToSize(prep.name, LABEL_WIDTH - (MARGIN * 2));
-      doc.text(splitName, LABEL_WIDTH / 2, currentCursorY, { align: "center" });
-      currentCursorY += (splitName.length * (isOfficinale ? 5 : 4)) + 1;
+      // --- 2. TITOLO ---
+      targetDoc.setFontSize(F_TITLE); targetDoc.setFont("helvetica", "bold");
+      const splitName = targetDoc.splitTextToSize(prep.name, CURRENT_LABEL_WIDTH - (MARGIN * 2));
+      targetDoc.text(splitName, CURRENT_LABEL_WIDTH / 2, currentCursorY, { align: "center" });
+      currentCursorY += (splitName.length * (isOfficinale ? (isSmall ? 3.5 : 5) : (isSmall ? 3 : 4))) + 1;
 
-      // --- 3. CORPO (Ingredienti SX, Costi DX) ---
+      // --- 3. CORPO ---
       const bodyStartY = currentCursorY;
-      const colSplitX = isOfficinale ? (LABEL_WIDTH * 0.65) : (LABEL_WIDTH / 2);
+      const colSplitX = isOfficinale ? (CURRENT_LABEL_WIDTH * 0.65) : (CURRENT_LABEL_WIDTH / 2);
       
-      // SX: Composizione
-      doc.setFontSize(7); // Portato a 7 sia per Magistrale che Officinale
-      doc.setFont("helvetica", "bold");
-      doc.text("Composizione:", MARGIN, currentCursorY);
-      currentCursorY += 3.5;
+      targetDoc.setFontSize(F_BODY); targetDoc.setFont("helvetica", "bold");
+      targetDoc.text("Composizione:", MARGIN, currentCursorY);
+      currentCursorY += GAP_B;
       
       prep.ingredients.forEach(ing => {
           if (!ing.isContainer) {
               const isExcipient = ing.isExcipient === true || ing.isExcipient == 1;
-              doc.setFont("helvetica", isExcipient ? "italic" : "bold");
+              targetDoc.setFont("helvetica", isExcipient ? "italic" : "bold");
               const nameText = isExcipient ? `${ing.name} (ecc.)` : ing.name;
-              
               const qtyVal = ing.amountUsed * ratio;
               const qtyText = `${Number(qtyVal).toFixed(qtyVal < 0.1 ? 3 : 2)}${ing.unit}`;
-              
-              const maxNameWidth = (colSplitX - MARGIN - 2) - 14;
-              const nameLines = doc.splitTextToSize(nameText, maxNameWidth);
-              doc.text(nameLines, MARGIN, currentCursorY);
-              doc.text(qtyText, colSplitX - 2, currentCursorY, { align: 'right' });
-              currentCursorY += (nameLines.length * (isOfficinale ? 3.5 : 3.0));
+              const maxNameWidth = (colSplitX - MARGIN - 2) - (isSmall ? 8 : 12);
+              const nameLines = targetDoc.splitTextToSize(nameText, maxNameWidth);
+              targetDoc.text(nameLines, MARGIN, currentCursorY);
+              targetDoc.text(qtyText, colSplitX - 2, currentCursorY, { align: 'right' });
+              currentCursorY += (nameLines.length * GAP_B);
           }
       });
 
       // DX: Costi
       let costY = bodyStartY;
       if (!isOfficinale) {
-          doc.setFontSize(7); // Aumentato da 6
-          doc.setFont("helvetica", "bold");
-          doc.text("Dettaglio Costi:", colSplitX + 2, costY);
-          costY += 3;
-          doc.setFontSize(6); // Aumentato da 5
-          doc.setFont("helvetica", "normal");
+          if (!isSmall) {
+              targetDoc.setFontSize(F_BODY); targetDoc.setFont("helvetica", "bold");
+              targetDoc.text("Dettaglio Costi:", colSplitX + 2, costY);
+              costY += 3;
+              targetDoc.setFontSize(F_COST); targetDoc.setFont("helvetica", "normal");
 
-          let costMatP = 0, costCont = 0;
-          prep.ingredients.forEach(ing => {
-              const c = (ing.amountUsed * (ing.costPerGram || 0));
-              if (ing.isContainer) costCont += c; else costMatP += c;
-          });
+              let costMatP = 0, costCont = 0;
+              prep.ingredients.forEach(ing => { const c = (ing.amountUsed * (ing.costPerGram || 0)); if (ing.isContainer) costCont += c; else costMatP += c; });
+              let fee = 0, add = 0, vat = 0, tot = parseFloat(prep.totalPrice || 0);
+              if (prep.pricingData) { fee = parseFloat(prep.pricingData.fee || 0); add = parseFloat(prep.pricingData.additional || 0); vat = parseFloat(prep.pricingData.vat || 0); tot = parseFloat(prep.pricingData.final || tot); } 
+              else { const net = tot / (1 + VAT_RATE); vat = tot - net; fee = net - (costMatP + costCont); }
 
-          let fee = 0, add = 0, vat = 0, tot = parseFloat(prep.totalPrice || 0);
-          if (prep.pricingData) {
-              fee = parseFloat(prep.pricingData.fee || 0);
-              add = parseFloat(prep.pricingData.additional || 0);
-              vat = parseFloat(prep.pricingData.vat || 0);
-              tot = parseFloat(prep.pricingData.final || tot);
+              const printL = (l, v, b = false) => {
+                  targetDoc.setFont("helvetica", b ? "bold" : "normal");
+                  targetDoc.text(l, colSplitX + 2, costY);
+                  targetDoc.text(`€ ${v.toFixed(2)}`, CURRENT_LABEL_WIDTH - MARGIN, costY, { align: 'right' });
+                  costY += (isMedium ? 2.2 : 2.5);
+              };
+
+              printL("Mat. Prime:", costMatP);
+              if (costCont > 0) printL("Contenitori:", costCont);
+              printL("Onorario Prof.:", fee);
+              if (add > 0) printL("Addizionali:", add);
+              printL(`IVA (${(VAT_RATE*100).toFixed(0)}%):`, vat);
+              costY += 1; targetDoc.setFontSize(F_BODY + 1);
+              printL("TOTALE:", tot, true);
           } else {
-              const net = tot / (1 + VAT_RATE);
-              vat = tot - net;
-              fee = net - (costMatP + costCont);
+              let tot = parseFloat(prep.totalPrice || 0);
+              costY += 2; targetDoc.setFontSize(F_BODY); targetDoc.text("TOTALE:", colSplitX + 2, costY);
+              targetDoc.text(`€ ${tot.toFixed(2)}`, CURRENT_LABEL_WIDTH - MARGIN, costY + 4, { align: 'right' });
+              costY += 8;
           }
-
-          const printL = (l, v, b = false) => {
-              doc.setFont("helvetica", b ? "bold" : "normal");
-              doc.text(l, colSplitX + 2, costY);
-              doc.text(`€ ${v.toFixed(2)}`, LABEL_WIDTH - MARGIN, costY, { align: 'right' });
-              costY += 3; // Interlinea aumentata
-          };
-
-          printL("Mat. Prime:", costMatP);
-          if (costCont > 0) printL("Contenitori:", costCont);
-          printL("Onorario Prof.:", fee);
-          if (add > 0) printL("Addizionali:", add);
-          printL(`IVA (${(VAT_RATE*100).toFixed(0)}%):`, vat);
-          costY += 1.5; 
-          doc.setFontSize(8); // Aumentato da 7
-          printL("TOTALE:", tot, true);
       } else {
-          // Officinale Box Prezzo
           const priceBoxX = colSplitX + 2;
-          const priceBoxW = LABEL_WIDTH - MARGIN - priceBoxX;
-          const priceBoxH = 14;
+          const priceBoxW = CURRENT_LABEL_WIDTH - MARGIN - priceBoxX;
           
-          doc.setDrawColor(200);
-          doc.setFillColor(245, 245, 245);
-          doc.roundedRect(priceBoxX, costY, priceBoxW, priceBoxH, 2, 2, 'FD');
-          
-          doc.setTextColor(80); doc.setFontSize(6); doc.setFont("helvetica", "bold");
-          doc.text("PREZZO AL PUBBLICO", priceBoxX + (priceBoxW/2), costY + 3, { align: 'center' });
-          
-          doc.setTextColor(0); doc.setFontSize(14); doc.setFont("helvetica", "bold");
-          doc.text(`€ ${parseFloat(batchData.unitPrice || 0).toFixed(2)}`, priceBoxX + (priceBoxW/2), costY + 9, { align: 'center' });
-          
-          doc.setFontSize(5); doc.setFont("helvetica", "normal");
-          doc.text("(IVA inclusa)", priceBoxX + (priceBoxW/2), costY + 12, { align: 'center' });
-          
-          costY += priceBoxH + 2;
+          if (!isSmall) {
+              const priceBoxH = isMedium ? 12 : 14; 
+              targetDoc.setDrawColor(200); targetDoc.setFillColor(245, 245, 245);
+              targetDoc.roundedRect(priceBoxX, costY, priceBoxW, priceBoxH, 2, 2, 'FD');
+              targetDoc.setTextColor(80); targetDoc.setFontSize(isMedium ? 5 : 6); targetDoc.setFont("helvetica", "bold");
+              targetDoc.text("PREZZO AL PUBBLICO", priceBoxX + (priceBoxW/2), costY + 3, { align: 'center' });
+              targetDoc.setTextColor(0); targetDoc.setFontSize(isMedium ? 12 : 14); targetDoc.setFont("helvetica", "bold");
+              targetDoc.text(`€ ${parseFloat(batchData.unitPrice || 0).toFixed(2)}`, priceBoxX + (priceBoxW/2), costY + (isMedium ? 8 : 9), { align: 'center' });
+              targetDoc.setFontSize(5); targetDoc.setFont("helvetica", "normal");
+              targetDoc.text("(IVA inclusa)", priceBoxX + (priceBoxW/2), costY + (isMedium ? 11 : 12), { align: 'center' });
+              costY += priceBoxH + 2;
+          } else {
+              targetDoc.setFontSize(6); targetDoc.text("Prezzo:", colSplitX + 2, costY);
+              targetDoc.setFontSize(10); targetDoc.text(`€ ${parseFloat(batchData.unitPrice || 0).toFixed(2)}`, CURRENT_LABEL_WIDTH - MARGIN, costY + 4, { align: 'right' });
+              costY += 6;
+          }
       }
 
-      doc.setLineWidth(0.1); doc.setDrawColor(0);
-      // Linea verticale finisce esattamente col contenuto più lungo (compensando l'ultimo incremento cursore)
-      const endOfContentY = Math.max(currentCursorY, costY);
-      doc.line(colSplitX, bodyStartY - 2, colSplitX, endOfContentY - 2.5);
+      // Linea verticale corretta
+      targetDoc.setLineWidth(0.1); targetDoc.setDrawColor(0);
+      const endOfContentY = Math.max(currentCursorY, costY) - (isMedium ? 2.5 : 3.5);
+      targetDoc.line(colSplitX, bodyStartY - 2, colSplitX, endOfContentY + 1);
       
-      currentCursorY = endOfContentY - 1; // Footer inizia subito dopo il testo visivo
+      currentCursorY = endOfContentY + (isMedium ? 2 : 3);
 
       // --- 4. FOOTER ---
-      doc.line(MARGIN, currentCursorY, LABEL_WIDTH - MARGIN, currentCursorY);
-      currentCursorY += 2; // Spazio ridotto dopo la riga
+      targetDoc.line(MARGIN, currentCursorY, CURRENT_LABEL_WIDTH - MARGIN, currentCursorY);
+      currentCursorY += (isMedium ? 2 : 3);
       
-      const footerBottomLimit = ROLL_HEIGHT - MARGIN;
-      const warnWidth = LABEL_WIDTH - (MARGIN*2);
-      doc.setFontSize(5); doc.setFont("helvetica", "italic");
+      let footerBottomLimit = CURRENT_ROLL_HEIGHT - MARGIN;
+      const warnWidth = CURRENT_LABEL_WIDTH - (MARGIN*2);
+      targetDoc.setFontSize(F_WARN); targetDoc.setFont("helvetica", "italic");
+      const allWarns = [...(prep.labelWarnings || [])];
+      if (prep.customLabelWarning) allWarns.push(prep.customLabelWarning.trim());
       
-      const labelWarnings = prep.labelWarnings || [];
-      const customWarn = prep.customLabelWarning;
-      
-      if (labelWarnings.length > 0 || (customWarn && customWarn.trim() !== '')) {
-          const allWarns = [...labelWarnings];
-          if (customWarn && customWarn.trim() !== '') allWarns.push(customWarn.trim());
-          const combinedText = allWarns.join(" - ");
-          const splitWarns = doc.splitTextToSize(combinedText, warnWidth);
-          
+      if (allWarns.length > 0) {
           let warnY = currentCursorY;
+          const splitWarns = targetDoc.splitTextToSize(allWarns.join(" - "), warnWidth);
           splitWarns.forEach(line => {
-              if (warnY + 2 > footerBottomLimit) return;
-              doc.text(line, MARGIN, warnY);
-              warnY += 2.2;
+              //if (warnY + (isMedium ? 1.5 : 2) > footerBottomLimit) return; // Non tagliare durante il calcolo altezza
+              targetDoc.text(line, MARGIN, warnY);
+              warnY += (isMedium ? 1.8 : 2.2);
           });
+          currentCursorY = warnY;
       }
+      
+      return currentCursorY; // Ritorna l'altezza finale effettiva
   };
 
+  // Funzione wrapper per centrare
+  const processAndDraw = (batch) => {
+      // 1. Dry Run per calcolare altezza
+      const dryDoc = new jsPDF({ orientation: 'l', unit: 'mm', format: [CURRENT_LABEL_WIDTH, CURRENT_ROLL_HEIGHT] });
+      
+      // Calcolo altezza reale
+      const contentHeight = drawOnDoc(dryDoc, 0, batch);
+      
+      // Calcolo Offset per centrare verticalmente
+      let startOffsetY = (CURRENT_ROLL_HEIGHT - contentHeight) / 2;
+      // Se il contenuto è troppo alto, partiamo dall'alto standard (o 0 se negativo)
+      // Ma attenzione ai margini originali (3mm). 
+      // contentHeight include già i margini (perché cursorY parte da MARGIN).
+      // Quindi se contentHeight = 60 e ROLL = 62, offset = 1.
+      // Se contentHeight = 40, offset = 11.
+      // Però drawOnDoc parte già da MARGIN. Quindi se passo offset, si sommerà a MARGIN.
+      // Dobbiamo sottrarre MARGIN dal calcolo dell'altezza pura del contenuto?
+      // No, drawOnDoc ritorna la Y finale assoluta.
+      // Altezza vuota sotto = ROLL_HEIGHT - finalY.
+      // Altezza vuota sopra = MARGIN (implicito).
+      // Vogliamo che Altezza Sotto = Altezza Sopra.
+      // Attuale Sopra = MARGIN.
+      // Nuova Sopra = MARGIN + Offset.
+      // Nuova Sotto = ROLL_HEIGHT - (finalY + Offset).
+      // MARGIN + Offset = ROLL_HEIGHT - finalY - Offset
+      // 2 * Offset = ROLL_HEIGHT - finalY - MARGIN
+      // Offset = (ROLL_HEIGHT - finalY - MARGIN) / 2.
+      
+      if (startOffsetY < 0) startOffsetY = 0; // Nessun offset se non c'è spazio
+      // Applico formula corretta:
+      startOffsetY = (CURRENT_ROLL_HEIGHT - contentHeight - MARGIN) / 2;
+      if (startOffsetY < 0) startOffsetY = 0;
+
+      // 2. Stampa Reale
+      drawOnDoc(doc, startOffsetY, batch);
+  };
+
+  // Esecuzione
   if (prep.prepType === 'officinale' && prep.batches && prep.batches.length > 0) {
       prep.batches.forEach((batch, index) => {
           if (index > 0) doc.addPage();
-          drawLabelContent(batch);
+          processAndDraw(batch);
       });
   } else {
-      drawLabelContent(null);
+      processAndDraw(null);
   }
 
   const pdfBlob = doc.output('bloburl');

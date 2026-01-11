@@ -36,7 +36,9 @@ import PrepTypeSelectionModal from './components/modals/PrepTypeSelectionModal';
 import SettingsComponent from './components/sections/Settings';
 import UserManagement from './components/sections/UserManagement';
 import QRScannerModal from './components/modals/QRScannerModal';
+import PrintLabelModal from './components/modals/PrintLabelModal';
 import { useApi } from './hooks/useApi';
+import { generateLabelPDF } from './services/labelGenerator';
 
 export default function MainApp() {
   const { logout, AUTH_ENABLED, user } = useAuth();
@@ -70,10 +72,25 @@ export default function MainApp() {
   const [isReadOnlyMode, setIsReadOnlyMode] = useState(false);
   const [isPrepTypeModalOpen, setIsPrepTypeModalOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [prepToPrint, setPrepToPrint] = useState(null);
 
   const handleScanSuccess = (prepId) => {
       setPreparationLogFilter(parseInt(prepId));
       handleTabChange('preparations_log');
+  };
+
+  const handleOpenPrintModal = (prep) => {
+      setPrepToPrint(prep);
+      setIsPrintModalOpen(true);
+  };
+
+  const handleConfirmPrint = (format) => {
+      if (prepToPrint) {
+          generateLabelPDF(prepToPrint, pharmacySettings, format);
+      }
+      setIsPrintModalOpen(false);
+      setPrepToPrint(null);
   };
 
   const [newSubstance, setNewSubstance] = useState({
@@ -107,7 +124,7 @@ export default function MainApp() {
     }
 
     try {
-      // Usa l'helper specificando GET
+      // Usa l'helper specificando GET e cache busting
       const data = await createApiRequest('get_all_data', null, false, 'GET');
       
       if (data.error) {
@@ -251,7 +268,6 @@ export default function MainApp() {
           isMultipart = true;
           settingsObj = {};
           newSettings.forEach((value, key) => {
-              // Ignoriamo il file binario nello stato locale immediato
               if (typeof value === 'string') settingsObj[key] = value;
           });
       }
@@ -264,7 +280,6 @@ export default function MainApp() {
           try {
               const result = await createApiRequest('save_settings', newSettings, isMultipart);
               if (result.error) throw new Error(result.error);
-              // Aggiorna con i dati ritornati dal server (es. path del logo nuovo)
               if (result.data) {
                   setPharmacySettings(prev => ({ ...prev, ...result.data }));
               }
@@ -432,7 +447,7 @@ export default function MainApp() {
     e.preventDefault(); 
     if (!canEdit) { alert("Permesso negato"); return; }
     const formData = new FormData();
-    const textFields = ['id', 'name', 'ni', 'lot', 'expiry', 'quantity', 'unit', 'totalCost', 'costPerGram', 'supplier', 'purity', 'receptionDate', 'ddtNumber', 'ddtDate', 'minStock', 'isExcipient', 'isContainer', 'isDoping', 'isNarcotic'];
+    const textFields = ['id', 'name', 'ni', 'lot', 'expiry', 'quantity', 'unit', 'totalCost', 'costPerGram', 'supplier', 'purity', 'receptionDate', 'ddtNumber', 'ddtDate', 'firstUseDate', 'minStock', 'isExcipient', 'isContainer', 'isDoping', 'isNarcotic'];
     textFields.forEach(field => { if (newSubstance[field] !== undefined && newSubstance[field] !== null) formData.append(field, newSubstance[field]); });
     if (newSubstance.securityData) formData.append('securityData', JSON.stringify(newSubstance.securityData));
     if (newSubstance.sdsFile instanceof File) formData.append('sdsFile', newSubstance.sdsFile);
@@ -507,9 +522,9 @@ export default function MainApp() {
       case 'inventory':
         return <Inventory inventoryFilter={inventoryFilter} setInventoryFilter={setInventoryFilter} searchTerm={searchTerm} setSearchTerm={setSearchTerm} sortedActiveInventory={sortedActiveInventory} sortedDisposedInventory={sortedDisposedInventory} handleOpenAddModal={handleOpenAddModal} handleOpenEditModal={handleOpenEditModal} handleOpenViewModal={handleOpenViewModal} handleDispose={handleDispose} sortConfig={sortConfig} requestSort={requestSort} activeSubstanceFilter={inventoryFilterSubstance} clearSubstanceFilter={() => setInventoryFilterSubstance(null)} canEdit={canEdit} />;
       case 'preparations_log':
-        return <PreparationsLog preparations={filteredPreparations} handleJumpToStep={handleJumpToStep} handleDuplicatePreparation={handleDuplicatePreparation} handleDeletePreparation={handleDeletePreparation} activeFilter={preparationLogFilter} clearFilter={() => setPreparationLogFilter(null)} searchTerm={prepSearchTerm} setSearchTerm={setPrepSearchTerm} sortConfig={prepSortConfig} requestSort={requestPrepSort} prepTypeFilter={prepTypeFilter} setPrepTypeFilter={setPrepTypeFilter} canEdit={canEdit} pharmacySettings={pharmacySettings} />;
+        return <PreparationsLog preparations={filteredPreparations} handleJumpToStep={handleJumpToStep} handleDuplicatePreparation={handleDuplicatePreparation} handleDeletePreparation={handleDeletePreparation} activeFilter={preparationLogFilter} clearFilter={() => setPreparationLogFilter(null)} searchTerm={prepSearchTerm} setSearchTerm={setPrepSearchTerm} sortConfig={prepSortConfig} requestSort={requestPrepSort} prepTypeFilter={prepTypeFilter} setPrepTypeFilter={setPrepTypeFilter} canEdit={canEdit} pharmacySettings={pharmacySettings} onPrintLabel={handleOpenPrintModal} />;
       case 'preparation':
-        return <PreparationWizard inventory={inventory} preparations={preparations} onComplete={handleSavePreparation} initialData={editingPrep} pharmacySettings={pharmacySettings} initialStep={initialWizardStep} canEdit={canEdit} />;
+        return <PreparationWizard inventory={inventory} preparations={preparations} onComplete={handleSavePreparation} initialData={editingPrep} pharmacySettings={pharmacySettings} initialStep={initialWizardStep} canEdit={canEdit} onPrintLabel={handleOpenPrintModal} />;
       case 'logs':
         return <Logs logs={logs} preparations={preparations} handleShowPreparation={handleShowPreparation} handleClearLogs={handleClearLogs} canEdit={canEdit} />;
       case 'reporting':
@@ -575,6 +590,7 @@ export default function MainApp() {
       <SubstanceModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} isReadOnly={isReadOnlyMode} editingSubstance={editingSubstance} substanceData={newSubstance} setSubstanceData={setNewSubstance} onSubmit={handleAddOrUpdateSubstance} getNextNi={getNextNi} preparations={preparations} inventory={inventory} onShowPreparation={handleShowPreparation} handleSdsUpload={handleSdsUpload} handleRemoveSds={handleRemoveSds} handleTechnicalSheetUpload={handleTechnicalSheetUpload} handleRemoveTechnicalSheet={handleRemoveTechnicalSheet} handleDownloadPdf={handleDownloadPdf} />
       <PrepTypeSelectionModal isOpen={isPrepTypeModalOpen} onClose={() => setIsPrepTypeModalOpen(false)} onSelectType={startNewPreparation} />
       <QRScannerModal isOpen={isScannerOpen} onClose={() => setIsScannerOpen(false)} onScanSuccess={handleScanSuccess} />
+      <PrintLabelModal isOpen={isPrintModalOpen} onClose={() => setIsPrintModalOpen(false)} onConfirm={handleConfirmPrint} />
     </div>
   );
 }
