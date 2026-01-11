@@ -102,7 +102,7 @@ const Inventory = ({
           <td className="px-6 py-4 text-right font-mono whitespace-nowrap">{item.costPerGram ? `€ ${Number(item.costPerGram).toFixed(2)}` : '-'}</td>
           <td className="px-6 py-4 text-center whitespace-nowrap">{item.usageCount}</td>
           <td className="px-6 py-4 text-center whitespace-nowrap">
-            {item.quantity === 0 ? <Badge type="neutral">Terminata</Badge> : new Date(item.expiry) < new Date() ? <Badge type="danger">Scaduto</Badge> : days <= 30 ? <Badge type="warning">In Scadenza</Badge> : item.quantity <= (item.minStock || (item.isContainer ? 10 : 5)) ? <Badge type="warning">Scarso</Badge> : <Badge type="success">OK</Badge>}
+            {parseFloat(item.quantity) === 0 ? <Badge type="neutral">Terminata</Badge> : new Date(item.expiry) < new Date() ? <Badge type="danger">Scaduto</Badge> : days <= 30 ? <Badge type="warning">In Scadenza</Badge> : parseFloat(item.quantity) <= (parseFloat(item.minStock) || (item.isContainer ? 10 : 5)) ? <Badge type="warning">Scarso</Badge> : <Badge type="success">OK</Badge>}
           </td>
           <td className="px-6 py-4 text-center">
             <div className="flex justify-center gap-2">
