@@ -31,8 +31,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // --- CONNESSIONE AL DATABASE ---
 require_once 'config.php';
 
+// Fallback per JWT_SECRET_KEY se non presente in config.php (es. dopo deploy parziale)
+if (!defined('JWT_SECRET_KEY')) {
+    define('JWT_SECRET_KEY', '8f9e2b1c4d0a5f6e7b8c9d0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c');
+}
+
 // --- GESTIONE JWT E RUOLI ---
-const JWT_SECRET_KEY = 'la-tua-chiave-segreta-super-sicura-da-cambiare'; 
 
 function create_jwt($user_id, $username, $role) {
     $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
@@ -288,6 +292,16 @@ function handleFileUpload($fileInputName) {
         exit;
     }
 
+    // Validazione Estensione
+    $allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
+    $fileName = $_FILES[$fileInputName]['name'];
+    $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+
+    if (!in_array($fileExt, $allowedExtensions)) {
+        sendError(400, "Tipo file non consentito. Solo PDF e immagini.");
+        exit;
+    }
+
     $uploadDir = __DIR__ . '/uploads/';
     if (!is_dir($uploadDir)) {
         if (!mkdir($uploadDir, 0755, true)) {
@@ -297,7 +311,7 @@ function handleFileUpload($fileInputName) {
     }
     
     $fileTmpPath = $_FILES[$fileInputName]['tmp_name'];
-    $fileName = $_FILES[$fileInputName]['name'];
+    // Sanitizzazione nome file
     $newFileName = time() . '_' . preg_replace('/[^a-zA-Z0-9_\-\.]/', '', $fileName);
     $destPath = $uploadDir . $newFileName;
     
@@ -312,7 +326,7 @@ function handleFileUpload($fileInputName) {
 function addOrUpdateInventory($pdo) {
     $data = $_POST;
     
-    $fields = ['name', 'ni', 'lot', 'expiry', 'quantity', 'unit', 'totalCost', 'costPerGram', 'supplier', 'purity', 'receptionDate', 'ddtNumber', 'ddtDate', 'firstUseDate', 'isExcipient', 'isContainer', 'isDoping', 'isNarcotic', 'securityData'];
+    $fields = ['name', 'ni', 'lot', 'expiry', 'quantity', 'unit', 'totalCost', 'costPerGram', 'supplier', 'purity', 'receptionDate', 'ddtNumber', 'ddtDate', 'firstUseDate', 'minStock', 'isExcipient', 'isContainer', 'isDoping', 'isNarcotic', 'securityData'];
     $params = [];
     foreach ($fields as $field) {
         $value = $data[$field] ?? null;

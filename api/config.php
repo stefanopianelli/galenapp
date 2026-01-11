@@ -9,6 +9,9 @@ $socket_path = getenv('DB_SOCKET_PATH') ?: ''; // Lasciare vuoto se non si usa u
 // Configurazione AI
 const GEMINI_API_KEY = 'AIzaSyBvdnkwcplEH0IyjPJzZgJ4yUXzwSOUEBw'; // Sostituisci con la tua chiave da Google AI Studio
 
+// Configurazione Sicurezza
+const JWT_SECRET_KEY = 'la-tua-chiave-segreta-super-sicura-da-cambiare';
+
 // DSN di connessione
 if (!empty($socket_path)) {
     $dsn = "mysql:unix_socket=$socket_path;dbname=$dbname;charset=utf8mb4";

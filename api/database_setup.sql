@@ -45,7 +45,7 @@ CREATE TABLE `inventory` (
   `ddtNumber` varchar(100) DEFAULT NULL,
   `ddtDate` date DEFAULT NULL,
   `firstUseDate` date DEFAULT NULL,
-  `endUseDate` date DEFAULT NULL,
+  `minStock` decimal(10,2) DEFAULT 0,
   `disposed` tinyint(1) NOT NULL DEFAULT 0,
   `isExcipient` tinyint(1) NOT NULL DEFAULT 0,
   `isContainer` tinyint(1) NOT NULL DEFAULT 0,
