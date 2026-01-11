@@ -21,6 +21,12 @@ export const useApi = () => {
     
     // URL e Token
     let url = `${API_URL}?action=${action}`;
+    
+    // Cache busting per GET
+    if (method === 'GET') {
+        url += `&_t=${Date.now()}`;
+    }
+
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
         url += `&token=${token}`;

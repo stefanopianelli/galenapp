@@ -29,15 +29,36 @@ const Reporting = ({ preparations, inventory }) => {
     let totalCost = 0;
     const monthlyData = {};
 
+    // Inizializza tutti i mesi dell'anno selezionato
+    for (let i = 0; i < 12; i++) {
+        const d = new Date(selectedYear, i, 1);
+        const key = `${selectedYear}-${String(i + 1).padStart(2, '0')}`;
+        monthlyData[key] = { 
+            name: d.toLocaleString('it-IT', { month: 'short' }), 
+            revenue: 0, 
+            profit: 0, 
+            count: 0, 
+            sortKey: i 
+        };
+    }
+
     // Filtra preparazioni per anno
     const filteredPreps = preparations.filter(p => new Date(p.date).getFullYear() === parseInt(selectedYear));
 
     filteredPreps.forEach(prep => {
-      const price = parseFloat(prep.totalPrice || 0);
-      if (price <= 0) return;
+      let grossRevenue = parseFloat(prep.totalPrice || 0);
+
+      // Per Officinali: Ricalcolo il valore della produzione dai lotti (più affidabile)
+      if (prep.prepType === 'officinale' && prep.batches && Array.isArray(prep.batches)) {
+          grossRevenue = prep.batches.reduce((acc, batch) => {
+              return acc + (parseFloat(batch.productQuantity || 0) * parseFloat(batch.unitPrice || 0));
+          }, 0);
+      }
+
+      if (grossRevenue <= 0) return;
 
       // Scorporo IVA
-      const netPrice = price / (1 + VAT_RATE);
+      const netPrice = grossRevenue / (1 + VAT_RATE);
       
       // Calcolo Costo Vivo (Mat. Prime + Contenitori)
       let prepCost = 0;
@@ -60,12 +81,11 @@ const Reporting = ({ preparations, inventory }) => {
       const date = new Date(prep.date);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       
-      if (!monthlyData[monthKey]) {
-        monthlyData[monthKey] = { name: date.toLocaleString('it-IT', { month: 'short' }), revenue: 0, profit: 0, count: 0, sortKey: date.getMonth() };
+      if (monthlyData[monthKey]) {
+        monthlyData[monthKey].revenue += netPrice;
+        monthlyData[monthKey].profit += profit;
+        monthlyData[monthKey].count += 1;
       }
-      monthlyData[monthKey].revenue += netPrice;
-      monthlyData[monthKey].profit += profit;
-      monthlyData[monthKey].count += 1;
     });
 
     // Ordina mesi cronologicamente
