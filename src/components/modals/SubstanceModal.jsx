@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Biohazard, FileUp, FileText, Trash2, FileDown, History, Pencil, Check, Box } from 'lucide-react';
+import { Package, Biohazard, FileUp, FileText, Trash2, FileDown, History, Pencil, Check, Box, Search } from 'lucide-react';
 import { GHS_PICTOGRAMS } from '../../constants/ghsPictograms';
 
 const SubstanceModal = ({
@@ -286,9 +286,22 @@ const SubstanceModal = ({
                 </div>
                 
                 <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mt-6">
-                  <label className="block text-sm font-bold text-blue-800 mb-2 flex items-center gap-2">
-                    <FileUp size={16} /> Scheda di Sicurezza (SDS)
-                  </label>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-bold text-blue-800 flex items-center gap-2">
+                        <FileUp size={16} /> Scheda di Sicurezza (SDS)
+                    </label>
+                    <button 
+                        type="button"
+                        onClick={() => {
+                            const query = `${substanceData.name} ${substanceData.supplier || ''} Scheda Sicurezza`;
+                            window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, '_blank');
+                        }}
+                        className="text-xs flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline"
+                        title="Cerca documenti PDF online"
+                    >
+                        <Search size={14} /> Cerca Online
+                    </button>
+                  </div>
                   {substanceData.sdsFile ? (
                     <div className="flex items-center justify-between bg-white p-2 rounded border border-blue-200">
                       <div className="flex items-center gap-2 text-sm text-blue-800 truncate">
