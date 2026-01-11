@@ -398,8 +398,14 @@ export default function MainApp() {
   };
     const handleOpenEditModal = (item) => {
       setEditingSubstance(item);
-      setNewSubstance({ ...item, quantity: item.quantity.toString(), minStock: item.minStock || (item.isContainer ? '10' : '5'),
-        totalCost: item.totalCost ? item.totalCost.toString() : '', costPerGram: item.costPerGram?.toString() || '' });
+      const currentStockValue = (parseFloat(item.quantity) * parseFloat(item.costPerGram || 0)).toFixed(2);
+      setNewSubstance({ 
+        ...item, 
+        quantity: item.quantity.toString(), 
+        minStock: item.minStock || (item.isContainer ? '10' : '5'),
+        totalCost: currentStockValue, 
+        costPerGram: item.costPerGram?.toString() || '' 
+      });
       setIsReadOnlyMode(!canEdit);
       setIsAddModalOpen(true);
     };

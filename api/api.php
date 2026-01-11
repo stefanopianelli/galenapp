@@ -312,7 +312,7 @@ function handleFileUpload($fileInputName) {
 function addOrUpdateInventory($pdo) {
     $data = $_POST;
     
-    $fields = ['name', 'ni', 'lot', 'expiry', 'quantity', 'unit', 'totalCost', 'costPerGram', 'supplier', 'purity', 'receptionDate', 'ddtNumber', 'ddtDate', 'isExcipient', 'isContainer', 'isDoping', 'isNarcotic', 'securityData'];
+    $fields = ['name', 'ni', 'lot', 'expiry', 'quantity', 'unit', 'totalCost', 'costPerGram', 'supplier', 'purity', 'receptionDate', 'ddtNumber', 'ddtDate', 'firstUseDate', 'isExcipient', 'isContainer', 'isDoping', 'isNarcotic', 'securityData'];
     $params = [];
     foreach ($fields as $field) {
         $value = $data[$field] ?? null;
@@ -452,7 +452,7 @@ function savePreparation($pdo) {
         if (!$isDraft) {
             if ($wasDraft) { 
                 foreach ($itemsUsed as $item) {
-                    $stmt = $pdo->prepare("UPDATE `inventory` SET `quantity` = `quantity` - ? WHERE `id` = ?");
+                    $stmt = $pdo->prepare("UPDATE `inventory` SET `quantity` = `quantity` - ?, `firstUseDate` = COALESCE(`firstUseDate`, CURDATE()) WHERE `id` = ?");
                     $stmt->execute([$item['amountUsed'], $item['id']]);
                     createLog($pdo, 'SCARICO', "Completata Prep. #{$prepDetails['prepNumber']}", ['substance' => $item['name'], 'ni' => $item['ni'] ?? '', 'quantity' => $item['amountUsed'], 'unit' => $item['unit'], 'preparationId' => $newPrepId]);
                 }
@@ -470,7 +470,7 @@ function savePreparation($pdo) {
                     $diff = $newIng['amountUsed'] - ($oldIng ? $oldIng['amountUsed'] : 0);
                     
                     if ($diff > 0.0001) {
-                        $stmt = $pdo->prepare("UPDATE `inventory` SET `quantity` = `quantity` - ? WHERE `id` = ?");
+                        $stmt = $pdo->prepare("UPDATE `inventory` SET `quantity` = `quantity` - ?, `firstUseDate` = COALESCE(`firstUseDate`, CURDATE()) WHERE `id` = ?");
                         $stmt->execute([$diff, $invId]);
                         createLog($pdo, 'SCARICO', $logNote, ['substance' => $newIng['name'], 'ni' => $newIng['ni'] ?? '', 'quantity' => $diff, 'unit' => $newIng['unit'], 'preparationId' => $newPrepId]);
                     } elseif ($diff < -0.0001) {

@@ -224,8 +224,8 @@ const SubstanceModal = ({
                 <div className="col-span-2 flex gap-4">
                   <div className="flex-1">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Data Primo Utilizzo</label>
-                    <input type="date" className="w-full border p-2 rounded outline-none bg-slate-50 disabled:text-slate-500"
-                      value={substanceData.firstUseDate || ''} disabled />
+                    <input type="date" max={today} className="w-full border p-2 rounded outline-none disabled:bg-slate-50 disabled:text-slate-500"
+                      value={substanceData.firstUseDate || ''} onChange={e => setSubstanceData({ ...substanceData, firstUseDate: e.target.value })} disabled={isReadOnly} />
                   </div>
                   <div className="flex-1">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Data Fine Utilizzo</label>
