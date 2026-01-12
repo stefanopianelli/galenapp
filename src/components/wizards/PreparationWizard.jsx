@@ -484,7 +484,17 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
   const handleFinalSave = () => {
     if (details.name && selectedIngredients.length > 0) {
-      onComplete(selectedIngredients, { ...details, prepUnit: getPrepUnit(details.pharmaceuticalForm), totalPrice: pricing.final, batches, worksheetItems, pricingData: pricing }, false);
+      // Aggiorna la data di preparazione alla data odierna di completamento
+      const today = new Date().toISOString().split('T')[0];
+      onComplete(selectedIngredients, { 
+          ...details, 
+          date: today, // Forza la data di oggi
+          prepUnit: getPrepUnit(details.pharmaceuticalForm), 
+          totalPrice: pricing.final, 
+          batches, 
+          worksheetItems, 
+          pricingData: pricing 
+      }, false);
     }
   };
 
