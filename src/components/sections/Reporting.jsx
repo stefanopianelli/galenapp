@@ -37,6 +37,7 @@ const Reporting = ({ preparations, inventory }) => {
             name: d.toLocaleString('it-IT', { month: 'short' }), 
             revenue: 0, 
             profit: 0, 
+            cost: 0,
             count: 0, 
             sortKey: i 
         };
@@ -86,6 +87,7 @@ const Reporting = ({ preparations, inventory }) => {
       
       if (monthlyData[monthKey]) {
         monthlyData[monthKey].revenue += netPrice;
+        monthlyData[monthKey].cost += prepCost;
         monthlyData[monthKey].profit += profit;
         monthlyData[monthKey].count += 1;
       }
@@ -186,6 +188,7 @@ const Reporting = ({ preparations, inventory }) => {
                         <Tooltip formatter={(value) => `€ ${parseFloat(value).toFixed(2)}`} />
                         <Legend />
                         <Bar dataKey="revenue" name="Fatturato" fill="#0d9488" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="cost" name="Costi Vivi" fill="#f59e0b" radius={[4, 4, 0, 0]} />
                         <Bar dataKey="profit" name="Utile Stimato" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                     </BarChart>
                 </ResponsiveContainer>
