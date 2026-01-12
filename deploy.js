@@ -10,9 +10,12 @@ const __dirname = path.dirname(__filename);
 dotenv.config();
 
 // Recupera l'ambiente target dagli argomenti (default: prod)
-const targetEnv = process.argv[2] || 'prod';
+const args = process.argv.slice(2);
+const isVerbose = args.includes('-v');
+const targetEnv = args.find(arg => arg !== '-v') || 'prod';
 
 console.log(`🎯 Target Environment: ${targetEnv.toUpperCase()}`);
+if (isVerbose) console.log('📢 Verbose Mode: ON');
 
 const servers = [];
 
@@ -33,7 +36,7 @@ if (targetEnv === 'test') {
     // PROD (Farmacia 1)
     if (process.env.FTP_HOST) {
         servers.push({
-            name: 'Farmacia 1 (Prod)',
+            name: 'Farmacia Ulivi - Orbetello',
             host: process.env.FTP_HOST,
             username: process.env.FTP_USER,
             password: process.env.FTP_PASSWORD,
@@ -44,7 +47,7 @@ if (targetEnv === 'test') {
     // PROD (Farmacia 2)
     if (process.env.FTP2_HOST) {
         servers.push({
-            name: 'Farmacia 2 (Prod)',
+            name: 'Farmacia Sant Antonio - Sutri',
             host: process.env.FTP2_HOST,
             username: process.env.FTP2_USER,
             password: process.env.FTP2_PASSWORD,
@@ -64,14 +67,17 @@ const runBuild = () => {
         console.log('🔨 [BUILD] Avvio build di produzione...');
         const build = exec('npm run build');
 
-        build.stdout.on('data', (data) => console.log(data.toString().trim()));
-        build.stderr.on('data', (data) => console.error(data.toString().trim()));
+        if (isVerbose) {
+            build.stdout.on('data', (data) => console.log(data.toString().trim()));
+            build.stderr.on('data', (data) => console.error(data.toString().trim()));
+        }
 
         build.on('exit', (code) => {
             if (code === 0) {
                 console.log('✅ [BUILD] Completata con successo.');
                 resolve();
-            } else {
+            }
+            else {
                 reject(new Error(`Build fallita con codice ${code}`));
             }
         });
@@ -80,30 +86,32 @@ const runBuild = () => {
 
 const deployToServer = async (serverConfig) => {
     const sftp = new Client();
-    console.log(`\n🚀 [DEPLOY] Avvio deploy su: ${serverConfig.name} (${serverConfig.host})...`);
+    console.log(`\n🚀 [DEPLOY] Avvio deploy su: ${serverConfig.name}...`);
 
     try {
-        console.log(`🔌 Connessione SFTP...`);
+        console.log(`   🔌 Connessione SFTP...`);
         await sftp.connect(serverConfig);
 
-        console.log(`📂 Caricamento Frontend in '${serverConfig.remoteDir}'...`);
+        console.log(`   📂 Caricamento Frontend in '${serverConfig.remoteDir}'...`);
         
         const remoteExists = await sftp.exists(serverConfig.remoteDir);
         if (!remoteExists) {
-            console.log(`   Creazione cartella remota: ${serverConfig.remoteDir}`);
+            if (isVerbose) console.log(`   Creazione cartella remota: ${serverConfig.remoteDir}`);
             await sftp.mkdir(serverConfig.remoteDir, true);
         }
 
         const localDir = path.join(__dirname, 'dist');
         
-        sftp.on('upload', info => {
-            console.log(`   ⬆️  Frontend: ${path.basename(info.source)}`);
-        });
+        if (isVerbose) {
+            sftp.on('upload', info => {
+                console.log(`   ⬆️  Frontend: ${path.basename(info.source)}`);
+            });
+        }
 
         await sftp.uploadDir(localDir, serverConfig.remoteDir);
         
         // --- DEPLOY BACKEND ---
-        console.log('🐘 Aggiornamento Backend (API)...');
+        console.log('   🐘 Aggiornamento Backend (API)...');
         const localApiDir = path.join(__dirname, 'api');
         const remoteApiDir = path.posix.join(serverConfig.remoteDir, 'api');
         
@@ -117,10 +125,10 @@ const deployToServer = async (serverConfig) => {
 
             if (fs.existsSync(localFilePath)) {
                 await sftp.put(localFilePath, remoteFilePath);
-                console.log(`   ⬆️  Backend: ${file}`);
+                if (isVerbose) console.log(`   ⬆️  Backend: ${file}`);
             }
         }
-        console.log('   🚫 Config.php preservato.');
+        if (isVerbose) console.log('   🚫 Config.php preservato.');
         console.log(`✅ [DEPLOY] Completato su ${serverConfig.name}!`);
 
     } catch (err) {

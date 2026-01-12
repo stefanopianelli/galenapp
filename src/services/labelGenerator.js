@@ -147,13 +147,42 @@ export const generateLabelPDF = async (prep, pharmacySettings, rollFormat = 62) 
               const isExcipient = ing.isExcipient === true || ing.isExcipient == 1;
               targetDoc.setFont("helvetica", isExcipient ? "italic" : "bold");
               const nameText = isExcipient ? `${ing.name} (ecc.)` : ing.name;
+              
               const qtyVal = ing.amountUsed * ratio;
               const qtyText = `${Number(qtyVal).toFixed(qtyVal < 0.1 ? 3 : 2)}${ing.unit}`;
+              
               const maxNameWidth = (colSplitX - MARGIN - 2) - (isSmall ? 8 : 12);
-              const nameLines = targetDoc.splitTextToSize(nameText, maxNameWidth);
-              targetDoc.text(nameLines, MARGIN, currentCursorY);
-              targetDoc.text(qtyText, colSplitX - 2, currentCursorY, { align: 'right' });
-              currentCursorY += (nameLines.length * GAP_B);
+              
+              // Logica Shrink-to-Fit
+              let currentFontSize = F_BODY;
+              targetDoc.setFontSize(currentFontSize);
+              
+              while (targetDoc.getTextWidth(nameText) > maxNameWidth && currentFontSize > 4.5) {
+                  currentFontSize -= 0.5;
+                  targetDoc.setFontSize(currentFontSize);
+              }
+              
+              // Se entra in una riga o se abbiamo raggiunto il minimo font
+              if (targetDoc.getTextWidth(nameText) <= maxNameWidth) {
+                  targetDoc.text(nameText, MARGIN, currentCursorY);
+                  targetDoc.setFontSize(F_BODY); // Reset per la quantità (o la lasciamo piccola? meglio reset)
+                  targetDoc.text(qtyText, colSplitX - 2, currentCursorY, { align: 'right' });
+                  currentCursorY += GAP_B;
+              } else {
+                  // Fallback: va a capo col font minimo
+                  const nameLines = targetDoc.splitTextToSize(nameText, maxNameWidth);
+                  targetDoc.text(nameLines, MARGIN, currentCursorY);
+                  
+                  // La quantità la allineiamo alla prima riga o in basso? 
+                  // Alla prima riga è standard.
+                  targetDoc.setFontSize(F_BODY); 
+                  targetDoc.text(qtyText, colSplitX - 2, currentCursorY, { align: 'right' });
+                  
+                  currentCursorY += (nameLines.length * GAP_B);
+              }
+              
+              // Reset Font globale per il prossimo giro
+              targetDoc.setFontSize(F_BODY);
           }
       });
 
