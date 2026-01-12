@@ -197,6 +197,7 @@ const SubstanceModal = ({
                         <>
                           <option value="g">g</option>
                           <option value="ml">ml</option>
+                          <option value="n.">n.</option>
                           <option value="kg">kg</option>
                           <option value="mg">mg</option>
                         </>
@@ -205,7 +206,7 @@ const SubstanceModal = ({
                   </div>
                   <div className="w-28">
                     <label className="block text-sm font-medium text-slate-700 mb-1 text-xs sm:text-sm">Scorta Min.</label>
-                    <input type="number" min="0" step={isContainer ? "1" : "0.01"} className="w-full border p-2 rounded outline-none disabled:bg-slate-50 disabled:text-slate-500"
+                    <input type="number" min="0" step={isContainer || substanceData.unit === 'n.' ? "1" : "0.01"} className="w-full border p-2 rounded outline-none disabled:bg-slate-50 disabled:text-slate-500"
                       value={substanceData.minStock || ''} onChange={e => handlePositiveChange('minStock', e.target.value)} placeholder="Es. 10" disabled={isReadOnly} />
                   </div>
                 </div>
@@ -216,7 +217,7 @@ const SubstanceModal = ({
                       value={substanceData.totalCost} onChange={e => handlePositiveChange('totalCost', e.target.value)} placeholder="0.00" disabled={isReadOnly} />
                   </div>
                   <div className="w-32">
-                    <label className="block text-sm font-medium text-slate-700 mb-1">{isContainer ? "Costo Unitario" : "€/g (Auto)"}</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{isContainer || substanceData.unit === 'n.' ? "Costo Unitario" : "€/g (Auto)"}</label>
                     <input type="text" className="w-full border p-2 rounded outline-none bg-slate-100 disabled:text-slate-500"
                       value={substanceData.costPerGram} readOnly placeholder="0.00" disabled={isReadOnly} />
                   </div>
