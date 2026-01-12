@@ -51,7 +51,10 @@ const Reporting = ({ preparations, inventory }) => {
       // Per Officinali: Ricalcolo il valore della produzione dai lotti (più affidabile)
       if (prep.prepType === 'officinale' && prep.batches && Array.isArray(prep.batches)) {
           grossRevenue = prep.batches.reduce((acc, batch) => {
-              return acc + (parseFloat(batch.productQuantity || 0) * parseFloat(batch.unitPrice || 0));
+              // Trova il contenitore associato per sapere quanti pezzi sono stati prodotti
+              const container = prep.ingredients.find(i => String(i.id) === String(batch.containerId));
+              const numPezzi = container ? parseFloat(container.amountUsed || 0) : 0;
+              return acc + (numPezzi * parseFloat(batch.unitPrice || 0));
           }, 0);
       }
 
