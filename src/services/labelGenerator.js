@@ -138,9 +138,17 @@ export const generateLabelPDF = async (prep, pharmacySettings, rollFormat = 62) 
       const bodyStartY = currentCursorY;
       const colSplitX = isOfficinale ? (CURRENT_LABEL_WIDTH * 0.65) : (CURRENT_LABEL_WIDTH / 2);
       
-      targetDoc.setFontSize(F_BODY); targetDoc.setFont("helvetica", "bold");
-      targetDoc.text("Composizione:", MARGIN, currentCursorY);
-      currentCursorY += GAP_B;
+      // SX: Composizione
+      const DIVIDED_FORMS = ['Capsule', 'Cartine e cialdini', 'Compresse e gomme da masticare medicate', 'Suppositori e ovuli', 'Pillole, pastiglie e granulati'];
+      const isDivided = DIVIDED_FORMS.includes(prep.pharmaceuticalForm);
+      
+      const unitCount = isOfficinale ? parseFloat(batchData.productQuantity) : parseFloat(prep.quantity);
+      const compLabel = isDivided ? `Composizione (per unità di cui ${unitCount}):` : "Composizione:";
+      
+      targetDoc.setFontSize(isSmall ? 5 : 7);
+      targetDoc.setFont("helvetica", "bold");
+      targetDoc.text(compLabel, MARGIN, currentCursorY);
+      currentCursorY += (isSmall ? 2.5 : 3.5);
       
       prep.ingredients.forEach(ing => {
           if (!ing.isContainer) {
@@ -148,9 +156,30 @@ export const generateLabelPDF = async (prep, pharmacySettings, rollFormat = 62) 
               targetDoc.setFont("helvetica", isExcipient ? "italic" : "bold");
               const nameText = isExcipient ? `${ing.name} (ecc.)` : ing.name;
               
-              const qtyVal = ing.amountUsed * ratio;
-              const qtyText = `${Number(qtyVal).toFixed(qtyVal < 0.1 ? 3 : 2)}${ing.unit}`;
+              let finalQty = ing.amountUsed * ratio;
+              let finalUnit = ing.unit;
+
+              // Ripartizione Unitaria per forme divise
+              if (isDivided) {
+                  const divisor = isOfficinale ? parseFloat(batchData.productQuantity) : parseFloat(prep.quantity);
+                  if (divisor > 0) {
+                      finalQty = (ing.amountUsed * ratio) / divisor;
+                  }
+              }
+
+              // Conversione di scala automatica (g -> mg -> mcg)
+              if (finalUnit === 'g') {
+                  if (finalQty < 0.0001) {
+                      finalQty *= 1000000;
+                      finalUnit = 'mcg';
+                  } else if (finalQty < 1) {
+                      finalQty *= 1000;
+                      finalUnit = 'mg';
+                  }
+              }
               
+              // Rimuove decimali inutili (es. 10.00 -> 10)
+              const qtyText = `${parseFloat(Number(finalQty).toFixed(3))}${finalUnit}`;
               const maxNameWidth = (colSplitX - MARGIN - 2) - (isSmall ? 8 : 12);
               
               // Logica Shrink-to-Fit
