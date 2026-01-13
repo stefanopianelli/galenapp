@@ -429,6 +429,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
   const handleIngredientAmountChange = (index, newAmount, newWeighedAmount) => {
     const newAmountValue = parseFloat(newAmount);
+    // Se pesata non inserita, assume uguale a ricetta
     const newWeighedValue = newWeighedAmount ? parseFloat(newWeighedAmount) : newAmountValue;
     
     if (isNaN(newAmountValue) || newAmountValue < 0) return;
@@ -437,19 +438,34 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
     const ingredient = updatedIngredients[index];
     const originalItem = inventory.find(i => i.id === ingredient.id);
     
-    // Calcolo scorte escludendo questa riga
-    const otherUses = selectedIngredients.filter((ing, idx) => idx !== index && ing.id === ingredient.id).reduce((acc, curr) => {
-        const qty = (curr.stockDeduction > 0) ? curr.stockDeduction : curr.amountUsed;
-        return acc + qty;
-    }, 0);
+    // Vecchia pesata caricata per confronto
+    const oldWeighedValue = Number(ingredient.stockDeduction || ingredient.amountUsed);
     
-    const maxAvailable = originalItem.quantity - otherUses;
+    // Calcolo del Delta (quanto stiamo chiedendo in PIU' rispetto a prima)
+    const delta = newWeighedValue - oldWeighedValue;
     
-    if (newWeighedValue > maxAvailable) {
-      alert(`Quantità non disponibile. Massima scaricabile: ${maxAvailable.toFixed(2)} ${ingredient.unit}`);
-      return;
+    // Se stiamo aumentando (delta > 0), controlliamo la giacenza effettiva in magazzino
+    if (delta > 0) {
+        // La giacenza in magazzino è originalItem.quantity
+        // (Nota: non sottraiamo gli altri usi della stessa preparazione qui perché originalItem.quantity 
+        // nel database riflette lo stato reale post-scarico se la prep era completata, 
+        // o lo stato ante-scarico se è una bozza).
+        
+        // MA per essere sicuri consideriamo anche altre righe della STESSA preparazione se duplicate
+        const otherUsesInCurrentPrep = selectedIngredients.filter((ing, idx) => idx !== index && ing.id === ingredient.id).reduce((acc, curr) => {
+            const qty = (curr.stockDeduction > 0) ? curr.stockDeduction : curr.amountUsed;
+            return acc + Number(qty);
+        }, 0);
+
+        const availableNow = Number(originalItem.quantity) - otherUsesInCurrentPrep;
+
+        if (delta > availableNow) {
+            alert(`Giacenza insufficiente per l'aumento richiesto. Disponibile: ${availableNow.toFixed(2)} ${ingredient.unit}`);
+            return;
+        }
     }
 
+    // Se delta <= 0, stiamo diminuendo o non cambiando lo scarico reale, quindi procediamo sempre.
     updatedIngredients[index].amountUsed = newAmountValue;
     updatedIngredients[index].stockDeduction = (newWeighedAmount && parseFloat(newWeighedAmount) !== newAmountValue) ? parseFloat(newWeighedAmount) : null;
     
