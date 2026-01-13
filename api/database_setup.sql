@@ -104,6 +104,7 @@ CREATE TABLE `preparation_ingredients` (
   `preparationId` int(11) NOT NULL,
   `inventoryId` int(11) NOT NULL,
   `amountUsed` decimal(10,2) NOT NULL,
+  `stockDeduction` decimal(10,4) DEFAULT NULL,
   `isExcipient` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   KEY `preparationId` (`preparationId`),

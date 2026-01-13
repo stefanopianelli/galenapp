@@ -29,7 +29,13 @@ RewriteRule ^(.*)$ $1 [R=200,L]
 </Files>
 
 # Eccezione temporanea per il setup (scommentare se necessario)
-# <Files "setup_database.php">
-#    Order allow,deny
-#    Allow from all
-# </Files>
+<Files "setup_database.php">
+   Order allow,deny
+   Allow from all
+</Files>
+
+# Eccezione per migrazione tolleranza (necessaria per aggiornare DB)
+<Files "migration_tolerance.php">
+   Order allow,deny
+   Allow from all
+</Files>

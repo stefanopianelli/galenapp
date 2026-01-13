@@ -31,13 +31,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // --- CONNESSIONE AL DATABASE ---
 require_once 'config.php';
 
-// Fallback per JWT_SECRET_KEY se non presente in config.php (es. dopo deploy parziale)
+// Fallback per JWT_SECRET_KEY
 if (!defined('JWT_SECRET_KEY')) {
     define('JWT_SECRET_KEY', '8f9e2b1c4d0a5f6e7b8c9d0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c');
 }
 
 // --- GESTIONE JWT E RUOLI ---
-
 function create_jwt($user_id, $username, $role) {
     $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
     $payload = json_encode(['user_id' => $user_id, 'username' => $username, 'role' => $role, 'exp' => time() + (60*60*8)]);
@@ -63,8 +62,6 @@ function validate_jwt($jwt) {
 function get_jwt_from_header() {
     $authHeader = null;
     $token = null;
-    
-    // 1. Cerca negli headers (Case Insensitive)
     if (function_exists('getallheaders')) {
         $headers = getallheaders();
         foreach ($headers as $key => $value) {
@@ -74,75 +71,53 @@ function get_jwt_from_header() {
             }
         }
     }
-    
-    // 2. Fallback su $_SERVER
     if (!$authHeader) {
         if (isset($_SERVER['Authorization'])) $authHeader = $_SERVER['Authorization'];
         elseif (isset($_SERVER['HTTP_AUTHORIZATION'])) $authHeader = $_SERVER['HTTP_AUTHORIZATION'];
         elseif (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) $authHeader = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
     }
-
-    // 3. Estrazione da Header Bearer
     if ($authHeader) {
         if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
             $token = $matches[1];
         } else {
-            // A volte arriva senza Bearer?
             $token = $authHeader;
         }
     }
-
-    // 4. Fallback estremo: Parametro POST (GET rimosso per sicurezza)
     if (!$token) {
         if (isset($_POST['token'])) $token = $_POST['token'];
     }
-
-    // 5. Fallback JSON Body (per richieste POST dove header e GET falliscono)
     if (!$token && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
         if (isset($input['token'])) {
             $token = $input['token'];
         }
     }
-
     return $token;
 }
 
 function checkPermission($action, $role) {
     if ($action === 'login') return true;
-    
-    // Azioni riservate esclusivamente agli ADMIN
     $adminOnlyActions = ['get_users', 'create_user', 'update_user', 'delete_user', 'clear_logs', 'delete_log'];
     if (in_array($action, $adminOnlyActions) && $role !== 'admin') return false;
-
-    // Ruoli definiti
-    $admins = ['admin', 'pharmacist']; // Possono modificare
-    $readers = ['operator']; // Possono solo leggere
-    
-    // Azioni di sola lettura
+    $admins = ['admin', 'pharmacist']; 
+    $readers = ['operator']; 
     $readActions = ['get_all_data', 'ask_ai', 'get_settings'];
-    
-    if (in_array($role, $admins)) return true; // Admin/Farmacisti fanno tutto
-    if (in_array($role, $readers) && in_array($action, $readActions)) return true; // Operatori solo lettura
-    
+    if (in_array($role, $admins)) return true;
+    if (in_array($role, $readers) && in_array($action, $readActions)) return true;
     return false;
 }
 
-// --- ROUTING DELLE AZIONI ---
 $action = $_GET['action'] ?? null;
 $method = $_SERVER['REQUEST_METHOD'];
 
 try {
-    // --- Middleware di Autenticazione e Autorizzazione ---
     if ($action !== 'login') {
         $jwt = get_jwt_from_header();
         $userData = $jwt ? validate_jwt($jwt) : null;
-        
         if (!$userData) {
             sendError(401, 'Accesso non autorizzato. Token mancante o non valido.');
             exit();
         }
-        
         $userRole = $userData['role'] ?? 'operator';
         if (!checkPermission($action, $userRole)) {
             sendError(403, 'Permesso negato per questa operazione.');
@@ -157,14 +132,6 @@ try {
             break;
         case 'get_all_data':
             if ($method === 'GET' || $method === 'POST') getAllData($pdo);
-            else sendError(405, 'Metodo non consentito.');
-            break;
-        case 'get_settings':
-            if ($method === 'GET') getSettings($pdo);
-            else sendError(405, 'Metodo non consentito.');
-            break;
-        case 'save_settings':
-            if ($method === 'POST') saveSettings($pdo);
             else sendError(405, 'Metodo non consentito.');
             break;
         case 'add_or_update_inventory':
@@ -211,17 +178,24 @@ try {
             if ($method === 'POST') askAI($pdo);
             else sendError(405, 'Metodo non consentito.');
             break;
+        case 'get_settings':
+            if ($method === 'GET') getSettings($pdo);
+            else sendError(405, 'Metodo non consentito.');
+            break;
+        case 'save_settings':
+            if ($method === 'POST') saveSettings($pdo);
+            else sendError(405, 'Metodo non consentito.');
+            break;
         default:
             sendError(404, 'Azione non valida o non specificata.');
             break;
     }
-} catch (\PDOException $e) {
+} catch (	PDOException $e) {
     sendError(500, "Errore Database: " . $e->getMessage());
-} catch (\Exception $e) {
+} catch (	Exception $e) {
     sendError(500, "Errore Server: " . $e->getMessage());
 }
 
-// --- FUNZIONE HELPER PER LOGGING ---
 function createLog($pdo, $type, $notes, $details = []) {
     $sql = "INSERT INTO `logs` (`date`, `type`, `substance`, `ni`, `quantity`, `unit`, `notes`, `operator`, `preparationId`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmt = $pdo->prepare($sql);
@@ -238,8 +212,6 @@ function createLog($pdo, $type, $notes, $details = []) {
     ]);
 }
 
-// --- FUNZIONI API ---
-
 function getAllData($pdo) {
     $stmt_inv = $pdo->query("SELECT * FROM `inventory` ORDER BY `name` ASC");
     $inventory = $stmt_inv->fetchAll();
@@ -254,8 +226,9 @@ function getAllData($pdo) {
     
     if (!empty($prep_ids)) {
         $in_clause = implode(',', array_fill(0, count($prep_ids), '?'));
+        // Updated query with stockDeduction
         $stmt_ingredients = $pdo->prepare(
-            "SELECT pi.`preparationId`, pi.`amountUsed`, pi.`isExcipient` AS roleInPrep, i.`id`, i.`name`, i.`ni`, i.`lot`, i.`unit`, i.`costPerGram`, i.`isContainer`, i.`isDoping`, i.`isNarcotic`, i.`securityData`
+            "SELECT pi.`preparationId`, pi.`amountUsed`, pi.`stockDeduction`, pi.`isExcipient` AS roleInPrep, i.`id`, i.`name`, i.`ni`, i.`lot`, i.`unit`, i.`costPerGram`, i.`isContainer`, i.`isDoping`, i.`isNarcotic`, i.`securityData`
              FROM `preparation_ingredients` pi JOIN `inventory` i ON pi.`inventoryId` = i.`id`
              WHERE pi.`preparationId` IN ($in_clause)"
         );
@@ -264,10 +237,7 @@ function getAllData($pdo) {
         foreach ($preparations as $key => $prep) {
             $preparations[$key]['ingredients'] = array_map(function($ing) {
                 if (isset($ing['securityData']) && is_string($ing['securityData'])) $ing['securityData'] = json_decode($ing['securityData'], true);
-                
-                // Forza la presenza del campo isExcipient usando il nuovo alias
                 $ing['savedIsExcipient'] = (isset($ing['roleInPrep']) && $ing['roleInPrep'] == 1);
-                
                 return $ing;
             }, $all_ingredients[$prep['id']] ?? []);
             $preparations[$key]['labelWarnings'] = json_decode($prep['labelWarnings'] ?? '[]', true);
@@ -285,27 +255,21 @@ function getAllData($pdo) {
 
 function handleFileUpload($fileInputName) {
     if (!isset($_FILES[$fileInputName])) return null;
-
     $fileError = $_FILES[$fileInputName]['error'];
     if ($fileError === UPLOAD_ERR_NO_FILE) return null;
-
     if ($fileError !== UPLOAD_ERR_OK) {
         $msg = "Errore upload file ($fileError).";
         if ($fileError === UPLOAD_ERR_INI_SIZE || $fileError === UPLOAD_ERR_FORM_SIZE) $msg = "File troppo grande.";
         sendError(400, $msg);
         exit;
     }
-
-    // Validazione Estensione
     $allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
     $fileName = $_FILES[$fileInputName]['name'];
     $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-
     if (!in_array($fileExt, $allowedExtensions)) {
         sendError(400, "Tipo file non consentito. Solo PDF e immagini.");
         exit;
     }
-
     $uploadDir = __DIR__ . '/uploads/';
     if (!is_dir($uploadDir)) {
         if (!mkdir($uploadDir, 0755, true)) {
@@ -313,12 +277,9 @@ function handleFileUpload($fileInputName) {
             exit;
         }
     }
-    
     $fileTmpPath = $_FILES[$fileInputName]['tmp_name'];
-    // Sanitizzazione nome file
     $newFileName = time() . '_' . preg_replace('/[^a-zA-Z0-9_\-\.]/', '', $fileName);
     $destPath = $uploadDir . $newFileName;
-    
     if(move_uploaded_file($fileTmpPath, $destPath)) {
         return $newFileName;
     } else {
@@ -329,7 +290,6 @@ function handleFileUpload($fileInputName) {
 
 function addOrUpdateInventory($pdo) {
     $data = $_POST;
-    
     $fields = ['name', 'ni', 'lot', 'expiry', 'quantity', 'unit', 'totalCost', 'costPerGram', 'supplier', 'purity', 'receptionDate', 'ddtNumber', 'ddtDate', 'firstUseDate', 'minStock', 'isExcipient', 'isContainer', 'isDoping', 'isNarcotic', 'securityData'];
     $params = [];
     foreach ($fields as $field) {
@@ -350,41 +310,23 @@ function addOrUpdateInventory($pdo) {
     if ($isUpdate) {
         $params[':id'] = $data['id'];
         $updateFields = array_map(fn($f) => "`$f`=:$f", $fields);
-        if ($sdsFileName) {
-            $updateFields[] = "`sdsFile`=:sdsFile";
-            $params[':sdsFile'] = $sdsFileName;
-        }
-        if ($techSheetFileName) {
-            $updateFields[] = "`technicalSheetFile`=:technicalSheetFile";
-            $params[':technicalSheetFile'] = $techSheetFileName;
-        }
-        
+        if ($sdsFileName) { $updateFields[] = "`sdsFile`=:sdsFile"; $params[':sdsFile'] = $sdsFileName; }
+        if ($techSheetFileName) { $updateFields[] = "`technicalSheetFile`=:technicalSheetFile"; $params[':technicalSheetFile'] = $techSheetFileName; }
         $sql = "UPDATE `inventory` SET " . implode(', ', $updateFields) . " WHERE `id`=:id";
         createLog($pdo, 'RETTIFICA', 'Aggiornamento anagrafica', ['substance' => $data['name'], 'ni' => $data['ni']]);
     } else {
         $insertFields = $fields;
         $insertPlaceholders = array_map(fn($f) => ":$f", $fields);
-        if ($sdsFileName) {
-            $insertFields[] = 'sdsFile';
-            $insertPlaceholders[] = ':sdsFile';
-            $params[':sdsFile'] = $sdsFileName;
-        }
-        if ($techSheetFileName) {
-            $insertFields[] = 'technicalSheetFile';
-            $insertPlaceholders[] = ':technicalSheetFile';
-            $params[':technicalSheetFile'] = $techSheetFileName;
-        }
+        if ($sdsFileName) { $insertFields[] = 'sdsFile'; $insertPlaceholders[] = ':sdsFile'; $params[':sdsFile'] = $sdsFileName; }
+        if ($techSheetFileName) { $insertFields[] = 'technicalSheetFile'; $insertPlaceholders[] = ':technicalSheetFile'; $params[':technicalSheetFile'] = $techSheetFileName; }
         $sql = "INSERT INTO `inventory` (" . implode(', ', array_map(fn($f) => "`$f`", $insertFields)) . ") VALUES (" . implode(', ', $insertPlaceholders) . ")";
     }
-    
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     $newId = $data['id'] ?? $pdo->lastInsertId();
-
     if (!$isUpdate) {
          createLog($pdo, 'CARICO', 'Nuovo carico in magazzino', ['substance' => $data['name'], 'ni' => $data['ni'], 'quantity' => $data['quantity'], 'unit' => $data['unit']]);
     }
-    
     echo json_encode(['success' => true, 'id' => $newId]);
 }
 
@@ -392,13 +334,11 @@ function disposeInventory($pdo) {
     $data = json_decode(file_get_contents('php://input'), true);
     $id = $data['id'] ?? null;
     if (!$id) { sendError(400, 'ID mancante.'); return; }
-
     $pdo->beginTransaction();
     try {
         $stmt = $pdo->prepare("SELECT * FROM `inventory` WHERE `id` = ?");
         $stmt->execute([$id]);
         $item = $stmt->fetch();
-
         if ($item) {
             $sql = "UPDATE `inventory` SET `disposed`=1, `endUseDate`=? WHERE `id`=?";
             $stmt = $pdo->prepare($sql);
@@ -407,7 +347,7 @@ function disposeInventory($pdo) {
         }
         $pdo->commit();
         echo json_encode(['success' => true, 'id' => $id]);
-    } catch (\Exception $e) {
+    } catch (	Exception $e) {
         $pdo->rollBack();
         sendError(500, "Errore smaltimento: " . $e->getMessage());
     }
@@ -433,7 +373,7 @@ function savePreparation($pdo) {
         $wasDraft = true;
         $oldIngredients = [];
         if ($oldPrepId) {
-            $stmt = $pdo->prepare("SELECT pi.`amountUsed`, pi.`inventoryId`, i.`name`, i.`ni`, i.`lot`, i.`unit` FROM `preparation_ingredients` pi JOIN `inventory` i ON pi.inventoryId = i.id WHERE pi.`preparationId` = ?");
+            $stmt = $pdo->prepare("SELECT pi.`amountUsed`, pi.`stockDeduction`, pi.`inventoryId`, i.`name`, i.`ni`, i.`lot`, i.`unit` FROM `preparation_ingredients` pi JOIN `inventory` i ON pi.inventoryId = i.id WHERE pi.`preparationId` = ?");
             $stmt->execute([$oldPrepId]);
             $oldIngredients = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -462,20 +402,31 @@ function savePreparation($pdo) {
         }
 
         foreach ($itemsUsed as $item) {
-            $stmt = $pdo->prepare("INSERT INTO `preparation_ingredients` (`preparationId`, `inventoryId`, `amountUsed`, `isExcipient`) VALUES (?, ?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO `preparation_ingredients` (`preparationId`, `inventoryId`, `amountUsed`, `stockDeduction`, `isExcipient`) VALUES (?, ?, ?, ?, ?)");
             $isExcipient = filter_var($item['isExcipient'] ?? false, FILTER_VALIDATE_BOOLEAN);
-            $stmt->execute([$newPrepId, $item['id'], $item['amountUsed'], $isExcipient ? 1 : 0]);
+            
+            // Gestione Tolleranza (stockDeduction)
+            $sDed = (!empty($item['stockDeduction']) && $item['stockDeduction'] > 0) ? $item['stockDeduction'] : null;
+
+            $stmt->execute([
+                $newPrepId, 
+                $item['id'], 
+                $item['amountUsed'], 
+                $sDed,
+                $isExcipient ? 1 : 0
+            ]);
         }
 
         if (!$isDraft) {
             if ($wasDraft) { 
                 foreach ($itemsUsed as $item) {
+                    $qtyToDeduct = (!empty($item['stockDeduction']) && $item['stockDeduction'] > 0) ? $item['stockDeduction'] : $item['amountUsed'];
                     $stmt = $pdo->prepare("UPDATE `inventory` SET `quantity` = `quantity` - ?, `firstUseDate` = COALESCE(`firstUseDate`, CURDATE()) WHERE `id` = ?");
-                    $stmt->execute([$item['amountUsed'], $item['id']]);
-                    createLog($pdo, 'SCARICO', "Completata Prep. #{$prepDetails['prepNumber']}", ['substance' => $item['name'], 'ni' => $item['ni'] ?? '', 'quantity' => $item['amountUsed'], 'unit' => $item['unit'], 'preparationId' => $newPrepId]);
+                    $stmt->execute([$qtyToDeduct, $item['id']]);
+                    createLog($pdo, 'SCARICO', "Completata Prep. #{$prepDetails['prepNumber']}", ['substance' => $item['name'], 'ni' => $item['ni'] ?? '', 'quantity' => $qtyToDeduct, 'unit' => $item['unit'], 'preparationId' => $newPrepId]);
                 }
             } else { 
-                // LOGICA DELTA
+                // LOGICA DELTA COMPLESSA
                 $logNote = "Modifica Prep. #{$prepDetails['prepNumber']}";
                 $newIngredientsMap = [];
                 foreach($itemsUsed as $item) $newIngredientsMap[$item['id']] = $item;
@@ -485,7 +436,16 @@ function savePreparation($pdo) {
 
                 foreach ($newIngredientsMap as $invId => $newIng) {
                     $oldIng = $oldIngredientsMap[$invId] ?? null;
-                    $diff = $newIng['amountUsed'] - ($oldIng ? $oldIng['amountUsed'] : 0);
+                    
+                    $newQty = (!empty($newIng['stockDeduction']) && $newIng['stockDeduction'] > 0) ? $newIng['stockDeduction'] : $newIng['amountUsed'];
+                    
+                    // Recupero vecchia quantità (con supporto a stockDeduction se esisteva)
+                    $oldQty = 0;
+                    if ($oldIng) {
+                         $oldQty = (!empty($oldIng['stockDeduction']) && $oldIng['stockDeduction'] > 0) ? $oldIng['stockDeduction'] : $oldIng['amountUsed'];
+                    }
+
+                    $diff = $newQty - $oldQty;
                     
                     if ($diff > 0.0001) {
                         $stmt = $pdo->prepare("UPDATE `inventory` SET `quantity` = `quantity` - ?, `firstUseDate` = COALESCE(`firstUseDate`, CURDATE()) WHERE `id` = ?");
@@ -500,9 +460,10 @@ function savePreparation($pdo) {
                 }
                 foreach ($oldIngredientsMap as $invId => $oldIng) {
                     if (!isset($newIngredientsMap[$invId])) {
+                        $oldQty = (!empty($oldIng['stockDeduction']) && $oldIng['stockDeduction'] > 0) ? $oldIng['stockDeduction'] : $oldIng['amountUsed'];
                         $stmt = $pdo->prepare("UPDATE `inventory` SET `quantity` = `quantity` + ? WHERE `id` = ?");
-                        $stmt->execute([$oldIng['amountUsed'], $invId]);
-                        createLog($pdo, 'ANNULLAMENTO', $logNote, ['substance' => $oldIng['name'], 'ni' => $oldIng['ni'] ?? '', 'quantity' => $oldIng['amountUsed'], 'unit' => $oldIng['unit'], 'preparationId' => $newPrepId]);
+                        $stmt->execute([$oldQty, $invId]);
+                        createLog($pdo, 'ANNULLAMENTO', $logNote, ['substance' => $oldIng['name'], 'ni' => $oldIng['ni'] ?? '', 'quantity' => $oldQty, 'unit' => $oldIng['unit'], 'preparationId' => $newPrepId]);
                     }
                 }
             }
@@ -510,7 +471,7 @@ function savePreparation($pdo) {
 
         $pdo->commit();
         echo json_encode(['success' => true, 'id' => $newPrepId]);
-    } catch (\Exception $e) {
+    } catch (	Exception $e) {
         $pdo->rollBack();
         sendError(500, "Errore salvataggio preparazione: " . $e->getMessage());
     }
@@ -530,14 +491,15 @@ function deletePreparation($pdo) {
 
         // Se NON è una bozza, ripristina le scorte
         if ($status !== 'Bozza') {
-            $stmt = $pdo->prepare("SELECT i.name, i.ni, i.unit, pi.inventoryId, pi.amountUsed FROM `preparation_ingredients` pi JOIN `inventory` i ON pi.inventoryId = i.id WHERE pi.`preparationId` = ?");
+            $stmt = $pdo->prepare("SELECT i.name, i.ni, i.unit, pi.inventoryId, pi.amountUsed, pi.stockDeduction FROM `preparation_ingredients` pi JOIN `inventory` i ON pi.inventoryId = i.id WHERE pi.`preparationId` = ?");
             $stmt->execute([$prepId]);
             $ingredientsToRefund = $stmt->fetchAll();
 
             foreach ($ingredientsToRefund as $item) {
+                $qtyToRefund = (!empty($item['stockDeduction']) && $item['stockDeduction'] > 0) ? $item['stockDeduction'] : $item['amountUsed'];
                 $stmt = $pdo->prepare("UPDATE `inventory` SET `quantity` = `quantity` + ? WHERE `id` = ?");
-                $stmt->execute([$item['amountUsed'], $item['inventoryId']]);
-                createLog($pdo, 'ANNULLAMENTO', "Annullata preparazione", ['substance' => $item['name'], 'ni' => $item['ni'], 'quantity' => $item['amountUsed'], 'unit' => $item['unit'], 'preparationId' => $prepId]);
+                $stmt->execute([$qtyToRefund, $item['inventoryId']]);
+                createLog($pdo, 'ANNULLAMENTO', "Annullata preparazione", ['substance' => $item['name'], 'ni' => $item['ni'], 'quantity' => $qtyToRefund, 'unit' => $item['unit'], 'preparationId' => $prepId]);
             }
         }
 
@@ -548,7 +510,7 @@ function deletePreparation($pdo) {
 
         $pdo->commit();
         echo json_encode(['success' => true, 'id' => $prepId]);
-    } catch (\Exception $e) {
+    } catch (	Exception $e) {
         $pdo->rollBack();
         sendError(500, "Errore eliminazione preparazione: " . $e->getMessage());
     }
@@ -557,7 +519,6 @@ function deletePreparation($pdo) {
 function clearLogs($pdo) {
     $data = json_decode(file_get_contents('php://input'), true);
     $mode = $data['mode'] ?? 'range';
-
     $pdo->beginTransaction();
     try {
         if ($mode === 'all') {
@@ -566,17 +527,13 @@ function clearLogs($pdo) {
         } elseif ($mode === 'range') {
             $startDate = $data['startDate'] ?? null;
             $endDate = $data['endDate'] ?? null;
-            if (!$startDate || !$endDate) {
-                sendError(400, 'Date mancanti.');
-                $pdo->rollBack();
-                return;
-            }
+            if (!$startDate || !$endDate) { sendError(400, 'Date mancanti.'); $pdo->rollBack(); return; }
             $stmt = $pdo->prepare("DELETE FROM `logs` WHERE `date` >= ? AND `date` <= ?");
             $stmt->execute([$startDate, $endDate]);
         }
         $pdo->commit();
         echo json_encode(['success' => true]);
-    } catch (\Exception $e) {
+    } catch (	Exception $e) {
         $pdo->rollBack();
         sendError(500, "Errore cancellazione log: " . $e->getMessage());
     }
@@ -586,7 +543,6 @@ function deleteLog($pdo) {
     $data = json_decode(file_get_contents('php://input'), true);
     $id = $data['id'] ?? null;
     if (!$id) { sendError(400, 'ID mancante.'); return; }
-
     try {
         $stmt = $pdo->prepare("DELETE FROM `logs` WHERE `id` = ?");
         $stmt->execute([$id]);
@@ -601,8 +557,6 @@ function sendError($statusCode, $message) {
     echo json_encode(['error' => $message]);
 }
 
-// --- GESTIONE UTENTI (ADMIN ONLY) ---
-
 function getUsers($pdo) {
     $stmt = $pdo->query("SELECT id, username, role, createdAt FROM users ORDER BY username ASC");
     echo json_encode($stmt->fetchAll());
@@ -613,21 +567,13 @@ function createUser($pdo) {
     $username = $data['username'] ?? '';
     $password = $data['password'] ?? '';
     $role = $data['role'] ?? 'operator';
-
-    if (empty($username) || empty($password)) {
-        sendError(400, 'Username e password obbligatori.');
-        return;
-    }
-
+    if (empty($username) || empty($password)) { sendError(400, 'Username e password obbligatori.'); return; }
     $password_hash = password_hash($password, PASSWORD_DEFAULT);
-    
     try {
         $stmt = $pdo->prepare("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)");
         $stmt->execute([$username, $password_hash, $role]);
         echo json_encode(['success' => true, 'id' => $pdo->lastInsertId()]);
-    } catch (PDOException $e) {
-        sendError(400, 'Errore: Username già esistente.');
-    }
+    } catch (PDOException $e) { sendError(400, 'Errore: Username già esistente.'); }
 }
 
 function updateUser($pdo) {
@@ -636,12 +582,7 @@ function updateUser($pdo) {
     $username = $data['username'] ?? '';
     $role = $data['role'] ?? '';
     $password = $data['password'] ?? '';
-
-    if (!$id || empty($username) || empty($role)) {
-        sendError(400, 'Dati mancanti.');
-        return;
-    }
-
+    if (!$id || empty($username) || empty($role)) { sendError(400, 'Dati mancanti.'); return; }
     try {
         if (!empty($password)) {
             $password_hash = password_hash($password, PASSWORD_DEFAULT);
@@ -652,25 +593,14 @@ function updateUser($pdo) {
             $stmt->execute([$username, $role, $id]);
         }
         echo json_encode(['success' => true]);
-    } catch (PDOException $e) {
-        sendError(400, 'Errore durante l\'aggiornamento.');
-    }
+    } catch (PDOException $e) { sendError(400, 'Errore durante l\'aggiornamento.'); }
 }
 
 function deleteUser($pdo, $requesterId) {
     $data = json_decode(file_get_contents('php://input'), true);
     $id = $data['id'] ?? null;
-
-    if (!$id) {
-        sendError(400, 'ID mancante.');
-        return;
-    }
-
-    if ($id == $requesterId) {
-        sendError(400, 'Non puoi eliminare il tuo stesso account.');
-        return;
-    }
-
+    if (!$id) { sendError(400, 'ID mancante.'); return; }
+    if ($id == $requesterId) { sendError(400, 'Non puoi eliminare il tuo stesso account.'); return; }
     $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
     $stmt->execute([$id]);
     echo json_encode(['success' => true]);
@@ -679,59 +609,24 @@ function deleteUser($pdo, $requesterId) {
 function askAI($pdo) {
     $data = json_decode(file_get_contents('php://input'), true);
     $userPrompt = $data['prompt'] ?? '';
-
-    if (empty($userPrompt)) {
-        sendError(400, 'Domanda vuota.');
-        return;
-    }
-
-    if (!defined('GEMINI_API_KEY') || GEMINI_API_KEY === 'INSERISCI_QUI_LA_TUA_CHIAVE') {
-        sendError(500, 'Chiave API AI non configurata sul server.');
-        return;
-    }
-
+    if (empty($userPrompt)) { sendError(400, 'Domanda vuota.'); return; }
+    if (!defined('GEMINI_API_KEY') || GEMINI_API_KEY === 'INSERISCI_QUI_LA_TUA_CHIAVE') { sendError(500, 'Chiave API AI non configurata sul server.'); return; }
     $apiKey = trim(GEMINI_API_KEY);
     $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey";
-
-    // Prompt di sistema
     $systemInstruction = "Sei un esperto Farmacista Galenista in un laboratorio italiano. Rispondi in modo tecnico, preciso e professionale. Usi le norme NBP come riferimento. Sii conciso ma esaustivo.";
-
-    $requestBody = [
-        "contents" => [
-            [
-                "parts" => [
-                    ["text" => $systemInstruction . "\n\nDomanda Utente: " . $userPrompt]
-                ]
-            ]
-        ]
-    ];
-
+    $requestBody = [ "contents" => [ [ "parts" => [ ["text" => $systemInstruction . "\n\nDomanda Utente: " . $userPrompt] ] ] ] ];
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_POST, 1);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($requestBody));
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    
-    if (curl_errno($ch)) {
-        sendError(500, 'Errore connessione AI: ' . curl_error($ch));
-        curl_close($ch);
-        return;
-    }
+    if (curl_errno($ch)) { sendError(500, 'Errore connessione AI: ' . curl_error($ch)); curl_close($ch); return; }
     curl_close($ch);
-
-    if ($httpCode !== 200) {
-        $errorData = json_decode($response, true);
-        $errorMsg = $errorData['error']['message'] ?? 'Errore sconosciuto da Google AI';
-        sendError(500, "Errore AI ($httpCode): $errorMsg");
-        return;
-    }
-
+    if ($httpCode !== 200) { $errorData = json_decode($response, true); $errorMsg = $errorData['error']['message'] ?? 'Errore sconosciuto da Google AI'; sendError(500, "Errore AI ($httpCode): $errorMsg"); return; }
     $responseData = json_decode($response, true);
     $aiText = $responseData['candidates'][0]['content']['parts'][0]['text'] ?? 'Nessuna risposta.';
-
     echo json_encode(['success' => true, 'response' => $aiText]);
 }
 
@@ -740,51 +635,35 @@ function getSettings($pdo) {
         $stmt = $pdo->query("SELECT settingKey, settingValue FROM settings");
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $settings = [];
-        foreach ($rows as $row) {
-            $settings[$row['settingKey']] = $row['settingValue'];
-        }
+        foreach ($rows as $row) { $settings[$row['settingKey']] = $row['settingValue']; }
         echo json_encode($settings);
-    } catch (Exception $e) {
-        sendError(500, "Errore recupero impostazioni: " . $e->getMessage());
-    }
+    } catch (Exception $e) { sendError(500, "Errore recupero impostazioni: " . $e->getMessage()); }
 }
 
 function saveSettings($pdo) {
     $data = [];
     $contentType = $_SERVER["CONTENT_TYPE"] ?? '';
-
-    // Gestione Multipart (File Upload)
     if (strpos($contentType, 'multipart/form-data') !== false) {
         $data = $_POST;
         if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
             $logoName = handleFileUpload('logo');
-            if ($logoName) {
-                $data['logo'] = $logoName;
-            }
+            if ($logoName) { $data['logo'] = $logoName; }
         }
     } else {
-        // Gestione JSON
         $data = json_decode(file_get_contents('php://input'), true);
     }
-
-    if (!is_array($data)) {
-        sendError(400, 'Dati non validi.');
-        return;
-    }
-    
+    if (!is_array($data)) { sendError(400, 'Dati non validi.'); return; }
     $pdo->beginTransaction();
     try {
         $stmt = $pdo->prepare("INSERT INTO settings (settingKey, settingValue) VALUES (:key, :valInsert) ON DUPLICATE KEY UPDATE settingValue = :valUpdate");
         foreach ($data as $key => $value) {
             if (empty($key)) continue;
-            // Se il valore non è stringa o null, lo convertiamo in stringa
             $valToSave = $value;
             if (!is_string($value) && !is_null($value)) $valToSave = (string)$value;
-            
             $stmt->execute([':key' => $key, ':valInsert' => $valToSave, ':valUpdate' => $valToSave]);
         }
         $pdo->commit();
-        echo json_encode(['success' => true, 'data' => $data]); // Ritorna i dati salvati (utile per aggiornare stato frontend col logo nuovo)
+        echo json_encode(['success' => true, 'data' => $data]);
     } catch (Exception $e) {
         $pdo->rollBack();
         sendError(500, "Errore salvataggio impostazioni: " . $e->getMessage());
@@ -795,18 +674,11 @@ function login($pdo) {
     $data = json_decode(file_get_contents('php://input'), true);
     $username = $data['username'] ?? '';
     $password = $data['password'] ?? '';
-
-    if (empty($username) || empty($password)) {
-        sendError(400, 'Username e password sono obbligatori.');
-        return;
-    }
-
+    if (empty($username) || empty($password)) { sendError(400, 'Username e password sono obbligatori.'); return; }
     $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
     $stmt->execute([$username]);
     $user = $stmt->fetch();
-
     if ($user && password_verify($password, $user['password_hash'])) {
-        // Usa il ruolo dal DB, o 'operator' come default se mancante
         $role = $user['role'] ?? 'operator';
         $token = create_jwt($user['id'], $user['username'], $role);
         echo json_encode(['success' => true, 'token' => $token, 'role' => $role, 'username' => $user['username']]);
@@ -814,5 +686,4 @@ function login($pdo) {
         sendError(401, 'Credenziali non valide.');
     }
 }
-
 ?>

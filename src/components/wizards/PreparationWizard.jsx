@@ -17,12 +17,14 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   
   const [currentIngredientId, setCurrentIngredientId] = useState('');
   const [amountNeeded, setAmountNeeded] = useState('');
+  const [weighedAmount, setWeighedAmount] = useState(''); // Q.tà Reale/Pesata
 
   const [currentContainerId, setCurrentContainerId] = useState('');
   const [containerAmountNeeded, setContainerAmountNeeded] = useState('');
 
   const [editingIngredientIndex, setEditingIngredientIndex] = useState(null);
   const [tempAmount, setTempAmount] = useState('');
+  const [tempWeighedAmount, setTempWeighedAmount] = useState('');
   
   const [professionalFee, setProfessionalFee] = useState(0);
   const [batches, setBatches] = useState([]); 
@@ -100,6 +102,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
           return {
             id: ing.id, amountUsed: ing.amountUsed,
+            stockDeduction: ing.stockDeduction || null, // Carica la tolleranza salvata
             name: inventoryItem.name, ni: inventoryItem.ni, lot: inventoryItem.lot || '', unit: inventoryItem.unit,
             costPerGram: inventoryItem.costPerGram || 0,
             isExcipient: finalIsExcipient,
@@ -342,14 +345,26 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   const addIngredient = () => {
     if (!currentIngredientId || !amountNeeded) return;
     const item = inventory.find(i => i.id === parseInt(currentIngredientId));
+    
+    // Logica Tolleranza
+    const qtyRecipe = parseFloat(amountNeeded);
+    const qtyWeighed = weighedAmount ? parseFloat(weighedAmount) : qtyRecipe;
+    
     const remaining = getRemainingQuantity(item);
-    if (parseFloat(amountNeeded) > remaining) {
-      alert(`Quantità insufficiente!`);
+    if (qtyWeighed > remaining) {
+      alert(`Quantità insufficiente in magazzino! (Richiesti: ${qtyWeighed} ${item.unit}, Disp: ${remaining} ${item.unit})`);
       return;
     }
-    setSelectedIngredients([...selectedIngredients, { ...item, amountUsed: parseFloat(amountNeeded) }]);
+    
+    setSelectedIngredients([...selectedIngredients, { 
+        ...item, 
+        amountUsed: qtyRecipe,
+        stockDeduction: weighedAmount ? qtyWeighed : null
+    }]);
+    
     setCurrentIngredientId('');
     setAmountNeeded('');
+    setWeighedAmount('');
   };
 
   const addContainer = () => {
@@ -378,31 +393,44 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
     setSelectedIngredients(newIngredients);
   };
 
-  const handleIngredientAmountChange = (index, newAmount) => {
+  const handleIngredientAmountChange = (index, newAmount, newWeighedAmount) => {
     const newAmountValue = parseFloat(newAmount);
+    const newWeighedValue = newWeighedAmount ? parseFloat(newWeighedAmount) : newAmountValue;
+    
     if (isNaN(newAmountValue) || newAmountValue < 0) return;
+    
     const updatedIngredients = [...selectedIngredients];
     const ingredient = updatedIngredients[index];
     const originalItem = inventory.find(i => i.id === ingredient.id);
-    const otherUses = selectedIngredients.filter((ing, idx) => idx !== index && ing.id === ingredient.id).reduce((acc, curr) => acc + curr.amountUsed, 0);
+    
+    // Calcolo scorte escludendo questa riga
+    const otherUses = selectedIngredients.filter((ing, idx) => idx !== index && ing.id === ingredient.id).reduce((acc, curr) => {
+        const qty = (curr.stockDeduction > 0) ? curr.stockDeduction : curr.amountUsed;
+        return acc + qty;
+    }, 0);
+    
     const maxAvailable = originalItem.quantity - otherUses;
-    if (newAmountValue > maxAvailable) {
-      alert(`Quantità non disponibile. Massima disponibile: ${maxAvailable.toFixed(2)} ${ingredient.unit}`);
-      updatedIngredients[index].amountUsed = maxAvailable;
-    } else {
-      updatedIngredients[index].amountUsed = newAmountValue;
+    
+    if (newWeighedValue > maxAvailable) {
+      alert(`Quantità non disponibile. Massima scaricabile: ${maxAvailable.toFixed(2)} ${ingredient.unit}`);
+      return;
     }
+
+    updatedIngredients[index].amountUsed = newAmountValue;
+    updatedIngredients[index].stockDeduction = (newWeighedAmount && parseFloat(newWeighedAmount) !== newAmountValue) ? parseFloat(newWeighedAmount) : null;
+    
     setSelectedIngredients(updatedIngredients);
+    setEditingIngredientIndex(null);
   };
   
   const startEditingAmount = (index) => {
     setEditingIngredientIndex(index);
     setTempAmount(selectedIngredients[index].amountUsed);
+    setTempWeighedAmount(selectedIngredients[index].stockDeduction || '');
   };
 
   const saveEditingAmount = (index) => {
-    handleIngredientAmountChange(index, tempAmount);
-    setEditingIngredientIndex(null);
+    handleIngredientAmountChange(index, tempAmount, tempWeighedAmount);
   };
 
   const calculateTotal = () => {
@@ -655,7 +683,14 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                           })}
                         </select>
                       </div>
-                      <div className="w-32"><input type="number" step="0.01" placeholder="Q.tà" className="w-full border p-2 rounded text-sm outline-none" value={amountNeeded} onChange={e => setAmountNeeded(e.target.value)} /></div>
+                      <div className="flex gap-2 w-64">
+                          <div className="flex-1">
+                              <input type="number" step="0.01" placeholder="Q.tà Ricetta" className="w-full border p-2 rounded text-sm outline-none focus:ring-1 ring-teal-500" value={amountNeeded} onChange={e => setAmountNeeded(e.target.value)} title="Quantità prevista in formula" />
+                          </div>
+                          <div className="flex-1">
+                              <input type="number" step="0.01" placeholder="Q.tà Pesata" className="w-full border p-2 rounded text-sm outline-none bg-amber-50 focus:ring-1 ring-amber-500" value={weighedAmount} onChange={e => setWeighedAmount(e.target.value)} title="Quantità effettiva pesata (se diversa, es. perdite)" />
+                          </div>
+                      </div>
                       <button onClick={addIngredient} className="bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700 mb-[1px]"><Plus size={18} /></button>
                   </div>
                   {!isSelectedBatchOptimal() && (
@@ -707,8 +742,22 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                           </div>
                       )}
                       <div className="flex items-center gap-2">
-                        {editingIngredientIndex === idx ? (<input type="number" step={ing.isContainer ? "1" : "0.01"} value={tempAmount} onChange={(e) => setTempAmount(e.target.value)} className="w-24 border text-right p-1 rounded-md font-mono font-bold" autoFocus onBlur={() => saveEditingAmount(idx)} onKeyDown={(e) => e.key === 'Enter' && saveEditingAmount(idx)}/>) : (<span className={`font-mono font-bold w-24 text-right ${isInsufficient ? 'text-red-600' : ''}`}>{Number(ing.amountUsed).toFixed(ing.isContainer ? 0 : 2)}</span>)}
-                        <span className="text-sm font-mono">{ing.unit}</span>
+                        {editingIngredientIndex === idx ? (
+                            <div className="flex gap-1">
+                                <input type="number" step="0.01" value={tempAmount} onChange={(e) => setTempAmount(e.target.value)} className="w-20 border text-right p-1 rounded-md font-mono font-bold" autoFocus title="Q.tà Ricetta" />
+                                <input type="number" step="0.01" value={tempWeighedAmount} onChange={(e) => setTempWeighedAmount(e.target.value)} className="w-20 border text-right p-1 rounded-md font-mono font-bold bg-amber-50" placeholder="Auto" title="Q.tà Pesata (Reale)" />
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-end w-24">
+                                <span className={`font-mono font-bold text-right ${isInsufficient ? 'text-red-600' : ''}`}>{Number(ing.amountUsed).toFixed(ing.isContainer ? 0 : 2)}</span>
+                                {ing.stockDeduction && (
+                                    <span className="text-[10px] text-amber-700 font-bold whitespace-nowrap" title="Quantità effettivamente scaricata dal magazzino">
+                                        (Reale: {Number(ing.stockDeduction).toFixed(2)})
+                                    </span>
+                                )}
+                            </div>
+                        )}
+                        <span className="text-sm font-mono w-8">{ing.unit}</span>
                         {editingIngredientIndex === idx ? (<button type="button" onClick={() => saveEditingAmount(idx)} className="text-green-600 hover:bg-green-50 p-1.5 rounded-full"><Check size={16} /></button>) : (<button type="button" onClick={() => startEditingAmount(idx)} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded-full"><Pencil size={16} /></button>)}
                         <button type="button" onClick={() => removeIngredient(idx)} className="text-red-500 hover:bg-red-50 p-1.5 rounded-full"><Trash2 size={16} /></button>
                       </div>
