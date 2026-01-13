@@ -887,7 +887,9 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                     // Calcolo validazione giacenza per bozze riprese
                     // Se l'ingrediente è un contenitore, usiamo amountUsed direttamente (pezzi), altrimenti grammi/ml
                     const currentStock = originalItem ? parseFloat(originalItem.quantity) : 0;
-                    const isInsufficient = originalItem && ing.amountUsed > currentStock;
+                    const deduction = (ing.stockDeduction > 0) ? ing.stockDeduction : ing.amountUsed;
+                    // FIX: Controllo giacenza solo se NON è completata
+                    const isInsufficient = details.status !== 'Completata' && originalItem && deduction > currentStock;
 
                     return (
                     <div key={idx} className={`flex justify-between items-center p-3 border rounded shadow-sm transition-colors ${
@@ -958,7 +960,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                                       Modifica Operazioni Tecnologiche
                                   </button>
                                 </div>
-                              )}                <div className="flex justify-between pt-4"><button onClick={() => setStep(1)} className="text-slate-500 hover:underline">Indietro</button><button disabled={selectedIngredients.length === 0 || selectedIngredients.some(ing => { const item = inventory.find(i => String(i.id) === String(ing.id)); return item && ing.amountUsed > parseFloat(item.quantity); })} onClick={() => setStep(3)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 disabled:opacity-50 disabled:bg-slate-400 disabled:cursor-not-allowed">Calcola Prezzo</button></div>
+                              )}                <div className="flex justify-between pt-4"><button onClick={() => setStep(1)} className="text-slate-500 hover:underline">Indietro</button><button disabled={selectedIngredients.length === 0 || (details.status !== 'Completata' && selectedIngredients.some(ing => { const item = inventory.find(i => String(i.id) === String(ing.id)); const ded = (ing.stockDeduction > 0) ? ing.stockDeduction : ing.amountUsed; return item && ded > parseFloat(item.quantity); }))} onClick={() => setStep(3)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 disabled:opacity-50 disabled:bg-slate-400 disabled:cursor-not-allowed">Calcola Prezzo</button></div>
             </div>
           )}
           
