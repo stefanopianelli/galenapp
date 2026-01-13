@@ -255,7 +255,7 @@ function getAllData($pdo) {
     if (!empty($prep_ids)) {
         $in_clause = implode(',', array_fill(0, count($prep_ids), '?'));
         $stmt_ingredients = $pdo->prepare(
-            "SELECT pi.`preparationId`, pi.`amountUsed`, pi.`isExcipient` AS roleInPrep, i.`id`, i.`name`, i.`ni`, i.`unit`, i.`costPerGram`, i.`isContainer`, i.`isDoping`, i.`isNarcotic`, i.`securityData`
+            "SELECT pi.`preparationId`, pi.`amountUsed`, pi.`isExcipient` AS roleInPrep, i.`id`, i.`name`, i.`ni`, i.`lot`, i.`unit`, i.`costPerGram`, i.`isContainer`, i.`isDoping`, i.`isNarcotic`, i.`securityData`
              FROM `preparation_ingredients` pi JOIN `inventory` i ON pi.`inventoryId` = i.`id`
              WHERE pi.`preparationId` IN ($in_clause)"
         );
@@ -433,7 +433,7 @@ function savePreparation($pdo) {
         $wasDraft = true;
         $oldIngredients = [];
         if ($oldPrepId) {
-            $stmt = $pdo->prepare("SELECT pi.`amountUsed`, pi.`inventoryId`, i.`name`, i.`ni`, i.`unit` FROM `preparation_ingredients` pi JOIN `inventory` i ON pi.inventoryId = i.id WHERE pi.`preparationId` = ?");
+            $stmt = $pdo->prepare("SELECT pi.`amountUsed`, pi.`inventoryId`, i.`name`, i.`ni`, i.`lot`, i.`unit` FROM `preparation_ingredients` pi JOIN `inventory` i ON pi.inventoryId = i.id WHERE pi.`preparationId` = ?");
             $stmt->execute([$oldPrepId]);
             $oldIngredients = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

@@ -100,7 +100,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
           return {
             id: ing.id, amountUsed: ing.amountUsed,
-            name: inventoryItem.name, ni: inventoryItem.ni, unit: inventoryItem.unit,
+            name: inventoryItem.name, ni: inventoryItem.ni, lot: inventoryItem.lot || '', unit: inventoryItem.unit,
             costPerGram: inventoryItem.costPerGram || 0,
             isExcipient: finalIsExcipient,
             isContainer: inventoryItem.isContainer || false,

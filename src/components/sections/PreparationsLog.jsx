@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Hash, Calendar, Pencil, Trash2, Filter, X, Search, ChevronDown, ChevronUp, Stethoscope, FlaskConical, Printer, Copy, User, Pill, ArrowRight } from 'lucide-react';
+import { Hash, Calendar, Pencil, Trash2, Filter, X, Search, ChevronDown, ChevronUp, Stethoscope, FlaskConical, Printer, Copy, User, Pill, ArrowRight, FileDown } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
+import { generateWorkSheetPDF } from '../../services/pdfGenerator';
 
 const PreparationCard = ({ prep, isExpanded, toggleExpand, handleJumpToStep, handleDeletePreparation, handleDuplicatePreparation, canEdit, pharmacySettings, onPrintLabel }) => {
   return (
@@ -76,7 +77,9 @@ const PreparationCard = ({ prep, isExpanded, toggleExpand, handleJumpToStep, han
                   <li key={idx} className="text-xs flex items-center justify-between bg-slate-50 p-1.5 rounded border border-slate-100 hover:bg-white transition-colors">
                     <div>
                       <span className={`font-medium ${ing.isExcipient ? 'text-slate-500 italic' : 'text-teal-700'}`}>{ing.name}</span>
-                      <span className="text-[10px] text-slate-400 block ml-1">Lotto/NI: {ing.ni || ing.lot || '-'}</span>
+                      <span className="text-[10px] text-slate-400 block ml-1">
+                        {[ing.lot ? 'L:'+ing.lot : null, ing.ni ? 'NI:'+ing.ni : null].filter(Boolean).join(' ') || '-'}
+                      </span>
                     </div>
                     <span className="font-bold text-slate-800 font-mono">{Number(ing.amountUsed).toFixed(2)} {ing.unit}</span>
                   </li>
@@ -92,6 +95,13 @@ const PreparationCard = ({ prep, isExpanded, toggleExpand, handleJumpToStep, han
                 className="w-full text-left px-3 py-2 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 flex items-center gap-2 transition-colors text-sm font-medium"
               >
                 <Printer size={16} /> Stampa Etichetta
+              </button>
+
+              <button 
+                onClick={(e) => { e.stopPropagation(); generateWorkSheetPDF({ details: prep, ingredients: prep.ingredients, pricing: prep.pricingData }, pharmacySettings); }} 
+                className="w-full text-left px-3 py-2 bg-slate-50 text-slate-700 rounded hover:bg-slate-100 flex items-center gap-2 transition-colors text-sm font-medium"
+              >
+                <FileDown size={16} /> Scarica Foglio
               </button>
               
               <div className="border-t border-slate-100 my-1"></div>

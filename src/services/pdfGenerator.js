@@ -172,7 +172,7 @@ export const generateWorkSheetPDF = async (preparationData, pharmacySettings) =>
       let flags = [];
       if(ing.isDoping) flags.push("Doping");
       if(ing.isNarcotic) flags.push("Stupefacente");
-      const identifier = ing.lot || ing.ni || '-';
+      const identifier = [ing.lot ? 'L:'+ing.lot : null, ing.ni ? 'NI:'+ing.ni : null].filter(Boolean).join(' ') || '-';
       
       const isExcipient = ing.isExcipient === true || ing.isExcipient == 1;
       const displayName = isExcipient ? `${ing.name} (Eccipiente)` : ing.name;
@@ -199,7 +199,7 @@ export const generateWorkSheetPDF = async (preparationData, pharmacySettings) =>
 
   if (containers.length > 0) {
     const containersBody = containers.map(ing => {
-      const identifier = ing.lot || ing.ni || '-';
+      const identifier = [ing.lot ? 'L:'+ing.lot : null, ing.ni ? 'NI:'+ing.ni : null].filter(Boolean).join(' ') || '-';
       return [
         { content: ing.name, styles: { fontStyle: 'bold' } },
         identifier,
