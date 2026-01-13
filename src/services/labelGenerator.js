@@ -210,10 +210,52 @@ export const generateLabelPDF = async (prep, pharmacySettings, rollFormat = 62) 
                   currentCursorY += (nameLines.length * GAP_B);
               }
               
-              // Reset Font globale per il prossimo giro
               targetDoc.setFontSize(F_BODY);
           }
       });
+
+      // --- AGGIUNTA: Uso e Posologia (Solo Magistrali) ---
+      if (!isOfficinale) {
+          currentCursorY += (isSmall ? 0.8 : 1.2); // Spazio separatore ridotto
+          
+          // Font minuscolo per massimizzare spazio sostanze (3pt - 3.5pt)
+          const fontSmall = isSmall ? 2.8 : (isMedium ? 3.0 : 3.5);
+          const gapSmall = isSmall ? 1.0 : (isMedium ? 1.3 : 1.5);
+          const maxTextW = (colSplitX - MARGIN - 2);
+
+          targetDoc.setFontSize(fontSmall);
+
+          if (prep.usage) {
+              targetDoc.setFont("helvetica", "bold");
+              targetDoc.text(`Uso: ${prep.usage}`, MARGIN, currentCursorY);
+              currentCursorY += gapSmall;
+          }
+
+          if (prep.posology) {
+              targetDoc.setFont("helvetica", "bold");
+              const posLabel = "Posologia: ";
+              const labelW = targetDoc.getTextWidth(posLabel);
+              targetDoc.text(posLabel, MARGIN, currentCursorY);
+              
+              targetDoc.setFont("helvetica", "normal");
+              const splitPos = targetDoc.splitTextToSize(prep.posology, maxTextW - labelW);
+              
+              // Se la posologia è corta, stampa sulla stessa riga, altrimenti vai a capo ma resta compatto
+              if (splitPos.length === 1) {
+                  targetDoc.text(prep.posology, MARGIN + labelW, currentCursorY);
+                  currentCursorY += gapSmall;
+              } else {
+                  // Stampa la prima riga accanto all'etichetta
+                  targetDoc.text(splitPos[0], MARGIN + labelW, currentCursorY);
+                  currentCursorY += gapSmall;
+                  // Stampa le righe successive (rientrate o meno? meglio non rientrate per spazio)
+                  for (let i = 1; i < splitPos.length; i++) {
+                      targetDoc.text(splitPos[i], MARGIN, currentCursorY);
+                      currentCursorY += gapSmall;
+                  }
+              }
+          }
+      }
 
       // DX: Costi
       let costY = bodyStartY;
