@@ -332,13 +332,22 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   };
 
   const getRemainingQuantity = (item) => {
-    const used = selectedIngredients.filter(i => i.id === item.id).reduce((acc, curr) => acc + curr.amountUsed, 0);
-    return item.quantity - used;
+    const used = selectedIngredients.filter(i => String(i.id) === String(item.id)).reduce((acc, curr) => {
+        // Forza conversione numerica per evitare errori di tipo
+        const recipeQty = Number(curr.amountUsed) || 0;
+        const weighedQty = Number(curr.stockDeduction) || 0;
+        
+        // La quantità da scalare è la pesata se presente (>0), altrimenti quella di ricetta
+        const actualDeduction = (weighedQty > 0) ? weighedQty : recipeQty;
+        
+        return acc + actualDeduction;
+    }, 0);
+    return Number(item.quantity) - used;
   };
 
   // FIFO Logic: Sort by expiry date (oldest first)
   const availableItems = (inventory || [])
-    .filter(i => !i.disposed && new Date(i.expiry) > new Date() && getRemainingQuantity(i) > 0)
+    .filter(i => !i.disposed && new Date(i.expiry) > new Date() && getRemainingQuantity(i) > 0.001)
     .sort((a, b) => new Date(a.expiry) - new Date(b.expiry));
 
   const availableSubstances = availableItems.filter(i => !i.isContainer);
@@ -757,7 +766,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                                                         </div>
                                                         <div className="mt-1 flex justify-end">
                                                             <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 shadow-sm">
-                                                                Disp: {parseFloat(item.quantity).toFixed(2)} {item.unit}
+                                                                Disp: {getRemainingQuantity(item).toFixed(2)} {item.unit}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -857,7 +866,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                                                 </div>
                                                 <div className="text-right">
                                                     <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 shadow-sm">
-                                                        Disp: {parseFloat(item.quantity).toFixed(0)} pz
+                                                        Disp: {getRemainingQuantity(item).toFixed(0)} pz
                                                     </span>
                                                 </div>
                                             </div>
