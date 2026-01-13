@@ -56,24 +56,29 @@ export const generateLabelPDF = async (prep, pharmacySettings, rollFormat = 62) 
   } catch (e) { console.error("QR Error", e); }
 
   // Funzione CORE di disegno
-  // Accetta il documento su cui disegnare, l'offset verticale e i dati del batch
-  const drawOnDoc = (targetDoc, startOffsetY, batchData) => {
+  // Accetta il documento su cui disegnare, l'offset verticale, i dati del batch e un fattore di scala
+  const drawOnDoc = (targetDoc, startOffsetY, batchData, contentScale = 1.0) => {
       const isOfficinale = !!batchData;
       let ratio = 1;
       if (isOfficinale && prep.quantity > 0) {
           ratio = parseFloat(batchData.productQuantity) / parseFloat(prep.quantity);
       }
 
-      // --- CONFIGURAZIONE FONT & SPAZI ---
+      // --- CONFIGURAZIONE FONT & SPAZI (SCALABILI) ---
+      // I titoli rimangono quasi invariati, scaliamo il corpo
       const F_H1 = isSmall ? 8 : (isMedium ? 9 : 10); 
       const F_H2 = isSmall ? 6 : (isMedium ? 6 : 7); 
-      const F_TITLE = isSmall ? 8 : (isMedium ? 10 : (isOfficinale ? 12 : 10)); 
-      const F_BODY = isSmall ? 5 : (isMedium ? 6 : 7); 
-      const F_COST = isSmall ? 5 : (isMedium ? 5 : 6); 
-      const F_WARN = isSmall ? 4 : (isMedium ? 4.5 : 5); 
+      const F_TITLE = (isSmall ? 8 : (isMedium ? 10 : (isOfficinale ? 12 : 10))) * Math.max(0.9, contentScale); // Titolo scala poco
       
-      const GAP_H = isSmall ? 2.5 : (isMedium ? 3 : 3.5); 
-      const GAP_B = isSmall ? 2.2 : (isMedium ? 2.8 : 3.5); 
+      // Il corpo scala linearmente con contentScale
+      const baseBodyFont = isSmall ? 5 : (isMedium ? 6 : 7);
+      const F_BODY = Math.max(3.5, baseBodyFont * contentScale); // Minimo 3.5pt leggibilità
+      
+      const F_COST = Math.max(3.5, (isSmall ? 5 : (isMedium ? 5 : 6)) * contentScale); 
+      const F_WARN = Math.max(3.0, (isSmall ? 4 : (isMedium ? 4.5 : 5)) * contentScale); 
+      
+      const GAP_H = (isSmall ? 2.5 : (isMedium ? 3 : 3.5)) * contentScale; 
+      const GAP_B = (isSmall ? 2.2 : (isMedium ? 2.8 : 3.5)) * contentScale; 
 
       // Applico l'offset iniziale a cursorY
       let cursorY = MARGIN + (isSmall ? 1 : 3) + startOffsetY;
@@ -126,13 +131,13 @@ export const generateLabelPDF = async (prep, pharmacySettings, rollFormat = 62) 
       let currentCursorY = Math.max(pzDocY + 0.5, textNpY + (GAP_H * 3)); 
       targetDoc.setLineWidth(0.1); targetDoc.setDrawColor(0);
       targetDoc.line(MARGIN, currentCursorY, CURRENT_LABEL_WIDTH - MARGIN, currentCursorY);
-      currentCursorY += (isSmall ? 2 : (isMedium ? 3.5 : 4)); 
+      currentCursorY += (isSmall ? 2 : (isMedium ? 3.5 : 4)) * contentScale; 
 
       // --- 2. TITOLO ---
       targetDoc.setFontSize(F_TITLE); targetDoc.setFont("helvetica", "bold");
       const splitName = targetDoc.splitTextToSize(prep.name, CURRENT_LABEL_WIDTH - (MARGIN * 2));
       targetDoc.text(splitName, CURRENT_LABEL_WIDTH / 2, currentCursorY, { align: "center" });
-      currentCursorY += (splitName.length * (isOfficinale ? (isSmall ? 3.5 : 5) : (isSmall ? 3 : 4))) + 1;
+      currentCursorY += (splitName.length * (isOfficinale ? (isSmall ? 3.5 : 5) : (isSmall ? 3 : 4)) * contentScale) + 1;
 
       // --- 3. CORPO ---
       const bodyStartY = currentCursorY;
@@ -145,10 +150,10 @@ export const generateLabelPDF = async (prep, pharmacySettings, rollFormat = 62) 
       const unitCount = isOfficinale ? parseFloat(batchData.productQuantity) : parseFloat(prep.quantity);
       const compLabel = isDivided ? `Composizione (per unità di cui ${unitCount}):` : "Composizione:";
       
-      targetDoc.setFontSize(isSmall ? 5 : 7);
+      targetDoc.setFontSize(Math.max(4, (isSmall ? 5 : 7) * contentScale));
       targetDoc.setFont("helvetica", "bold");
       targetDoc.text(compLabel, MARGIN, currentCursorY);
-      currentCursorY += (isSmall ? 2.5 : 3.5);
+      currentCursorY += (isSmall ? 2.5 : 3.5) * contentScale;
       
       prep.ingredients.forEach(ing => {
           if (!ing.isContainer) {
@@ -169,44 +174,36 @@ export const generateLabelPDF = async (prep, pharmacySettings, rollFormat = 62) 
 
               // Conversione di scala automatica (g -> mg -> mcg)
               if (finalUnit === 'g') {
-                  if (finalQty < 0.0001) {
-                      finalQty *= 1000000;
-                      finalUnit = 'mcg';
-                  } else if (finalQty < 1) {
-                      finalQty *= 1000;
-                      finalUnit = 'mg';
-                  }
+                  if (finalQty < 0.0001) { finalQty *= 1000000; finalUnit = 'mcg'; } 
+                  else if (finalQty < 1) { finalQty *= 1000; finalUnit = 'mg'; }
               }
               
               // Rimuove decimali inutili (es. 10.00 -> 10)
-              const qtyText = `${parseFloat(Number(finalQty).toFixed(3))}${finalUnit}`;
+              // Usa unità personalizzata se presente
+              const displayUnit = ing.unitUsed || finalUnit;
+              const qtyText = `${parseFloat(Number(finalQty).toFixed(3))}${displayUnit}`;
+              
               const maxNameWidth = (colSplitX - MARGIN - 2) - (isSmall ? 8 : 12);
               
               // Logica Shrink-to-Fit
               let currentFontSize = F_BODY;
               targetDoc.setFontSize(currentFontSize);
               
-              while (targetDoc.getTextWidth(nameText) > maxNameWidth && currentFontSize > 4.5) {
+              while (targetDoc.getTextWidth(nameText) > maxNameWidth && currentFontSize > 3.5) {
                   currentFontSize -= 0.5;
                   targetDoc.setFontSize(currentFontSize);
               }
               
-              // Se entra in una riga o se abbiamo raggiunto il minimo font
               if (targetDoc.getTextWidth(nameText) <= maxNameWidth) {
                   targetDoc.text(nameText, MARGIN, currentCursorY);
-                  targetDoc.setFontSize(F_BODY); // Reset per la quantità (o la lasciamo piccola? meglio reset)
+                  targetDoc.setFontSize(F_BODY); 
                   targetDoc.text(qtyText, colSplitX - 2, currentCursorY, { align: 'right' });
                   currentCursorY += GAP_B;
               } else {
-                  // Fallback: va a capo col font minimo
                   const nameLines = targetDoc.splitTextToSize(nameText, maxNameWidth);
                   targetDoc.text(nameLines, MARGIN, currentCursorY);
-                  
-                  // La quantità la allineiamo alla prima riga o in basso? 
-                  // Alla prima riga è standard.
                   targetDoc.setFontSize(F_BODY); 
                   targetDoc.text(qtyText, colSplitX - 2, currentCursorY, { align: 'right' });
-                  
                   currentCursorY += (nameLines.length * GAP_B);
               }
               
@@ -216,11 +213,12 @@ export const generateLabelPDF = async (prep, pharmacySettings, rollFormat = 62) 
 
       // --- AGGIUNTA: Uso e Posologia (Per TUTTE le preparazioni) ---
       // Rimosso check !isOfficinale per richiesta utente
-      currentCursorY += (isSmall ? 0.8 : 1.2); // Spazio separatore ridotto
+      currentCursorY += (isSmall ? 0.8 : 1.2) * contentScale; 
       
-      // Font minuscolo per massimizzare spazio sostanze (3pt - 3.5pt)
-      const fontSmall = isSmall ? 2.8 : (isMedium ? 3.0 : 3.5);
-      const gapSmall = isSmall ? 1.0 : (isMedium ? 1.3 : 1.5);
+      // Font minuscolo per massimizzare spazio sostanze (3pt - 3.5pt) - SCALATO ANCHE LUI
+      const baseSmallFont = isSmall ? 2.8 : (isMedium ? 3.0 : 3.5);
+      const fontSmall = Math.max(2.5, baseSmallFont * contentScale); // Minimo 2.5pt
+      const gapSmall = (isSmall ? 1.0 : (isMedium ? 1.3 : 1.5)) * contentScale;
       const maxTextW = (colSplitX - MARGIN - 2);
 
       targetDoc.setFontSize(fontSmall);
@@ -259,7 +257,7 @@ export const generateLabelPDF = async (prep, pharmacySettings, rollFormat = 62) 
           if (!isSmall) {
               targetDoc.setFontSize(F_BODY); targetDoc.setFont("helvetica", "bold");
               targetDoc.text("Dettaglio Costi:", colSplitX + 2, costY);
-              costY += 3;
+              costY += (3 * contentScale);
               targetDoc.setFontSize(F_COST); targetDoc.setFont("helvetica", "normal");
 
               let costMatP = 0, costCont = 0;
@@ -272,7 +270,7 @@ export const generateLabelPDF = async (prep, pharmacySettings, rollFormat = 62) 
                   targetDoc.setFont("helvetica", b ? "bold" : "normal");
                   targetDoc.text(l, colSplitX + 2, costY);
                   targetDoc.text(`€ ${v.toFixed(2)}`, CURRENT_LABEL_WIDTH - MARGIN, costY, { align: 'right' });
-                  costY += (isMedium ? 2.2 : 2.5);
+                  costY += ((isMedium ? 2.2 : 2.5) * contentScale);
               };
 
               printL("Mat. Prime:", costMatP);
@@ -280,29 +278,30 @@ export const generateLabelPDF = async (prep, pharmacySettings, rollFormat = 62) 
               printL("Onorario Prof.:", fee);
               if (add > 0) printL("Addizionali:", add);
               printL(`IVA (${(VAT_RATE*100).toFixed(0)}%):`, vat);
-              costY += 1; targetDoc.setFontSize(F_BODY + 1);
+              costY += (1 * contentScale); targetDoc.setFontSize(F_BODY + 1);
               printL("TOTALE:", tot, true);
           } else {
               let tot = parseFloat(prep.totalPrice || 0);
-              costY += 2; targetDoc.setFontSize(F_BODY); targetDoc.text("TOTALE:", colSplitX + 2, costY);
-              targetDoc.text(`€ ${tot.toFixed(2)}`, CURRENT_LABEL_WIDTH - MARGIN, costY + 4, { align: 'right' });
-              costY += 8;
+              costY += 2 * contentScale; targetDoc.setFontSize(F_BODY); targetDoc.text("TOTALE:", colSplitX + 2, costY);
+              targetDoc.text(`€ ${tot.toFixed(2)}`, CURRENT_LABEL_WIDTH - MARGIN, costY + 4 * contentScale, { align: 'right' });
+              costY += 8 * contentScale;
           }
       } else {
           const priceBoxX = colSplitX + 2;
           const priceBoxW = CURRENT_LABEL_WIDTH - MARGIN - priceBoxX;
           
+          // Price box scales slightly vertically
           if (!isSmall) {
-              const priceBoxH = isMedium ? 12 : 14; 
+              const priceBoxH = (isMedium ? 12 : 14) * Math.max(0.8, contentScale); 
               targetDoc.setDrawColor(200); targetDoc.setFillColor(245, 245, 245);
               targetDoc.roundedRect(priceBoxX, costY, priceBoxW, priceBoxH, 2, 2, 'FD');
               targetDoc.setTextColor(80); targetDoc.setFontSize(isMedium ? 5 : 6); targetDoc.setFont("helvetica", "bold");
-              targetDoc.text("PREZZO AL PUBBLICO", priceBoxX + (priceBoxW/2), costY + 3, { align: 'center' });
+              targetDoc.text("PREZZO AL PUBBLICO", priceBoxX + (priceBoxW/2), costY + 3 * contentScale, { align: 'center' });
               targetDoc.setTextColor(0); targetDoc.setFontSize(isMedium ? 12 : 14); targetDoc.setFont("helvetica", "bold");
-              targetDoc.text(`€ ${parseFloat(batchData.unitPrice || 0).toFixed(2)}`, priceBoxX + (priceBoxW/2), costY + (isMedium ? 8 : 9), { align: 'center' });
+              targetDoc.text(`€ ${parseFloat(batchData.unitPrice || 0).toFixed(2)}`, priceBoxX + (priceBoxW/2), costY + (isMedium ? 8 : 9) * contentScale, { align: 'center' });
               targetDoc.setFontSize(5); targetDoc.setFont("helvetica", "normal");
-              targetDoc.text("(IVA inclusa)", priceBoxX + (priceBoxW/2), costY + (isMedium ? 11 : 12), { align: 'center' });
-              costY += priceBoxH + 2;
+              targetDoc.text("(IVA inclusa)", priceBoxX + (priceBoxW/2), costY + (isMedium ? 11 : 12) * contentScale, { align: 'center' });
+              costY += priceBoxH + 2 * contentScale;
           } else {
               targetDoc.setFontSize(6); targetDoc.text("Prezzo:", colSplitX + 2, costY);
               targetDoc.setFontSize(10); targetDoc.text(`€ ${parseFloat(batchData.unitPrice || 0).toFixed(2)}`, CURRENT_LABEL_WIDTH - MARGIN, costY + 4, { align: 'right' });
@@ -312,14 +311,14 @@ export const generateLabelPDF = async (prep, pharmacySettings, rollFormat = 62) 
 
       // Linea verticale corretta
       targetDoc.setLineWidth(0.1); targetDoc.setDrawColor(0);
-      const endOfContentY = Math.max(currentCursorY, costY) - (isMedium ? 2.5 : 3.5);
+      const endOfContentY = Math.max(currentCursorY, costY) - ((isMedium ? 2.5 : 3.5) * contentScale);
       targetDoc.line(colSplitX, bodyStartY - 2, colSplitX, endOfContentY + 1);
       
-      currentCursorY = endOfContentY + (isMedium ? 2 : 3);
+      currentCursorY = endOfContentY + ((isMedium ? 2 : 3) * contentScale);
 
       // --- 4. FOOTER ---
       targetDoc.line(MARGIN, currentCursorY, CURRENT_LABEL_WIDTH - MARGIN, currentCursorY);
-      currentCursorY += (isMedium ? 2 : 3);
+      currentCursorY += ((isMedium ? 2 : 3) * contentScale);
       
       let footerBottomLimit = CURRENT_ROLL_HEIGHT - MARGIN;
       const warnWidth = CURRENT_LABEL_WIDTH - (MARGIN*2);
@@ -331,9 +330,8 @@ export const generateLabelPDF = async (prep, pharmacySettings, rollFormat = 62) 
           let warnY = currentCursorY;
           const splitWarns = targetDoc.splitTextToSize(allWarns.join(" - "), warnWidth);
           splitWarns.forEach(line => {
-              //if (warnY + (isMedium ? 1.5 : 2) > footerBottomLimit) return; // Non tagliare durante il calcolo altezza
               targetDoc.text(line, MARGIN, warnY);
-              warnY += (isMedium ? 1.8 : 2.2);
+              warnY += ((isMedium ? 1.8 : 2.2) * contentScale);
           });
           currentCursorY = warnY;
       }
@@ -341,41 +339,33 @@ export const generateLabelPDF = async (prep, pharmacySettings, rollFormat = 62) 
       return currentCursorY; // Ritorna l'altezza finale effettiva
   };
 
-  // Funzione wrapper per centrare
+  // Funzione wrapper per centrare e scalare
   const processAndDraw = (batch) => {
-      // 1. Dry Run per calcolare altezza
-      const dryDoc = new jsPDF({ orientation: 'l', unit: 'mm', format: [CURRENT_LABEL_WIDTH, CURRENT_ROLL_HEIGHT] });
+      let scale = 1.0;
+      let finalHeight = 0;
+      const maxAvailableHeight = CURRENT_ROLL_HEIGHT - MARGIN; // Un po' di tolleranza
+
+      // 1. Dry Run Iterativo per trovare la scala
+      // Proviamo a ridurre la scala fino a che non ci sta (max 5 tentativi, min scala 0.65)
+      for (let i = 0; i < 6; i++) {
+          const dryDoc = new jsPDF({ orientation: 'l', unit: 'mm', format: [CURRENT_LABEL_WIDTH, CURRENT_ROLL_HEIGHT] });
+          finalHeight = drawOnDoc(dryDoc, 0, batch, scale);
+          
+          if (finalHeight <= maxAvailableHeight) break;
+          
+          scale -= 0.07; // Riduci del 7% a ogni passo
+      }
       
-      // Calcolo altezza reale
-      const contentHeight = drawOnDoc(dryDoc, 0, batch);
-      
-      // Calcolo Offset per centrare verticalmente
-      let startOffsetY = (CURRENT_ROLL_HEIGHT - contentHeight) / 2;
-      // Se il contenuto è troppo alto, partiamo dall'alto standard (o 0 se negativo)
-      // Ma attenzione ai margini originali (3mm). 
-      // contentHeight include già i margini (perché cursorY parte da MARGIN).
-      // Quindi se contentHeight = 60 e ROLL = 62, offset = 1.
-      // Se contentHeight = 40, offset = 11.
-      // Però drawOnDoc parte già da MARGIN. Quindi se passo offset, si sommerà a MARGIN.
-      // Dobbiamo sottrarre MARGIN dal calcolo dell'altezza pura del contenuto?
-      // No, drawOnDoc ritorna la Y finale assoluta.
-      // Altezza vuota sotto = ROLL_HEIGHT - finalY.
-      // Altezza vuota sopra = MARGIN (implicito).
-      // Vogliamo che Altezza Sotto = Altezza Sopra.
-      // Attuale Sopra = MARGIN.
-      // Nuova Sopra = MARGIN + Offset.
-      // Nuova Sotto = ROLL_HEIGHT - (finalY + Offset).
-      // MARGIN + Offset = ROLL_HEIGHT - finalY - Offset
-      // 2 * Offset = ROLL_HEIGHT - finalY - MARGIN
-      // Offset = (ROLL_HEIGHT - finalY - MARGIN) / 2.
-      
-      if (startOffsetY < 0) startOffsetY = 0; // Nessun offset se non c'è spazio
-      // Applico formula corretta:
-      startOffsetY = (CURRENT_ROLL_HEIGHT - contentHeight - MARGIN) / 2;
+      // Limite di sicurezza
+      if (scale < 0.6) scale = 0.6;
+
+      // 2. Calcolo Offset per centrare verticalmente
+      // Attenzione: finalHeight include i margini superiori.
+      let startOffsetY = (CURRENT_ROLL_HEIGHT - finalHeight - MARGIN) / 2;
       if (startOffsetY < 0) startOffsetY = 0;
 
-      // 2. Stampa Reale
-      drawOnDoc(doc, startOffsetY, batch);
+      // 3. Stampa Reale
+      drawOnDoc(doc, startOffsetY, batch, scale);
   };
 
   // Esecuzione
