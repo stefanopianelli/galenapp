@@ -117,7 +117,7 @@ const deployToServer = async (serverConfig) => {
         
         await sftp.mkdir(remoteApiDir, true);
 
-        const backendFiles = ['api.php', '.htaccess', 'setup_database.php', 'migration_tolerance.php', 'database_setup.sql', 'database_populate.sql'];
+        const backendFiles = ['api.php', '.htaccess', 'setup_database.php', 'database_setup.sql', 'database_populate.sql'];
         
         for (const file of backendFiles) {
             const localFilePath = path.join(localApiDir, file);

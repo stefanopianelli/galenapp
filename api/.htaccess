@@ -33,9 +33,3 @@ RewriteRule ^(.*)$ $1 [R=200,L]
    Order allow,deny
    Allow from all
 </Files>
-
-# Eccezione per migrazione tolleranza (necessaria per aggiornare DB)
-<Files "migration_tolerance.php">
-   Order allow,deny
-   Allow from all
-</Files>

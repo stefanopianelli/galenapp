@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Euro, Plus, Trash2, Save, FileDown, Pencil, Check, Info, Box, FlaskConical, ClipboardCheck, ListOrdered, FileText, Printer } from 'lucide-react';
+import { Euro, Plus, Trash2, Save, FileDown, Pencil, Check, Info, Box, FlaskConical, ClipboardCheck, ListOrdered, FileText, Printer, Search, X } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import { NATIONAL_TARIFF_FEES, VAT_RATE } from '../../constants/tariffs';
@@ -16,10 +16,16 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   const [selectedIngredients, setSelectedIngredients] = useState([]);
   
   const [currentIngredientId, setCurrentIngredientId] = useState('');
-  const [amountNeeded, setAmountNeeded] = useState('');
-  const [weighedAmount, setWeighedAmount] = useState(''); // Q.tà Reale/Pesata
-
+  const [substanceSearchTerm, setSubstanceSearchTerm] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  
   const [currentContainerId, setCurrentContainerId] = useState('');
+  const [containerSearchTerm, setContainerSearchTerm] = useState('');
+  const [isContainerSearchOpen, setIsContainerSearchOpen] = useState(false);
+  
+  const [amountNeeded, setAmountNeeded] = useState('');
+  const [weighedAmount, setWeighedAmount] = useState('');
+
   const [containerAmountNeeded, setContainerAmountNeeded] = useState('');
 
   const [editingIngredientIndex, setEditingIngredientIndex] = useState(null);
@@ -34,6 +40,25 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   useEffect(() => {
     setStep(initialStep || 1);
   }, [initialStep, initialData]);
+
+  // Sync Smart Search con selezione corrente
+  useEffect(() => {
+      if (!currentIngredientId) {
+          setSubstanceSearchTerm('');
+      } else {
+          const item = inventory?.find(i => String(i.id) === String(currentIngredientId));
+          if (item) setSubstanceSearchTerm(item.name);
+      }
+  }, [currentIngredientId, inventory]);
+
+  useEffect(() => {
+      if (!currentContainerId) {
+          setContainerSearchTerm('');
+      } else {
+          const item = inventory?.find(i => String(i.id) === String(currentContainerId));
+          if (item) setContainerSearchTerm(item.name);
+      }
+  }, [currentContainerId, inventory]);
 
   const [details, setDetails] = useState({ 
     name: '', patient: '', patientPhone: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
@@ -669,29 +694,110 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                 <div className="bg-blue-50 p-4 rounded-md border border-blue-100 text-sm text-blue-800 mb-4 pt-4"><p>Seleziona i lotti specifici. Il sistema calcola la giacenza residua.</p></div>
                 <div className="space-y-1 mb-4">
                   <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1"><FlaskConical size={14}/> Aggiungi Sostanza</label>
-                  <div className="flex gap-3 items-end bg-slate-50 p-4 rounded-md border border-slate-200">
-                      <div className="flex-1">
-                        <select className="w-full border p-2 rounded text-sm outline-none" value={currentIngredientId} onChange={e => setCurrentIngredientId(e.target.value)}>
-                          <option value="">-- Seleziona Sostanza --</option>
-                          {availableSubstances.map(item => {
-                             const isOldest = batchCounts[item.name] > 1 && oldestBatches[item.name] && oldestBatches[item.name].id === item.id;
-                             return (
-                               <option key={item.id} value={item.id} className={isOldest ? "font-bold text-green-700" : ""}>
-                                 {isOldest ? "[PRIORITARIO] " : ""}{item.name} (Scad: {item.expiry} | N.I.: {item.ni} | Disp: {getRemainingQuantity(item).toFixed(2)} {item.unit})
-                               </option>
-                             );
-                          })}
-                        </select>
+                  <div className="bg-slate-50 p-4 rounded-md border border-slate-200 space-y-3">
+                      <div className="relative">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-3 text-slate-400 h-4 w-4" />
+                            <input 
+                                type="text" 
+                                className={`w-full border p-2 pl-9 rounded text-sm outline-none focus:ring-2 focus:ring-teal-500 ${!currentIngredientId && substanceSearchTerm ? 'border-teal-300' : ''}`}
+                                placeholder="Cerca sostanza (Nome, N.I. o Lotto)..." 
+                                value={substanceSearchTerm}
+                                onChange={(e) => { 
+                                    setSubstanceSearchTerm(e.target.value); 
+                                    setIsSearchOpen(true); 
+                                    if(currentIngredientId) setCurrentIngredientId(''); // Reset selezione se scrivo
+                                }}
+                                onFocus={() => setIsSearchOpen(true)}
+                                onBlur={() => setTimeout(() => setIsSearchOpen(false), 200)} // Ritardo per permettere il click
+                            />
+                            {currentIngredientId && (
+                                <button onClick={() => { setCurrentIngredientId(''); setSubstanceSearchTerm(''); }} className="absolute right-3 top-2.5 text-slate-400 hover:text-red-500">
+                                    <X size={16} />
+                                </button>
+                            )}
+                        </div>
+
+                        {isSearchOpen && (
+                            <div className="absolute z-50 w-full bg-white border border-slate-200 mt-1 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                {availableSubstances
+                                    .filter(item => {
+                                        const term = substanceSearchTerm.toLowerCase();
+                                        return !term || 
+                                            item.name.toLowerCase().includes(term) || 
+                                            (item.ni && item.ni.toLowerCase().includes(term)) || 
+                                            (item.lot && item.lot.toLowerCase().includes(term));
+                                    })
+                                    .map(item => {
+                                        const isOldest = batchCounts[item.name] > 1 && oldestBatches[item.name] && oldestBatches[item.name].id === item.id;
+                                        return (
+                                            <div 
+                                                key={item.id} 
+                                                onClick={() => {
+                                                    setCurrentIngredientId(item.id);
+                                                    setSubstanceSearchTerm(item.name);
+                                                    setIsSearchOpen(false);
+                                                }}
+                                                className={`p-3 border-b border-slate-50 cursor-pointer hover:bg-teal-50 transition-colors ${isOldest ? 'bg-green-50/50' : ''}`}
+                                            >
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <div className="font-bold text-slate-800 flex items-center gap-2">
+                                                            {item.name}
+                                                            {isOldest && <span className="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded border border-green-200 uppercase tracking-wide">Prioritario (FIFO)</span>}
+                                                        </div>
+                                                        <div className="text-xs text-slate-500 mt-0.5">
+                                                            N.I.: <span className="font-mono text-slate-700">{item.ni}</span> 
+                                                            {item.lot && <span className="ml-2">| Lotto: <span className="font-mono text-slate-700">{item.lot}</span></span>}
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <div className={`text-xs font-bold ${isOldest ? 'text-green-700' : 'text-slate-600'}`}>
+                                                            Scad: {new Date(item.expiry).toLocaleDateString('it-IT')}
+                                                        </div>
+                                                        <div className="mt-1 flex justify-end">
+                                                            <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 shadow-sm">
+                                                                Disp: {parseFloat(item.quantity).toFixed(2)} {item.unit}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                {availableSubstances.filter(item => item.name.toLowerCase().includes(substanceSearchTerm.toLowerCase())).length === 0 && (
+                                    <div className="p-4 text-center text-slate-400 text-xs italic">Nessuna sostanza trovata.</div>
+                                )}
+                            </div>
+                        )}
                       </div>
-                      <div className="flex gap-2 w-64">
-                          <div className="flex-1">
-                              <input type="number" step="0.01" placeholder="Q.tà Ricetta" className="w-full border p-2 rounded text-sm outline-none focus:ring-1 ring-teal-500" value={amountNeeded} onChange={e => setAmountNeeded(e.target.value)} title="Quantità prevista in formula" />
-                          </div>
-                          <div className="flex-1">
-                              <input type="number" step="0.01" placeholder="Q.tà Pesata" className="w-full border p-2 rounded text-sm outline-none bg-amber-50 focus:ring-1 ring-amber-500" value={weighedAmount} onChange={e => setWeighedAmount(e.target.value)} title="Quantità effettiva pesata (se diversa, es. perdite)" />
-                          </div>
+
+                      {/* Campi Quantità e Bottone Aggiungi */}
+                      <div className="flex flex-wrap gap-3 items-end mt-2 pt-2 border-t border-slate-200">
+                        <div className="flex-1 min-w-[120px]">
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Q.tà in Ricetta</label>
+                            <input type="number" step="0.01" placeholder="Valore" className="w-full border p-2 rounded text-sm outline-none focus:ring-1 ring-teal-500" value={amountNeeded} onChange={e => setAmountNeeded(e.target.value)} title="Quantità prevista in formula" />
+                        </div>
+
+                        <div className="flex-1 min-w-[120px]">
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                                Q.tà Pesata ({currentIngredientId ? inventory.find(i => String(i.id) === String(currentIngredientId))?.unit : '-'})
+                            </label>
+                            <input 
+                                type="number" 
+                                step="0.01" 
+                                placeholder="Auto" 
+                                className="w-full border p-2 rounded text-sm outline-none bg-amber-50 focus:ring-1 ring-amber-500" 
+                                value={weighedAmount} 
+                                onChange={e => setWeighedAmount(e.target.value)} 
+                                title="Quantità effettiva pesata (se diversa, es. perdite)"
+                            />
+                        </div>
+
+                        <button onClick={addIngredient} className="bg-teal-600 text-white px-6 py-2 rounded hover:bg-teal-700 h-[38px] flex items-center gap-2 font-bold shadow-sm">
+                            <Plus size={18} /> Aggiungi
+                        </button>
                       </div>
-                      <button onClick={addIngredient} className="bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700 mb-[1px]"><Plus size={18} /></button>
                   </div>
                   {!isSelectedBatchOptimal() && (
                       <div className="text-xs text-amber-600 font-bold px-1 animate-pulse">
@@ -701,10 +807,78 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                 </div>
                 <div className="space-y-1 mb-6">
                   <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1"><Box size={14}/> Aggiungi Contenitore</label>
-                  <div className="flex gap-3 items-end bg-slate-50 p-4 rounded-md border border-slate-200">
-                      <div className="flex-1"><select className="w-full border p-2 rounded text-sm outline-none" value={currentContainerId} onChange={e => setCurrentContainerId(e.target.value)}><option value="">-- Seleziona Contenitore --</option>{availableContainers.map(item => <option key={item.id} value={item.id}>{item.name} (N.I.: {item.ni} | Disp: {getRemainingQuantity(item).toFixed(0)} {item.unit})</option>)}</select></div>
-                      <div className="w-32"><input type="number" step="1" placeholder="N. Pezzi" className="w-full border p-2 rounded text-sm outline-none" value={containerAmountNeeded} onChange={e => setContainerAmountNeeded(e.target.value)} /></div>
-                      <button onClick={addContainer} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-[1px]"><Plus size={18} /></button>
+                  <div className="bg-slate-50 p-4 rounded-md border border-slate-200 space-y-3">
+                      <div className="relative">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-3 text-slate-400 h-4 w-4" />
+                            <input 
+                                type="text" 
+                                className={`w-full border p-2 pl-9 rounded text-sm outline-none focus:ring-2 focus:ring-blue-500 ${!currentContainerId && containerSearchTerm ? 'border-blue-300' : ''}`}
+                                placeholder="Cerca contenitore (Nome o N.I.)..." 
+                                value={containerSearchTerm}
+                                onChange={(e) => { 
+                                    setContainerSearchTerm(e.target.value); 
+                                    setIsContainerSearchOpen(true); 
+                                    if(currentContainerId) setCurrentContainerId('');
+                                }}
+                                onFocus={() => setIsContainerSearchOpen(true)}
+                                onBlur={() => setTimeout(() => setIsContainerSearchOpen(false), 200)}
+                            />
+                            {currentContainerId && (
+                                <button onClick={() => { setCurrentContainerId(''); setContainerSearchTerm(''); }} className="absolute right-3 top-2.5 text-slate-400 hover:text-red-500">
+                                    <X size={16} />
+                                </button>
+                            )}
+                        </div>
+
+                        {isContainerSearchOpen && (
+                            <div className="absolute z-50 w-full bg-white border border-slate-200 mt-1 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                {availableContainers
+                                    .filter(item => {
+                                        const term = containerSearchTerm.toLowerCase();
+                                        return !term || 
+                                            item.name.toLowerCase().includes(term) || 
+                                            (item.ni && item.ni.toLowerCase().includes(term));
+                                    })
+                                    .map(item => (
+                                        <div 
+                                            key={item.id} 
+                                            onClick={() => {
+                                                setCurrentContainerId(item.id);
+                                                setContainerSearchTerm(item.name);
+                                                setIsContainerSearchOpen(false);
+                                            }}
+                                            className="p-3 border-b border-slate-50 cursor-pointer hover:bg-blue-50 transition-colors"
+                                        >
+                                            <div className="flex justify-between items-center">
+                                                <div>
+                                                    <div className="font-bold text-slate-800">{item.name}</div>
+                                                    <div className="text-xs text-slate-500 mt-0.5">N.I.: <span className="font-mono text-slate-700">{item.ni}</span></div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 shadow-sm">
+                                                        Disp: {parseFloat(item.quantity).toFixed(0)} pz
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                {availableContainers.filter(item => item.name.toLowerCase().includes(containerSearchTerm.toLowerCase())).length === 0 && (
+                                    <div className="p-4 text-center text-slate-400 text-xs italic">Nessun contenitore trovato.</div>
+                                )}
+                            </div>
+                        )}
+                      </div>
+
+                      <div className="flex gap-3 items-end pt-2 border-t border-slate-200">
+                          <div className="flex-1">
+                              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">N. Confezioni</label>
+                              <input type="number" step="1" placeholder="Pezzi" className="w-full border p-2 rounded text-sm outline-none focus:ring-1 ring-blue-500" value={containerAmountNeeded} onChange={e => setContainerAmountNeeded(e.target.value)} />
+                          </div>
+                          <button onClick={addContainer} className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 h-[38px] flex items-center gap-2 font-bold shadow-sm">
+                              <Plus size={18} /> Aggiungi
+                          </button>
+                      </div>
                   </div>
                 </div>
                 <div className="space-y-2">
