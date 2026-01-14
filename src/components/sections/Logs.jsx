@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import { Trash2, Calendar, AlertTriangle, X } from 'lucide-react';
+import { formatDate } from '../../utils/dateUtils';
 
 const Logs = ({ logs, preparations, handleShowPreparation, handleClearLogs, handleDeleteLog, canEdit }) => {
   const [showClearPanel, setShowClearPanel] = useState(false);
@@ -112,7 +113,7 @@ const Logs = ({ logs, preparations, handleShowPreparation, handleClearLogs, hand
             <tbody className="divide-y divide-slate-100">
               {logs.map(log => (
                 <tr key={log.id}>
-                  <td className="px-6 py-3 whitespace-nowrap text-slate-700">{log.date}</td>
+                  <td className="px-6 py-3 whitespace-nowrap text-slate-700">{formatDate(log.date)}</td>
                   <td className="px-6 py-3 whitespace-nowrap"><Badge type={log.type === 'CARICO' ? 'success' : log.type === 'SMALTIMENTO' ? 'dark' : 'warning'}>{log.type}</Badge></td>
                   <td className="px-6 py-3 whitespace-nowrap font-medium text-slate-800">{log.substance}</td>
                   <td className="px-6 py-3 font-mono text-xs whitespace-nowrap">{log.ni}</td>

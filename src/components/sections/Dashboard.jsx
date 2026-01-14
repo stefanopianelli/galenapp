@@ -3,6 +3,7 @@ import { Package, AlertTriangle, Trash2, History, Pill } from 'lucide-react';
 import StatCard from '../ui/StatCard';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
+import { formatDate } from '../../utils/dateUtils';
 
 const Dashboard = ({ stats, logs, preparations, inventory, setActiveTab, setInventoryFilter, handleDispose, handleShowPreparation, handleShowSubstanceInInventory }) => {
   
@@ -29,7 +30,7 @@ const Dashboard = ({ stats, logs, preparations, inventory, setActiveTab, setInve
                 >
                   {log.substance}
                 </div>
-                <div className="text-slate-500 text-xs">{log.date} - N.I.: {log.ni}</div>
+                <div className="text-slate-500 text-xs">{formatDate(log.date)} - N.I.: {log.ni}</div>
               </div>
               <div className="text-right">
                 <Badge type={log.type === 'CARICO' ? 'success' : 'warning'}>
@@ -40,7 +41,7 @@ const Dashboard = ({ stats, logs, preparations, inventory, setActiveTab, setInve
           );
         })}</div></Card>
         
-        <Card className="p-5 col-span-1"><h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Pill size={18} /> Ultime Preparazioni</h3><div className="space-y-3">{recentPreparations.map(prep => (<div key={prep.id} className="flex justify-between items-center text-sm border-b border-slate-100 pb-2 last:border-0"><div><div className="font-medium text-teal-700 hover:underline cursor-pointer" onClick={() => handleShowPreparation(prep.id)}>{prep.name}</div><div className="text-slate-500 text-xs">{prep.date} - N.P. {prep.prepNumber}</div></div><div className="text-right font-mono font-bold text-sm">€{parseFloat(prep.totalPrice).toFixed(2)}</div></div>))}</div></Card>
+        <Card className="p-5 col-span-1"><h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Pill size={18} /> Ultime Preparazioni</h3><div className="space-y-3">{recentPreparations.map(prep => (<div key={prep.id} className="flex justify-between items-center text-sm border-b border-slate-100 pb-2 last:border-0"><div><div className="font-medium text-teal-700 hover:underline cursor-pointer" onClick={() => handleShowPreparation(prep.id)}>{prep.name}</div><div className="text-slate-500 text-xs">{formatDate(prep.date)} - N.P. {prep.prepNumber}</div></div><div className="text-right font-mono font-bold text-sm">€{parseFloat(prep.totalPrice).toFixed(2)}</div></div>))}</div></Card>
 
         <Card className="p-5 col-span-1"><h3 className="font-bold text-lg mb-4 flex items-center gap-2"><AlertTriangle size={18} className="text-amber-600" /> Avvisi Critici</h3><div className="space-y-3">{inventory.filter(i => {
           const days = (new Date(i.expiry) - new Date()) / 86400000;
@@ -52,9 +53,9 @@ const Dashboard = ({ stats, logs, preparations, inventory, setActiveTab, setInve
 
           if (isTerminated) return (<div key={item.id} className="bg-slate-100 p-3 rounded-md border border-slate-200 flex justify-between items-center text-sm"><div><span className="font-bold text-slate-700">TERMINATA:</span> <span className="text-blue-600 hover:underline cursor-pointer" onClick={() => handleShowSubstanceInInventory(item.id)}>{item.name}</span><div className="text-xs text-slate-500">Lotto: {item.lot} - Giacenza esaurita</div></div><button onClick={() => handleDispose(item.id)} className="text-xs bg-white border border-slate-300 text-slate-600 px-2 py-1 rounded hover:bg-slate-50">Smaltisci</button></div>);
 
-          if (isExpired) return (<div key={item.id} className="bg-red-50 p-3 rounded-md border border-red-100 flex justify-between items-center text-sm"><div><span className="font-bold text-red-800">SCADUTA:</span> <span className="text-blue-600 hover:underline cursor-pointer" onClick={() => handleShowSubstanceInInventory(item.id)}>{item.name}</span><div className="text-xs text-red-700">Lotto: {item.lot} - Scaduta il {item.expiry}</div></div><button onClick={() => handleDispose(item.id)} className="text-xs bg-white border border-red-200 text-red-600 px-2 py-1 rounded hover:bg-red-50">Smaltisci</button></div>);
+          if (isExpired) return (<div key={item.id} className="bg-red-50 p-3 rounded-md border border-red-100 flex justify-between items-center text-sm"><div><span className="font-bold text-red-800">SCADUTA:</span> <span className="text-blue-600 hover:underline cursor-pointer" onClick={() => handleShowSubstanceInInventory(item.id)}>{item.name}</span><div className="text-xs text-red-700">Lotto: {item.lot} - Scaduta il {formatDate(item.expiry)}</div></div><button onClick={() => handleDispose(item.id)} className="text-xs bg-white border border-red-200 text-red-600 px-2 py-1 rounded hover:bg-red-50">Smaltisci</button></div>);
 
-          if (isExpiring) return (<div key={item.id} className="bg-amber-50 p-3 rounded-md border border-amber-100 flex justify-between items-center text-sm"><div><span className="font-bold text-amber-800">IN SCADENZA:</span> <span className="text-blue-600 hover:underline cursor-pointer" onClick={() => handleShowSubstanceInInventory(item.id)}>{item.name}</span><div className="text-xs text-amber-700">Lotto: {item.lot} - Scadenza {item.expiry}</div></div></div>);
+          if (isExpiring) return (<div key={item.id} className="bg-amber-50 p-3 rounded-md border border-amber-100 flex justify-between items-center text-sm"><div><span className="font-bold text-amber-800">IN SCADENZA:</span> <span className="text-blue-600 hover:underline cursor-pointer" onClick={() => handleShowSubstanceInInventory(item.id)}>{item.name}</span><div className="text-xs text-amber-700">Lotto: {item.lot} - Scadenza {formatDate(item.expiry)}</div></div></div>);
 
           return null;
         })}</div></Card>

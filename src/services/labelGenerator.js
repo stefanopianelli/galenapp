@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
 import { VAT_RATE } from '../constants/tariffs'; 
+import { formatDate } from '../utils/dateUtils';
 
 // Configurazione standard Landscape per rotolo 62mm
 const MARGIN = 3;
@@ -108,9 +109,9 @@ export const generateLabelPDF = async (prep, pharmacySettings, rollFormat = 62) 
       targetDoc.setFontSize(F_H2); targetDoc.setFont("helvetica", "bold");
       targetDoc.text(`N.P.: ${prep.prepNumber}`, rightAlignX, textNpY, { align: 'right' });
       targetDoc.setFont("helvetica", "normal");
-      targetDoc.text(`Data: ${new Date(prep.date).toLocaleDateString('it-IT')}`, rightAlignX, textNpY + GAP_H, { align: 'right' });
+      targetDoc.text(`Data: ${formatDate(prep.date)}`, rightAlignX, textNpY + GAP_H, { align: 'right' });
       targetDoc.setFont("helvetica", "bold");
-      targetDoc.text(`Scad: ${new Date(prep.expiryDate).toLocaleDateString('it-IT')}`, rightAlignX, textNpY + (GAP_H * 2), { align: 'right' });
+      targetDoc.text(`Scad: ${formatDate(prep.expiryDate)}`, rightAlignX, textNpY + (GAP_H * 2), { align: 'right' });
 
       // Sotto Farmacia
       let pzDocY = textPharmacyY + (isSmall ? 4 : 9); 

@@ -1,17 +1,12 @@
-import React, { useMemo, useState } from 'react';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
-  LineChart, Line, PieChart, Pie, Cell 
-} from 'recharts';
-import { TrendingUp, DollarSign, Package, AlertTriangle, Calendar } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
 import Card from '../ui/Card';
 import StatCard from '../ui/StatCard';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { TrendingUp, AlertTriangle, Euro, Package, Calendar, DollarSign } from 'lucide-react';
+import { formatDate } from '../../utils/dateUtils';
 import { VAT_RATE } from '../../constants/tariffs';
 
-const COLORS = ['#0d9488', '#f59e0b', '#ef4444', '#3b82f6'];
-
-const Reporting = ({ preparations, inventory }) => {
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+const Reporting = ({ preparations, inventory }) => {  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   // Estrai anni disponibili dai dati
   const availableYears = useMemo(() => {
@@ -269,7 +264,7 @@ const Reporting = ({ preparations, inventory }) => {
                           {stats.expiringItems.length > 0 ? stats.expiringItems.map(item => (
                               <tr key={item.id}>
                                   <td className="px-4 py-2 font-medium text-slate-700">{item.name}</td>
-                                  <td className="px-4 py-2 text-amber-600 font-bold">{item.expiry}</td>
+                                  <td className="px-4 py-2 text-amber-600 font-bold whitespace-nowrap">{formatDate(item.expiry)}</td>
                                   <td className="px-4 py-2 text-right font-mono">€ {(item.quantity * item.costPerGram).toFixed(2)}</td>
                               </tr>
                           )) : <tr><td colSpan="3" className="px-4 py-8 text-center text-slate-400 italic">Nessuna scadenza imminente</td></tr>}

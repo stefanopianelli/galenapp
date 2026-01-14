@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Search, Plus, X, Filter, Package, Archive, Pencil, Trash2, ArrowUp, ArrowDown, FlaskConical, Box, Eye, ChevronRight, ChevronDown } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
+import { formatDate } from '../../utils/dateUtils';
 
 const Inventory = ({
   inventoryFilter,
@@ -96,7 +97,7 @@ const Inventory = ({
             {item.name}
           </td>
           <td className="px-6 py-4 whitespace-nowrap"><span className="text-xs font-mono bg-slate-100 px-1 rounded">{item.ni}</span></td>
-          <td className="px-6 py-4 whitespace-nowrap">{item.expiry}</td>
+          <td className="px-6 py-4 whitespace-nowrap">{formatDate(item.expiry)}</td>
           <td className="px-6 py-4 whitespace-nowrap">{item.supplier}</td>
           <td className="px-6 py-4 text-right font-mono font-medium whitespace-nowrap">{Number(item.quantity).toFixed(item.isContainer ? 0 : 2)} {item.unit}</td>
           <td className="px-6 py-4 text-right font-mono whitespace-nowrap">{item.costPerGram ? `€ ${Number(item.costPerGram).toFixed(2)}` : '-'}</td>
@@ -164,7 +165,10 @@ const Inventory = ({
                                 <span className="ml-2 text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">{group.items.length} Lotti</span>
                             </td>
                             <td className="px-6 py-4 text-slate-400 text-xs italic">Multipli</td>
-                            <td className="px-6 py-4 text-teal-700">{group.earliestExpiry} (Prioritario)</td>
+                            <td className="px-6 py-4 text-teal-700">
+                                <span className="whitespace-nowrap">{formatDate(group.earliestExpiry)}</span> 
+                                <span className="ml-1 text-[10px] font-bold opacity-75">(Prioritario)</span>
+                            </td>
                             <td className="px-6 py-4 text-slate-400 text-xs italic">Vari</td>
                             <td className="px-6 py-4 text-right font-mono text-slate-800">{group.totalQty.toFixed(type === 'container' ? 0 : 2)} {group.unit}</td>
                             <td className="px-6 py-4 text-right">-</td>
@@ -264,7 +268,7 @@ const Inventory = ({
                   >
                     {item.name}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{item.ni}</td><td className="px-6 py-4 whitespace-nowrap">{item.expiry}</td><td className="px-6 py-4 whitespace-nowrap">{item.supplier}</td><td className="px-6 py-4 text-right whitespace-nowrap">{Number(item.quantity).toFixed(item.isContainer ? 0 : 2)} {item.unit}</td><td className="px-6 py-4 text-right whitespace-nowrap">{item.costPerGram ? `€ ${Number(item.costPerGram).toFixed(2)}` : '-'}</td><td className="px-6 py-4 text-center"><Badge type="dark">Smaltito</Badge></td>
+                  <td className="px-6 py-4 whitespace-nowrap">{item.ni}</td><td className="px-6 py-4 whitespace-nowrap">{formatDate(item.expiry)}</td><td className="px-6 py-4 whitespace-nowrap">{item.supplier}</td><td className="px-6 py-4 text-right whitespace-nowrap">{Number(item.quantity).toFixed(item.isContainer ? 0 : 2)} {item.unit}</td><td className="px-6 py-4 text-right whitespace-nowrap">{item.costPerGram ? `€ ${Number(item.costPerGram).toFixed(2)}` : '-'}</td><td className="px-6 py-4 text-center"><Badge type="dark">Smaltito</Badge></td>
                 </tr>))}</tbody>
             </table>
           </div>

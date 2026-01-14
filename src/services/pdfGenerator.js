@@ -3,13 +3,7 @@ import 'jspdf-autotable';
 import QRCode from 'qrcode';
 import { VAT_RATE } from '../constants/tariffs';
 import { TechOpsList } from '../components/modals/TechOpsModal';
-
-const formatDate = (dateString) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return dateString;
-  return new Intl.DateTimeFormat('it-IT').format(date);
-};
+import { formatDate } from '../utils/dateUtils';
 
 // --- CONFIGURAZIONE STILE ---
 const COLORS = {

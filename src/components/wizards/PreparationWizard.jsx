@@ -6,6 +6,7 @@ import { NATIONAL_TARIFF_FEES, VAT_RATE } from '../../constants/tariffs';
 import { generateWorkSheetPDF } from '../../services/pdfGenerator';
 import { generateLabelPDF } from '../../services/labelGenerator';
 import TechOpsModal, { TechOpsList } from '../modals/TechOpsModal';
+import { formatDate } from '../../utils/dateUtils';
 
 function PreparationWizard({ inventory, preparations, onComplete, initialData, pharmacySettings, initialStep, canEdit }) {
   const prepType = initialData?.prepType || 'magistrale';
@@ -753,6 +754,13 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                                             (item.ni && item.ni.toLowerCase().includes(term)) || 
                                             (item.lot && item.lot.toLowerCase().includes(term));
                                     })
+                                    .sort((a, b) => {
+                                        // 1. Ordine Alfabetico Nome
+                                        const nameCompare = a.name.localeCompare(b.name);
+                                        if (nameCompare !== 0) return nameCompare;
+                                        // 2. A parità di nome, Ordine Cronologico Scadenza (FIFO)
+                                        return new Date(a.expiry) - new Date(b.expiry);
+                                    })
                                     .map(item => {
                                         const isOldest = batchCounts[item.name] > 1 && oldestBatches[item.name] && oldestBatches[item.name].id === item.id;
                                         return (
@@ -777,8 +785,8 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                                                         </div>
                                                     </div>
                                                     <div className="text-right">
-                                                        <div className={`text-xs font-bold ${isOldest ? 'text-green-700' : 'text-slate-600'}`}>
-                                                            Scad: {new Date(item.expiry).toLocaleDateString('it-IT')}
+                                                        <div className={`text-xs font-bold whitespace-nowrap ${isOldest ? 'text-green-700' : 'text-slate-600'}`}>
+                                                            Scad: {formatDate(item.expiry)}
                                                         </div>
                                                         <div className="mt-1 flex justify-end">
                                                             <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 shadow-sm">
@@ -865,6 +873,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                                             item.name.toLowerCase().includes(term) || 
                                             (item.ni && item.ni.toLowerCase().includes(term));
                                     })
+                                    .sort((a, b) => a.name.localeCompare(b.name))
                                     .map(item => (
                                         <div 
                                             key={item.id} 
