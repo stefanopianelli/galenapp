@@ -21,7 +21,7 @@ export const generateWorkSheetPDF = async (preparationData, pharmacySettings) =>
   
   const { details, ingredients, pricing } = preparationData;
   const isOfficinale = details.prepType === 'officinale';
-  const prepDate = new Date().toLocaleDateString('it-IT');
+  const prepDate = formatDate(new Date());
 
   const settings = pharmacySettings || {};
   const pharmacyName = settings.name || "Farmacia (Nome non impostato)";
