@@ -177,22 +177,36 @@ export const generateWorkSheetPDF = async (preparationData, pharmacySettings) =>
       const isExcipient = ing.isExcipient === true || ing.isExcipient == 1;
       const displayName = isExcipient ? `${ing.name} (Eccipiente)` : ing.name;
 
+      // Calcolo Tolleranza
+      let toleranceText = '';
+      const recipeQty = parseFloat(ing.amountUsed || 0);
+      const weighedQty = ing.stockDeduction ? parseFloat(ing.stockDeduction) : recipeQty;
+      
+      if (Math.abs(weighedQty - recipeQty) > 0.001) {
+          const diff = weighedQty - recipeQty;
+          // MODIFICA: Calcolo % rispetto alla ricetta (nominale)
+          const percent = recipeQty > 0 ? (diff / recipeQty) * 100 : 0;
+          const sign = diff > 0 ? '+' : '';
+          toleranceText = `${sign}${diff.toFixed(2)} ${ing.unit} (${sign}${percent.toFixed(1)}%)`;
+      }
+
       return [
         { content: displayName, styles: { fontStyle: isExcipient ? 'italic' : 'bold' } },
         identifier,
-        { content: `${Number(ing.amountUsed).toFixed(2)} ${ing.unit}`, styles: { halign: 'right' } },
+        { content: `${Number(recipeQty).toFixed(2)} ${ing.unit}`, styles: { halign: 'right' } },
+        { content: toleranceText, styles: { halign: 'right' } },
         flags.join(', ')
       ];
     });
 
     doc.autoTable({
       startY: y - 7,
-      head: [['SOSTANZA', 'LOTTO / N.I.', 'QUANTITÀ', 'NOTE']],
+      head: [['SOSTANZA', 'LOTTO / N.I.', 'QUANTITÀ', 'TOLLERANZA', 'NOTE']],
       body: substancesBody,
       theme: 'grid',
       headStyles: { fillColor: COLORS.background, textColor: COLORS.primary, fontStyle: 'bold', lineColor: COLORS.primary, lineWidth: 0.1 },
       styles: { fontSize: 9, cellPadding: 2, textColor: COLORS.text, lineColor: COLORS.border },
-      columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 40 }, 2: { cellWidth: 30 }, 3: { cellWidth: 'auto' } }
+      columnStyles: { 0: { cellWidth: 65 }, 1: { cellWidth: 35 }, 2: { cellWidth: 25 }, 3: { cellWidth: 30 }, 4: { cellWidth: 'auto' } }
     });
     y = doc.lastAutoTable.finalY;
   }
