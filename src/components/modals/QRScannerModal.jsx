@@ -1,11 +1,56 @@
 // src/components/modals/QRScannerModal.jsx
 import React, { useEffect, useRef, useState } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { X, Camera } from 'lucide-react';
+import { X, Camera, Barcode } from 'lucide-react';
 
 const QRScannerModal = ({ isOpen, onClose, onScanSuccess }) => {
   const [error, setError] = useState('');
   const scannerRef = useRef(null);
+
+  // Gestione Lettore Barcode USB (Emulazione Tastiera)
+  useEffect(() => {
+      if (!isOpen) return;
+
+      let buffer = '';
+      let lastKeyTime = Date.now();
+
+      const handleKeyDown = (e) => {
+          const currentTime = Date.now();
+          const gap = currentTime - lastKeyTime;
+          lastKeyTime = currentTime;
+
+          // Se passa troppo tempo tra un tasto e l'altro (es. digitazione manuale), resetta
+          // I lettori barcode sparano i caratteri con gap < 20-30ms
+          if (gap > 100) { 
+              buffer = ''; 
+          }
+
+          if (e.key === 'Enter') {
+              if (buffer.length > 5) { // Lunghezza minima per essere un nostro JSON
+                  try {
+                      // Pulizia buffer da caratteri spuri se necessario
+                      const data = JSON.parse(buffer);
+                      if (data && data.type === 'prep' && data.id) {
+                          onScanSuccess(data.id);
+                          onClose();
+                      }
+                  } catch (err) {
+                      // Ignora se non è un JSON valido (potrebbe essere un altro barcode)
+                      // Non mostriamo errore per non disturbare
+                  }
+              }
+              buffer = '';
+          } else {
+              // Accumula solo caratteri stampabili
+              if (e.key.length === 1) {
+                  buffer += e.key;
+              }
+          }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onScanSuccess, onClose]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -74,7 +119,9 @@ const QRScannerModal = ({ isOpen, onClose, onScanSuccess }) => {
             <h3 className="text-xl font-bold text-slate-800 mb-2 flex items-center justify-center gap-2">
                 <Camera className="text-teal-600" /> Scansiona QR Code
             </h3>
-            <p className="text-slate-500 text-sm mb-4">Inquadra il QR Code presente sul Foglio di Lavorazione.</p>
+            <p className="text-slate-500 text-sm mb-4 flex items-center justify-center gap-2">
+                Inquadra con la fotocamera o usa il lettore USB <Barcode size={16} className="text-slate-400"/>
+            </p>
             
             {/* Container per lo scanner */}
             <div id="reader" className="w-full h-[300px] bg-slate-100 rounded-lg overflow-hidden border-2 border-dashed border-slate-300"></div>
