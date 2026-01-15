@@ -33,7 +33,8 @@ const drawHeader = (doc, settings, prep, layout, startY, qrDataUrl) => {
 
     // QR Code
     if (qrDataUrl && !isSmall) {
-        doc.addImage(qrDataUrl, 'PNG', width - MARGIN - qrSize, startY + (isMedium ? 1 : 1.5), qrSize, qrSize);
+        // Correzione allineamento: sposto in alto rispetto alla base del testo
+        doc.addImage(qrDataUrl, 'PNG', width - MARGIN - qrSize, startY - (isMedium ? 1.5 : 2), qrSize, qrSize);
     }
 
     // Farmacia
