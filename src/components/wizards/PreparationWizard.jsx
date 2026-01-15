@@ -986,7 +986,32 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
               <div className="space-y-4">
                 {selectedIngredients.filter(ing => ing.isContainer).map((container, index) => {
                   const batchInfo = batches.find(b => b.containerId === container.id) || {};
-                  return (<div key={index} className="grid grid-cols-3 gap-4 items-end bg-slate-50 p-4 rounded-md border"><div className="col-span-3 sm:col-span-1"><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Contenitore</label><div className="flex flex-col gap-1 p-2 bg-white rounded border border-slate-200"><div className="flex items-center gap-2"><Box size={16} className="text-blue-500" /><span className="font-semibold text-sm">{container.name}</span></div><div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Pezzi totali: {Number(container.amountUsed).toFixed(0)}</div></div></div><div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Q.tà Prodotto / Conf.</label><input type="number" step="1" placeholder="Es. 30" value={batchInfo.productQuantity || ''} onChange={(e) => handleBatchChange(container.id, 'productQuantity', e.target.value)} className="w-full border p-2 rounded text-sm outline-none" /></div><div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Prezzo Vendita / Conf. (€)</label><input type="number" step="0.01" placeholder="Es. 15.50" value={batchInfo.unitPrice || ''} onChange={(e) => handleBatchChange(container.id, 'unitPrice', e.target.value)} className="w-full border p-2 rounded text-sm outline-none" /></div></div>)
+                  return (
+                    <div key={index} className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end bg-slate-50 p-4 rounded-md border">
+                      <div className="sm:col-span-1">
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Contenitore</label>
+                        <div className="flex flex-col gap-1 p-2 bg-white rounded border border-slate-200">
+                          <div className="flex items-center gap-2">
+                            <Box size={16} className="text-blue-500" />
+                            <span className="font-semibold text-sm truncate">{container.name}</span>
+                          </div>
+                          <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Tot: {Number(container.amountUsed).toFixed(0)}</div>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Q.tà / Conf.</label>
+                        <input type="number" step="1" placeholder="Es. 30" value={batchInfo.productQuantity || ''} onChange={(e) => handleBatchChange(container.id, 'productQuantity', e.target.value)} className="w-full border p-2 rounded text-sm outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Prezzo (€)</label>
+                        <input type="number" step="0.01" placeholder="Es. 15.50" value={batchInfo.unitPrice || ''} onChange={(e) => handleBatchChange(container.id, 'unitPrice', e.target.value)} className="w-full border p-2 rounded text-sm outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1 text-teal-600">Codice MINSAN</label>
+                        <input type="text" placeholder="Es. 901234567" value={batchInfo.minsan || ''} onChange={(e) => handleBatchChange(container.id, 'minsan', e.target.value)} className="w-full border border-teal-200 p-2 rounded text-sm outline-none focus:ring-1 ring-teal-500 font-mono" />
+                      </div>
+                    </div>
+                  )
                 })}
                 {selectedIngredients.filter(ing => ing.isContainer).length === 0 && (<p className="text-center text-slate-400 italic py-12">Nessun contenitore selezionato nello Step 2.<br/>Torna indietro per aggiungerne uno.</p>)}
               </div>

@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
+import JsBarcode from 'jsbarcode';
 import { VAT_RATE } from '../constants/tariffs'; 
 import { formatDate } from '../utils/dateUtils';
 
@@ -22,6 +23,26 @@ const getImageDataUrl = (url) => {
     };
     img.onerror = () => resolve(null);
   });
+};
+
+// Helper per generare Barcode (MINSAN)
+const getBarcodeDataUrl = (text) => {
+    if (!text) return null;
+    try {
+        const canvas = document.createElement("canvas");
+        JsBarcode(canvas, text, {
+            format: "CODE128",
+            width: 2,
+            height: 40,
+            displayValue: true,
+            fontSize: 18,
+            margin: 10
+        });
+        return canvas.toDataURL("image/png");
+    } catch (e) {
+        console.error("Barcode Error", e);
+        return null;
+    }
 };
 
 // --- HELPER FUNZIONI DI DISEGNO ---
@@ -211,13 +232,10 @@ const drawComposition = (doc, prep, layout, startY) => {
     return cursorY;
 };
 
-const drawCosts = (doc, prep, layout, startY, bodyStartY) => {
+const drawCosts = (doc, prep, layout, startY, bodyStartY, barcodeDataUrl) => {
     const { width, isSmall, isMedium, fonts, scale } = layout;
-    let cursorY = startY; // StartY qui è l'ultima Y della composizione, ma per i costi ripartiamo da bodyStartY a destra
+    let cursorY = startY; 
     
-    // Però se la composizione è lunga, dobbiamo gestire la linea verticale.
-    // La funzione drawComposition ritorna la Y finale della colonna SX.
-    // Qui gestiamo la colonna DX.
     let costY = bodyStartY; 
     const colSplitX = layout.isOfficinale ? (width * 0.65) : (width / 2);
 
@@ -269,11 +287,26 @@ const drawCosts = (doc, prep, layout, startY, bodyStartY) => {
             doc.text(`€ ${parseFloat(batchData.unitPrice || 0).toFixed(2)}`, priceBoxX + (priceBoxW/2), costY + (isMedium ? 8 : 9) * scale, { align: 'center' });
             doc.setFontSize(5); doc.setFont("helvetica", "normal");
             doc.text("(IVA inclusa)", priceBoxX + (priceBoxW/2), costY + (isMedium ? 11 : 12) * scale, { align: 'center' });
-            costY += priceBoxH + 2 * scale;
+            costY += priceBoxH + (isMedium ? 1 : 2);
+
+            // DISEGNO BARCODE (Se presente)
+            if (barcodeDataUrl) {
+                const bcW = priceBoxW * 0.9;
+                const bcH = isMedium ? 6 : 8;
+                doc.addImage(barcodeDataUrl, 'PNG', priceBoxX + (priceBoxW - bcW)/2, costY, bcW, bcH);
+                costY += bcH + 1;
+            }
         } else {
             doc.setFontSize(6); doc.text("Prezzo:", colSplitX + 2, costY);
             doc.setFontSize(10); doc.text(`€ ${parseFloat(batchData.unitPrice || 0).toFixed(2)}`, width - MARGIN, costY + 4, { align: 'right' });
             costY += 6;
+            
+            if (barcodeDataUrl) {
+                const bcW = priceBoxW;
+                const bcH = 5;
+                doc.addImage(barcodeDataUrl, 'PNG', priceBoxX, costY, bcW, bcH);
+                costY += bcH + 1;
+            }
         }
     }
 
@@ -370,6 +403,9 @@ export const generateLabelPDF = async (prep, pharmacySettings, rollFormat = 62) 
 
       const settings = { pharmacyName, pharmacyInfo };
 
+      // Generazione Barcode per il batch corrente (se officinale)
+      const barcodeDataUrl = (isOfficinale && batchData?.minsan) ? getBarcodeDataUrl(batchData.minsan) : null;
+
       // 1. Header
       let currentY = drawHeader(targetDoc, settings, prep, layout, MARGIN + (isSmall ? 1 : 3) + startOffsetY, qrDataUrl);
       
@@ -380,7 +416,7 @@ export const generateLabelPDF = async (prep, pharmacySettings, rollFormat = 62) 
       const compEndY = drawComposition(targetDoc, prep, layout, bodyStartY);
       
       // 4. Costs (Right Column) & Divider -> Ritorna Y finale massima tra le due
-      currentY = drawCosts(targetDoc, prep, layout, compEndY, bodyStartY);
+      currentY = drawCosts(targetDoc, prep, layout, compEndY, bodyStartY, barcodeDataUrl);
       
       // 5. Footer
       currentY = drawFooter(targetDoc, prep, layout, currentY);
