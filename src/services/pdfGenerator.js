@@ -427,13 +427,37 @@ const drawCostsTable = (doc, ingredients, pricing, startY) => {
     if (y > 200) { doc.addPage(); y = 20; }
     y = drawSectionHeader(doc, "Dettaglio Economico & Tariffazione", y);
     
-    const costsBody = ingredients.map(ing => {
+    // Aggregazione Costi per Nome
+    const aggMap = new Map();
+    ingredients.forEach(ing => {
         const cost = (ing.costPerGram || 0) * ing.amountUsed;
-        return [ing.name, `${Number(ing.amountUsed).toFixed(ing.isContainer ? 0 : 2)} ${ing.unit}`, `€ ${Number(ing.costPerGram || 0).toFixed(4)}`, `€ ${cost.toFixed(2)}` ];
+        if (!aggMap.has(ing.name)) {
+            aggMap.set(ing.name, {
+                name: ing.name,
+                unit: ing.unit,
+                totalAmount: parseFloat(ing.amountUsed),
+                totalCost: cost,
+                isContainer: ing.isContainer
+            });
+        } else {
+            const entry = aggMap.get(ing.name);
+            entry.totalAmount += parseFloat(ing.amountUsed);
+            entry.totalCost += cost;
+        }
+    });
+
+    const costsBody = Array.from(aggMap.values()).map(entry => {
+        const avgCostPerUnit = entry.totalAmount > 0 ? (entry.totalCost / entry.totalAmount) : 0;
+        return [
+            entry.name, 
+            `${entry.totalAmount.toFixed(entry.isContainer ? 0 : 2)} ${entry.unit}`, 
+            `€ ${avgCostPerUnit.toFixed(4)}`, 
+            `€ ${entry.totalCost.toFixed(2)}` 
+        ];
     });
     
     doc.autoTable({
-        startY: y, head: [['VOCE DI COSTO', 'QUANTITÀ', 'COSTO UNIT.', 'TOTALE']], body: costsBody, theme: 'grid',
+        startY: y, head: [['VOCE DI COSTO', 'QUANTITÀ', 'COSTO UNIT. (MEDIO)', 'TOTALE']], body: costsBody, theme: 'grid',
         headStyles: { fillColor: COLORS.background, textColor: COLORS.primary, fontStyle: 'bold', lineColor: COLORS.primary, lineWidth: 0.1 },
         styles: { fontSize: 9, cellPadding: 2, textColor: COLORS.text, lineColor: COLORS.border },
         columnStyles: { 0: { cellWidth: 90 }, 1: { cellWidth: 30, halign: 'right' }, 2: { cellWidth: 30, halign: 'right' }, 3: { cellWidth: 30, halign: 'right' } }
