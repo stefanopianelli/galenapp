@@ -170,10 +170,20 @@ const drawPreliminaries = (doc, startY) => {
 const drawCompositionTable = (doc, ingredients, prep, isOfficinale, startY) => {
     let y = drawSectionHeader(doc, "Composizione", startY);
 
-    const substances = ingredients.filter(ing => !ing.isContainer);
-    const containers = ingredients.filter(ing => ing.isContainer);
+    const substances = ingredients.filter(ing => !ing.isContainer).sort((a, b) => a.name.localeCompare(b.name));
+    const containers = ingredients.filter(ing => ing.isContainer).sort((a, b) => a.name.localeCompare(b.name));
+
+    // Helper per calcolare rowspan
+    const getRowSpanMap = (items) => {
+        const counts = {};
+        items.forEach(i => { counts[i.name] = (counts[i.name] || 0) + 1; });
+        return counts;
+    };
 
     if (substances.length > 0) {
+        const subRowSpans = getRowSpanMap(substances);
+        const processedSubNames = new Set();
+
         const substancesBody = substances.map(ing => {
             let flags = [];
             if(ing.isDoping) flags.push("Doping");
@@ -195,13 +205,31 @@ const drawCompositionTable = (doc, ingredients, prep, isOfficinale, startY) => {
                 toleranceText = `${sign}${diff.toFixed(2)} ${ing.unit} (${sign}${percent.toFixed(1)}%)`;
             }
 
-            return [
-                { content: displayName, styles: { fontStyle: isExcipient ? 'italic' : 'bold' } },
+            // Cella Nome con RowSpan
+            let nameCell = null;
+            if (!processedSubNames.has(ing.name)) {
+                nameCell = { 
+                    content: displayName, 
+                    rowSpan: subRowSpans[ing.name], 
+                    styles: { fontStyle: isExcipient ? 'italic' : 'bold', valign: 'middle' } 
+                };
+                processedSubNames.add(ing.name);
+            }
+
+            const rowData = [
                 identifier,
                 { content: `${Number(recipeQty).toFixed(2)} ${ing.unit}`, styles: { halign: 'right' } },
                 { content: toleranceText, styles: { halign: 'right' } },
                 flags.join(', ')
             ];
+
+            // Se è la prima riga del gruppo, aggiunge la cella col nome (e rowspan) all'inizio
+            if (nameCell) {
+                return [nameCell, ...rowData];
+            } else {
+                // Se è una riga successiva, NON aggiunge la prima colonna (perché coperta dal rowspan)
+                return rowData;
+            }
         });
 
         doc.autoTable({
@@ -217,15 +245,34 @@ const drawCompositionTable = (doc, ingredients, prep, isOfficinale, startY) => {
     }
 
     if (containers.length > 0) {
-        y += 5; // Spazio prima dei contenitori
+        y += 5;
+        const contRowSpans = getRowSpanMap(containers);
+        const processedContNames = new Set();
+
         const containersBody = containers.map(ing => {
             const identifier = [ing.lot ? 'L:'+ing.lot : null, ing.ni ? 'NI:'+ing.ni : null].filter(Boolean).join(' ') || '-';
-            return [
-                { content: ing.name, styles: { fontStyle: 'bold' } },
+            
+            let nameCell = null;
+            if (!processedContNames.has(ing.name)) {
+                nameCell = { 
+                    content: ing.name, 
+                    rowSpan: contRowSpans[ing.name], 
+                    styles: { fontStyle: 'bold', valign: 'middle' } 
+                };
+                processedContNames.add(ing.name);
+            }
+
+            const rowData = [
                 identifier,
                 { content: `${Number(ing.amountUsed).toFixed(0)} ${ing.unit}`, styles: { halign: 'right' } },
                 ''
             ];
+
+            if (nameCell) {
+                return [nameCell, ...rowData];
+            } else {
+                return rowData;
+            }
         });
 
         doc.autoTable({
