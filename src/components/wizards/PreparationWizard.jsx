@@ -133,6 +133,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
             name: inventoryItem.name, ni: inventoryItem.ni, lot: inventoryItem.lot || '', unit: inventoryItem.unit,
             costPerGram: inventoryItem.costPerGram || 0,
             isExcipient: finalIsExcipient,
+            isDisposed: inventoryItem.disposed === 1 || inventoryItem.disposed === true,
             isContainer: inventoryItem.isContainer || false,
             isDoping: inventoryItem.isDoping || false, isNarcotic: inventoryItem.isNarcotic || false,
             securityData: inventoryItem.securityData || { pictograms: [] }
@@ -534,14 +535,14 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
     'Cartine e cialdini',
     'Capsule',
     'Compresse e gomme da masticare medicate',
-    'Pillole, pastiglie e granulati',
-    'Preparazioni semisolide per uso orale veterinario',
     'Suppositori e ovuli',
-    'Colliri e preparazioni oftalmiche semisolide',
-    'Soluzioni e sospensioni sterili',
-    'Emulsioni sterili',
-    'Triturazioni e diluizioni omeopatiche',
-    'Pillole omeopatiche'
+    // 'Pillole, pastiglie e granulati', // Tariffazione non implementata
+    // 'Preparazioni semisolide per uso orale veterinario', // Tariffazione non implementata
+    // 'Colliri e preparazioni oftalmiche semisolide', // Tariffazione non implementata
+    // 'Soluzioni e sospensioni sterili', // Tariffazione non implementata
+    // 'Emulsioni sterili', // Tariffazione non implementata
+    // 'Triturazioni e diluizioni omeopatiche', // Tariffazione non implementata
+    // 'Pillole omeopatiche' // Tariffazione non implementata
   ];
   const usageOptions = ['Orale', 'Topica', 'Sublinguale', 'Buccale', 'Rettale', 'Inalatoria', 'Transdermica', 'Vaginale', 'Parenterale'];
 
@@ -590,11 +591,9 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                   <div className="grid grid-cols-2 gap-4 pt-4">
                       <div className="col-span-2"><label className="block text-sm font-bold">Nome *</label><input className="w-full border p-3 rounded-md outline-none focus:ring-2 ring-teal-500" value={details.name} onChange={e => setDetails({...details, name: e.target.value})} /></div>
                       <div><label className="block text-sm font-bold">N.P. *</label><input className="w-full border p-3 rounded-md outline-none bg-slate-50 font-mono" value={details.prepNumber} readOnly /></div>
-                                        <div><label className="block text-sm font-bold">Forma *</label><select className="w-full border p-3 rounded-md outline-none bg-white" value={details.pharmaceuticalForm} onChange={e => setDetails({...details, pharmaceuticalForm: e.target.value})}>{pharmaForms.map(f => {
-                                      const implementedForms = ['Capsule', 'Cartine e cialdini', 'Suppositori e ovuli', 'Preparazioni liquide (soluzioni)', 'Estratti liquidi e tinture', 'Emulsioni, sospensioni e miscele di olii', 'Preparazioni semisolide per applicazione cutanea e paste', 'Polveri composte e piante per tisane', 'Compresse e gomme da masticare medicate'];
-                                      const indicator = implementedForms.includes(f) ? '✓ ' : '○ ';
-                                      return <option key={f} value={f}>{indicator}{f}</option>
-                                    })}</select></div>                      <div><label className="block text-sm font-bold">Q.tà Totale ({getPrepUnit(details.pharmaceuticalForm)}) *</label><input type="number" step="0.01" className="w-full border p-3 rounded-md outline-none" value={details.quantity} onChange={e => setDetails({...details, quantity: e.target.value})} /></div>
+                      <div><label className="block text-sm font-bold">Forma *</label><select className="w-full border p-3 rounded-md outline-none bg-white" value={details.pharmaceuticalForm} onChange={e => setDetails({...details, pharmaceuticalForm: e.target.value})}>
+                                    {pharmaForms.map(f => (<option key={f} value={f}>{f}</option>))}
+                                    </select></div>                      <div><label className="block text-sm font-bold">Q.tà Totale ({getPrepUnit(details.pharmaceuticalForm)}) *</label><input type="number" step="0.01" className="w-full border p-3 rounded-md outline-none" value={details.quantity} onChange={e => setDetails({...details, quantity: e.target.value})} /></div>
                       <div><label className="block text-sm font-bold">Scadenza *</label><input type="date" className="w-full border p-3 rounded-md outline-none" value={details.expiryDate} onChange={e => setDetails({...details, expiryDate: e.target.value})} /></div>
                       {!isOfficinale && (
                         <>
@@ -834,12 +833,15 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                     <div key={idx} className={`flex justify-between items-center p-3 border rounded shadow-sm transition-colors ${
                         isInsufficient 
                             ? 'bg-red-50 border-red-300' 
-                            : (ing.isContainer ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200')
+                            : (ing.isDisposed ? 'bg-slate-100 border-slate-300 opacity-80' : (ing.isContainer ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200'))
                     }`}>
                       <div className="flex items-center gap-3">
                         {ing.isContainer ? <Box size={20} className={isInsufficient ? "text-red-500" : "text-blue-500"}/> : <FlaskConical size={20} className={isInsufficient ? "text-red-500" : "text-teal-500"}/>}
                         <div>
-                            <div className={`font-bold ${isInsufficient ? "text-red-700" : "text-slate-800"}`}>{ing.name}</div>
+                            <div className={`font-bold flex items-center gap-2 ${isInsufficient ? "text-red-700" : "text-slate-800"}`}>
+                                {ing.name}
+                                {ing.isDisposed && <span className="text-[9px] bg-red-600 text-white px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shadow-sm">Dismesso</span>}
+                            </div>
                             <div className="text-xs text-slate-500">N.I.: {ing.ni} | €{Number(ing.costPerGram).toFixed(ing.isContainer ? 2 : 4)}/{ing.unit}</div>
                             {isInsufficient && (
                                 <div className="text-xs font-bold text-red-600 flex items-center gap-1 mt-1 animate-pulse">
@@ -850,8 +852,8 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                       </div>
                       {!ing.isContainer && (
                           <div 
-                              onClick={() => canEdit && toggleExcipient(idx)}
-                              className={`px-2 py-1 rounded text-xs font-bold select-none ${canEdit ? 'cursor-pointer hover:opacity-80' : ''} ${ing.isExcipient ? 'bg-slate-200 text-slate-600' : 'bg-teal-100 text-teal-700'}`}
+                              onClick={() => canEdit && !ing.isDisposed && toggleExcipient(idx)}
+                              className={`px-2 py-1 rounded text-xs font-bold select-none ${canEdit && !ing.isDisposed ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed opacity-50'} ${ing.isExcipient ? 'bg-slate-200 text-slate-600' : 'bg-teal-100 text-teal-700'}`}
                           >
                               {ing.isExcipient ? "Eccipiente" : "Principio Attivo"}
                           </div>
@@ -873,8 +875,26 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                             </div>
                         )}
                         <span className="text-sm font-mono w-8">{ing.unit}</span>
-                        {editingIngredientIndex === idx ? (<button type="button" onClick={() => saveEditingAmount(idx)} className="text-green-600 hover:bg-green-50 p-1.5 rounded-full"><Check size={16} /></button>) : (<button type="button" onClick={() => startEditingAmount(idx)} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded-full"><Pencil size={16} /></button>)}
-                        <button type="button" onClick={() => removeIngredient(idx)} className="text-red-500 hover:bg-red-50 p-1.5 rounded-full"><Trash2 size={16} /></button>
+                        {editingIngredientIndex === idx ? (
+                            <button type="button" onClick={() => saveEditingAmount(idx)} className="text-green-600 hover:bg-green-50 p-1.5 rounded-full"><Check size={16} /></button>
+                        ) : (
+                            <button 
+                                type="button" 
+                                onClick={() => !ing.isDisposed && startEditingAmount(idx)} 
+                                disabled={ing.isDisposed}
+                                className={`p-1.5 rounded-full transition-colors ${ing.isDisposed ? 'text-slate-300 cursor-not-allowed' : 'text-blue-600 hover:bg-blue-50'}`}
+                            >
+                                <Pencil size={16} />
+                            </button>
+                        )}
+                        <button 
+                            type="button" 
+                            onClick={() => canEdit && details.status !== 'Completata' && removeIngredient(idx)} 
+                            disabled={!canEdit || details.status === 'Completata'}
+                            className={`p-1.5 rounded-full transition-colors ${(!canEdit || details.status === 'Completata') ? 'text-slate-300 cursor-not-allowed' : 'text-red-500 hover:bg-red-50'}`}
+                        >
+                            <Trash2 size={16} />
+                        </button>
                       </div>
                     </div>
                     );

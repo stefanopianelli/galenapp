@@ -5,6 +5,7 @@ import { X, Camera, Barcode } from 'lucide-react';
 
 const QRScannerModal = ({ isOpen, onClose, onScanSuccess }) => {
   const [error, setError] = useState('');
+  const [debugKeys, setDebugKeys] = useState(''); // DEBUG
   const scannerRef = useRef(null);
 
   // Gestione Lettore Barcode USB (Emulazione Tastiera)
@@ -19,31 +20,33 @@ const QRScannerModal = ({ isOpen, onClose, onScanSuccess }) => {
           const gap = currentTime - lastKeyTime;
           lastKeyTime = currentTime;
 
-          // Se passa troppo tempo tra un tasto e l'altro (es. digitazione manuale), resetta
-          // I lettori barcode sparano i caratteri con gap < 20-30ms
-          if (gap > 100) { 
+          // Timeout allentato a 200ms per lettori lenti o wireless
+          if (gap > 200) { 
               buffer = ''; 
           }
 
           if (e.key === 'Enter') {
-              if (buffer.length > 5) { // Lunghezza minima per essere un nostro JSON
+              setDebugKeys(prev => prev + " [ENTER]");
+              if (buffer.length > 5) {
                   try {
-                      // Pulizia buffer da caratteri spuri se necessario
+                      // Tentativo di parsing
                       const data = JSON.parse(buffer);
                       if (data && data.type === 'prep' && data.id) {
                           onScanSuccess(data.id);
                           onClose();
+                      } else {
+                          setError("Codice letto ma formato non valido: " + buffer);
                       }
                   } catch (err) {
-                      // Ignora se non è un JSON valido (potrebbe essere un altro barcode)
-                      // Non mostriamo errore per non disturbare
+                      setError("Errore lettura QR: " + buffer);
                   }
               }
               buffer = '';
           } else {
-              // Accumula solo caratteri stampabili
               if (e.key.length === 1) {
                   buffer += e.key;
+                  // Aggiorno UI per debug (mostra ultimi 50 caratteri)
+                  setDebugKeys(prev => (prev + e.key).slice(-50));
               }
           }
       };
@@ -131,6 +134,11 @@ const QRScannerModal = ({ isOpen, onClose, onScanSuccess }) => {
                     {error}
                 </div>
             )}
+
+            {/* DEBUG AREA */}
+            <div className="mt-2 text-xs text-slate-400 font-mono break-all border-t pt-2">
+                Input Scanner: {debugKeys || "In attesa..."}
+            </div>
         </div>
       </div>
     </div>
