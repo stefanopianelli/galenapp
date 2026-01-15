@@ -106,7 +106,26 @@ const drawComposition = (doc, prep, layout, startY) => {
 
     const ratio = layout.ratio;
 
+    // Aggregazione Sostanze per Nome
+    const aggregatedIngredients = [];
+    const aggMap = new Map();
+
     prep.ingredients.forEach(ing => {
+        if (ing.isContainer) return; // Ignora contenitori per la lista composizione
+
+        if (!aggMap.has(ing.name)) {
+            aggMap.set(ing.name, {
+                ...ing,
+                amountUsed: parseFloat(ing.amountUsed || 0)
+            });
+            aggregatedIngredients.push(aggMap.get(ing.name));
+        } else {
+            const existing = aggMap.get(ing.name);
+            existing.amountUsed += parseFloat(ing.amountUsed || 0);
+        }
+    });
+
+    aggregatedIngredients.forEach(ing => {
         if (!ing.isContainer) {
             const isExcipient = ing.isExcipient === true || ing.isExcipient == 1;
             doc.setFont("helvetica", isExcipient ? "italic" : "bold");
