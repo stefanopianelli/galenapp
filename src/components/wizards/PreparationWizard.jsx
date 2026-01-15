@@ -208,13 +208,13 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   const dopingWarning = "Per chi svolge attività sportiva: l’uso del farmaco senza necessità terapeutica costituisce doping e può determinare comunque positività ai test antidoping.";
 
   const getPrepUnit = (form) => {
-    if (['Preparazioni semisolide per applicazione cutanea e paste', 'Polveri composte e piante per tisane', 'Preparazioni semisolide orali vet (a peso)', 'Pillole omeopatiche', 'Triturazioni e diluizioni omeopatiche', 'Emulsioni, sospensioni e miscele di olii'].includes(form)) {
+    if (['Preparazioni semisolide per applicazione cutanea e paste', 'Polveri composte e piante per tisane', 'Preparazioni semisolide orali vet (a peso)', 'Pillole, pastiglie e granulati (a peso)', 'Pillole omeopatiche', 'Triturazioni e diluizioni omeopatiche', 'Emulsioni, sospensioni e miscele di olii'].includes(form)) {
         return 'g';
     }
     if (['Preparazioni liquide (soluzioni)', 'Estratti liquidi e tinture', 'Colliri e preparazioni oftalmiche semisolide', 'Soluzioni e sospensioni sterili', 'Emulsioni sterili'].includes(form)) {
         return 'ml';
     }
-    if (['Capsule', 'Suppositori e ovuli', 'Cartine e cialdini', 'Compresse e gomme da masticare medicate', 'Pillole, pastiglie e granulati', 'Preparazioni semisolide orali vet (a unità)'].includes(form)) {
+    if (['Capsule', 'Suppositori e ovuli', 'Cartine e cialdini', 'Compresse e gomme da masticare medicate', 'Preparazioni semisolide orali vet (a unità)', 'Pillole, pastiglie e granulati (a unità)'].includes(form)) {
         return 'n.';
     }
     return '-';
@@ -450,6 +450,10 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
       extraOpsCount = Math.max(0, techOpsCount - 3);
       extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
       extraCompUnitCost = 0.60;
+  } else if (form && form.includes('Pillole, pastiglie e granulati')) {
+      extraOpsCount = Math.max(0, techOpsCount - 4);
+      extraComponentsCount = Math.max(0, activeSubstancesCount - 1);
+      extraCompUnitCost = 0.60;
   } else {
       extraOpsCount = techOpsCount;
       extraComponentsCount = 0;
@@ -531,12 +535,14 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
     'Preparazioni semisolide per applicazione cutanea e paste',
     'Preparazioni semisolide orali vet (a peso)',
     'Preparazioni semisolide orali vet (a unità)',
+    'Pillole, pastiglie e granulati (a peso)',
+    'Pillole, pastiglie e granulati (a unità)',
     'Polveri composte e piante per tisane',
     'Cartine e cialdini',
     'Capsule',
     'Compresse e gomme da masticare medicate',
     'Suppositori e ovuli',
-    // 'Pillole, pastiglie e granulati', // Tariffazione non implementata
+    // 'Pillole, pastiglie e granulati', // VECCHIA - SOSTITUITA
     // 'Preparazioni semisolide per uso orale veterinario', // VECCHIA - SOSTITUITA
     // 'Colliri e preparazioni oftalmiche semisolide', // Tariffazione non implementata
     // 'Soluzioni e sospensioni sterili', // Tariffazione non implementata
@@ -951,6 +957,8 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                         return <>• Base: 33,25 € (fino a 100 unità, 4 comp., 3 op. tec.)<br/>• Extra Q.tà: +3,00€ ogni 10 unità / -2,00€ ogni 10 in meno<br/>• Op. Tecnologiche Extra: +2,30 € cad.</>;
                       } else if (form.includes('Preparazioni semisolide orali vet')) {
                         return <>• Base: 13,30 € (fino a 5 unità o 50g)<br/>• Extra Q.tà: +0,30€ ogni unità/10g in più / -0,80€ ogni unità/5g in meno<br/>• Extra Componenti: +0,60€ (oltre il 2°)<br/>• Op. Tecnologiche: 3 incluse, +2,30€ per le extra</>;
+                      } else if (form.includes('Pillole, pastiglie e granulati')) {
+                        return <>• Base: 19,95 € (fino a 20 unità o 100g)<br/>• Extra Q.tà: +0,15€ ogni unità/50g in più / -0,30€ ogni 10 unità/50g in meno<br/>• Extra Componenti: +0,60€ (oltre il 1°)<br/>• Op. Tecnologiche: 4 incluse, +2,30€ per le extra</>;
                       } else {
                         return <>• Tariffa Tabellare Standard</>;
                       }

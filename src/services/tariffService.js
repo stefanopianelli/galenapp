@@ -91,6 +91,29 @@ export const calculateComplexFee = (details, selectedIngredients) => {
         const extraOpsCount = Math.max(0, techOpsCount - 3);
         fee += extraOpsCount * 2.30;
 
+    } else if (form.includes('Pillole, pastiglie e granulati')) {
+        // Tariffa Pillole/Pastiglie/Granulati
+        fee = 19.95;
+        const isWeight = form.includes('(a peso)');
+        
+        const BASE_QTY = isWeight ? 100 : 20;
+        const STEP_OVER = isWeight ? 50 : 1;
+        const STEP_UNDER = isWeight ? 50 : 10;
+
+        if (qty > BASE_QTY) {
+            fee += (Math.ceil((qty - BASE_QTY) / STEP_OVER) * 0.15);
+        } else if (qty < BASE_QTY && qty > 0) {
+            fee -= (Math.ceil((BASE_QTY - qty) / STEP_UNDER) * 0.30);
+        }
+
+        // Componenti extra (1 incluso)
+        const extraComponentsCount = Math.max(0, activeSubstancesCount - 1);
+        fee += extraComponentsCount * 0.60;
+
+        // Operazioni extra (4 incluse)
+        const extraOpsCount = Math.max(0, techOpsCount - 4);
+        fee += extraOpsCount * 2.30;
+
     } else if (form === 'Polveri composte e piante per tisane') {
         fee = 6.65;
         const extraComponentsCount = Math.max(0, activeSubstancesCount - 2);

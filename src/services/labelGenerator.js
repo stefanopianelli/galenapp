@@ -114,7 +114,7 @@ const drawComposition = (doc, prep, layout, startY) => {
     let cursorY = startY;
     const colSplitX = layout.isOfficinale ? (width * 0.65) : (width / 2);
 
-    const DIVIDED_FORMS = ['Capsule', 'Cartine e cialdini', 'Compresse e gomme da masticare medicate', 'Suppositori e ovuli', 'Pillole, pastiglie e granulati', 'Preparazioni semisolide orali vet (a unità)'];
+    const DIVIDED_FORMS = ['Capsule', 'Cartine e cialdini', 'Compresse e gomme da masticare medicate', 'Suppositori e ovuli', 'Pillole, pastiglie e granulati (a unità)', 'Preparazioni semisolide orali vet (a unità)'];
     const isDivided = DIVIDED_FORMS.includes(prep.pharmaceuticalForm);
     
     const unitCount = layout.isOfficinale ? parseFloat(layout.batchData.productQuantity) : parseFloat(prep.quantity);
