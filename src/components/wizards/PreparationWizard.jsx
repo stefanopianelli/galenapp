@@ -208,13 +208,13 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   const dopingWarning = "Per chi svolge attività sportiva: l’uso del farmaco senza necessità terapeutica costituisce doping e può determinare comunque positività ai test antidoping.";
 
   const getPrepUnit = (form) => {
-    if (['Preparazioni semisolide per applicazione cutanea e paste', 'Polveri composte e piante per tisane', 'Preparazioni semisolide per uso orale veterinario', 'Pillole omeopatiche', 'Triturazioni e diluizioni omeopatiche', 'Emulsioni, sospensioni e miscele di olii'].includes(form)) {
+    if (['Preparazioni semisolide per applicazione cutanea e paste', 'Polveri composte e piante per tisane', 'Preparazioni semisolide orali vet (a peso)', 'Pillole omeopatiche', 'Triturazioni e diluizioni omeopatiche', 'Emulsioni, sospensioni e miscele di olii'].includes(form)) {
         return 'g';
     }
     if (['Preparazioni liquide (soluzioni)', 'Estratti liquidi e tinture', 'Colliri e preparazioni oftalmiche semisolide', 'Soluzioni e sospensioni sterili', 'Emulsioni sterili'].includes(form)) {
         return 'ml';
     }
-    if (['Capsule', 'Suppositori e ovuli', 'Cartine e cialdini', 'Compresse e gomme da masticare medicate', 'Pillole, pastiglie e granulati'].includes(form)) {
+    if (['Capsule', 'Suppositori e ovuli', 'Cartine e cialdini', 'Compresse e gomme da masticare medicate', 'Pillole, pastiglie e granulati', 'Preparazioni semisolide orali vet (a unità)'].includes(form)) {
         return 'n.';
     }
     return '-';
@@ -412,53 +412,51 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
   const pricing = calculateTotal();
 
-  let extraOpsCount = 0;
-  let extraComponentsCount = 0;
-  let extraOpsFee = 0;
-  let extraComponentsFee = 0;
-  
-  const form = details.pharmaceuticalForm;
+  // Calcolo conteggi extra per visualizzazione (Logica semplificata UI)
   const activeSubstancesCount = selectedIngredients.filter(i => !i.isExcipient && !i.isContainer).length;
   const techOpsCount = (details.techOps || []).length;
+  
+  let extraOpsCount = 0;
+  let extraComponentsCount = 0;
+  let extraCompUnitCost = 0.60;
+  
+  const form = details.pharmaceuticalForm;
 
-  if (form === 'Capsule' || form === 'Cartine e cialdini') {
+  if (['Capsule', 'Cartine e cialdini'].includes(form)) {
       extraOpsCount = Math.max(0, techOpsCount - 3);
       extraComponentsCount = Math.max(0, activeSubstancesCount - 1);
-      extraComponentsFee = Math.min(extraComponentsCount, 4) * 0.60;
-  } else if (form === 'Suppositori e ovuli') {
+      extraCompUnitCost = 0.60;
+  } else if (['Suppositori e ovuli'].includes(form)) {
       extraOpsCount = Math.max(0, techOpsCount - 4);
       extraComponentsCount = Math.max(0, activeSubstancesCount - 3);
-      extraComponentsFee = extraComponentsCount * 0.60;
-  } else if (form === 'Preparazioni liquide (soluzioni)') {
+      extraCompUnitCost = 0.60;
+  } else if (['Preparazioni liquide (soluzioni)', 'Estratti liquidi e tinture'].includes(form)) {
       extraOpsCount = Math.max(0, techOpsCount - 2);
       extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
-      extraComponentsFee = extraComponentsCount * 0.80;
-  } else if (form === 'Estratti liquidi e tinture') {
+      extraCompUnitCost = 0.80;
+  } else if (['Emulsioni, sospensioni e miscele di olii'].includes(form)) {
       extraOpsCount = Math.max(0, techOpsCount - 2);
       extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
-      extraComponentsFee = extraComponentsCount * 0.80;
-  } else if (form === 'Emulsioni, sospensioni e miscele di olii') {
+      extraCompUnitCost = 0.70;
+  } else if (['Preparazioni semisolide per applicazione cutanea e paste', 'Polveri composte e piante per tisane'].includes(form)) {
       extraOpsCount = Math.max(0, techOpsCount - 2);
       extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
-      extraComponentsFee = extraComponentsCount * 0.70;
-  } else if (form === 'Preparazioni semisolide per applicazione cutanea e paste') {
-      extraOpsCount = Math.max(0, techOpsCount - 2);
-      extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
-      extraComponentsFee = extraComponentsCount * 0.75;
-  } else if (form === 'Polveri composte e piante per tisane') {
-      extraOpsCount = Math.max(0, techOpsCount - 2);
-      extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
-      extraComponentsFee = extraComponentsCount * 0.75;
-  } else if (form === 'Compresse e gomme da masticare medicate') {
+      extraCompUnitCost = 0.75;
+  } else if (['Compresse e gomme da masticare medicate'].includes(form)) {
       extraOpsCount = Math.max(0, techOpsCount - 3);
-      extraComponentsCount = Math.max(0, activeSubstancesCount - 4); // 4 componenti inclusi
-      extraComponentsFee = 0; // Nessun costo per componenti extra
+      extraComponentsCount = Math.max(0, activeSubstancesCount - 4);
+      extraCompUnitCost = 0;
+  } else if (form && form.includes('semisolide orali vet')) {
+      extraOpsCount = Math.max(0, techOpsCount - 3);
+      extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
+      extraCompUnitCost = 0.60;
   } else {
       extraOpsCount = techOpsCount;
       extraComponentsCount = 0;
-      extraComponentsFee = 0;
   }
-  extraOpsFee = extraOpsCount * 2.30;
+
+  const extraOpsFee = extraOpsCount * 2.30;
+  const extraComponentsFee = extraComponentsCount * extraCompUnitCost;
 
   const handleDownloadWorksheet = () => generateWorkSheetPDF({ details: { ...details, worksheetItems }, ingredients: selectedIngredients, pricing }, pharmacySettings);
   
@@ -531,13 +529,15 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
     'Estratti liquidi e tinture',
     'Emulsioni, sospensioni e miscele di olii',
     'Preparazioni semisolide per applicazione cutanea e paste',
+    'Preparazioni semisolide orali vet (a peso)',
+    'Preparazioni semisolide orali vet (a unità)',
     'Polveri composte e piante per tisane',
     'Cartine e cialdini',
     'Capsule',
     'Compresse e gomme da masticare medicate',
     'Suppositori e ovuli',
     // 'Pillole, pastiglie e granulati', // Tariffazione non implementata
-    // 'Preparazioni semisolide per uso orale veterinario', // Tariffazione non implementata
+    // 'Preparazioni semisolide per uso orale veterinario', // VECCHIA - SOSTITUITA
     // 'Colliri e preparazioni oftalmiche semisolide', // Tariffazione non implementata
     // 'Soluzioni e sospensioni sterili', // Tariffazione non implementata
     // 'Emulsioni sterili', // Tariffazione non implementata
@@ -949,6 +949,8 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                         return <>• Base: 6,65 € (fino a 2 comp., 2 op. tec.)<br/>• Extra Componenti: +0,75 € cad.<br/>• Op. Tecnologiche Extra: +2,30 € cad.</>;
                       } else if (form === 'Compresse e gomme da masticare medicate') {
                         return <>• Base: 33,25 € (fino a 100 unità, 4 comp., 3 op. tec.)<br/>• Extra Q.tà: +3,00€ ogni 10 unità / -2,00€ ogni 10 in meno<br/>• Op. Tecnologiche Extra: +2,30 € cad.</>;
+                      } else if (form.includes('Preparazioni semisolide orali vet')) {
+                        return <>• Base: 13,30 € (fino a 5 unità o 50g)<br/>• Extra Q.tà: +0,30€ ogni unità/10g in più / -0,80€ ogni unità/5g in meno<br/>• Extra Componenti: +0,60€ (oltre il 2°)<br/>• Op. Tecnologiche: 3 incluse, +2,30€ per le extra</>;
                       } else {
                         return <>• Tariffa Tabellare Standard</>;
                       }
@@ -1070,8 +1072,6 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                   <div className="pt-4 flex flex-col-reverse sm:flex-row sm:justify-between items-center gap-4 border-t border-slate-100">
                     <button onClick={() => setStep(isOfficinale ? 5 : 4)} className="text-slate-500 hover:underline w-full sm:w-auto text-center sm:text-left">Indietro</button>
                     <div className="flex flex-wrap justify-center sm:justify-end gap-3 w-full sm:w-auto">
-                      <button onClick={handlePrintLabel} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 whitespace-nowrap"><Printer size={18}/> Stampa Etichetta</button>
-                      <button onClick={handleDownloadWorksheet} className="bg-slate-600 text-white px-4 py-2 rounded-md hover:bg-slate-700 flex items-center gap-2 whitespace-nowrap"><FileDown size={18}/> Scarica Foglio</button>
                       {canEdit && <button onClick={handleFinalSave} className="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 flex items-center gap-2 whitespace-nowrap"><Save size={18}/> Salva e Completa</button>}
                     </div>
                   </div>

@@ -68,6 +68,29 @@ export const calculateComplexFee = (details, selectedIngredients) => {
         fee += extraComponentsCount * 0.75;
         const extraOpsCount = Math.max(0, techOpsCount - 2);
         fee += extraOpsCount * 2.30;
+    } else if (form.includes('Preparazioni semisolide orali vet')) {
+        // Tariffa Veterinaria Semisolida Orale
+        fee = 13.30;
+        const isWeight = form.includes('(a peso)');
+        
+        const BASE_QTY = isWeight ? 50 : 5;
+        const STEP_OVER = isWeight ? 10 : 1;
+        const STEP_UNDER = isWeight ? 5 : 1;
+
+        if (qty > BASE_QTY) {
+            fee += (Math.ceil((qty - BASE_QTY) / STEP_OVER) * 0.30);
+        } else if (qty < BASE_QTY && qty > 0) {
+            fee -= (Math.ceil((BASE_QTY - qty) / STEP_UNDER) * 0.80);
+        }
+
+        // Componenti extra (2 inclusi)
+        const extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
+        fee += extraComponentsCount * 0.60;
+
+        // Operazioni extra (3 incluse)
+        const extraOpsCount = Math.max(0, techOpsCount - 3);
+        fee += extraOpsCount * 2.30;
+
     } else if (form === 'Polveri composte e piante per tisane') {
         fee = 6.65;
         const extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
