@@ -987,28 +987,35 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                 {selectedIngredients.filter(ing => ing.isContainer).map((container, index) => {
                   const batchInfo = batches.find(b => b.containerId === container.id) || {};
                   return (
-                    <div key={index} className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end bg-slate-50 p-4 rounded-md border">
-                      <div className="sm:col-span-1">
+                    <div key={index} className="bg-slate-50 p-4 rounded-md border border-slate-200">
+                      {/* Riga 1: Info Contenitore */}
+                      <div className="mb-3">
                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Contenitore</label>
-                        <div className="flex flex-col gap-1 p-2 bg-white rounded border border-slate-200">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 bg-white rounded border border-slate-200">
                           <div className="flex items-center gap-2">
-                            <Box size={16} className="text-blue-500" />
-                            <span className="font-semibold text-sm truncate">{container.name}</span>
+                            <Box size={18} className="text-blue-500 shrink-0" />
+                            <span className="font-semibold text-sm text-slate-800 break-all">{container.name}</span>
                           </div>
-                          <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Tot: {Number(container.amountUsed).toFixed(0)}</div>
+                          <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider bg-slate-100 px-2 py-1 rounded whitespace-nowrap">
+                            Totale Pezzi: {Number(container.amountUsed).toFixed(0)}
+                          </div>
                         </div>
                       </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Q.tà / Conf.</label>
-                        <input type="number" step="1" placeholder="Es. 30" value={batchInfo.productQuantity || ''} onChange={(e) => handleBatchChange(container.id, 'productQuantity', e.target.value)} className="w-full border p-2 rounded text-sm outline-none" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Prezzo (€)</label>
-                        <input type="number" step="0.01" placeholder="Es. 15.50" value={batchInfo.unitPrice || ''} onChange={(e) => handleBatchChange(container.id, 'unitPrice', e.target.value)} className="w-full border p-2 rounded text-sm outline-none" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1 text-teal-600">Codice MINSAN</label>
-                        <input type="text" placeholder="Es. 901234567" value={batchInfo.minsan || ''} onChange={(e) => handleBatchChange(container.id, 'minsan', e.target.value)} className="w-full border border-teal-200 p-2 rounded text-sm outline-none focus:ring-1 ring-teal-500 font-mono" />
+
+                      {/* Riga 2: Input Lotti */}
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Q.tà / Conf.</label>
+                          <input type="number" step="1" placeholder="Es. 30" value={batchInfo.productQuantity || ''} onChange={(e) => handleBatchChange(container.id, 'productQuantity', e.target.value)} className="w-full border p-2 rounded text-sm outline-none focus:ring-1 ring-blue-500" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Prezzo (€)</label>
+                          <input type="number" step="0.01" placeholder="Es. 15.50" value={batchInfo.unitPrice || ''} onChange={(e) => handleBatchChange(container.id, 'unitPrice', e.target.value)} className="w-full border p-2 rounded text-sm outline-none focus:ring-1 ring-blue-500" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1 text-teal-600">Codice MINSAN</label>
+                          <input type="text" placeholder="Es. 901234567" value={batchInfo.minsan || ''} onChange={(e) => handleBatchChange(container.id, 'minsan', e.target.value)} className="w-full border border-teal-200 p-2 rounded text-sm outline-none focus:ring-1 ring-teal-500 font-mono" />
+                        </div>
                       </div>
                     </div>
                   )
