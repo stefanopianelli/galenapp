@@ -517,8 +517,10 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
           // Se è una nuova prep (initialData null o senza id), hasChanged è true di default.
       }
 
-      // Se modifico solo anagrafica, mantengo la data vecchia. Se cambio sostanze, aggiorno a oggi.
-      const finalDate = (initialData?.id && !hasIngredientsChanged) ? initialData.date : today;
+      // Se modifico solo anagrafica di una COMPLETATA, mantengo la data vecchia.
+      // Se cambio sostanze O se sto confermando una BOZZA, aggiorno a oggi.
+      const isConfirmingDraft = initialData?.status === 'Bozza';
+      const finalDate = (initialData?.id && !hasIngredientsChanged && !isConfirmingDraft) ? initialData.date : today;
 
       onComplete(selectedIngredients, { 
           ...details, 
