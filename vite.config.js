@@ -10,11 +10,11 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('react-dom') || id.includes('react')) {
-            return 'react';
-          }
-          if (id.includes('jspdf') || id.includes('jspdf-autotable')) {
-            return 'jspdf';
+          if (id.includes('node_modules')) {
+            // Isola solo le librerie giganti e indipendenti
+            if (id.includes('jspdf') || id.includes('qrcode') || id.includes('jsbarcode')) return 'pdf-utils';
+            if (id.includes('html5-qrcode')) return 'scanner';
+            // Tutto il resto (React, Lucide, Recharts) va nel main chunk di default
           }
         }
       }
