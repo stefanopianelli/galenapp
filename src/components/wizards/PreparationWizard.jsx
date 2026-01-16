@@ -471,11 +471,36 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
   const handleFinalSave = () => {
     if (details.name && selectedIngredients.length > 0) {
-      // Aggiorna la data di preparazione alla data odierna di completamento
       const today = new Date().toISOString().split('T')[0];
+      
+      // Controllo se gli ingredienti sono cambiati
+      let hasIngredientsChanged = true;
+      if (initialData && initialData.ingredients) {
+          const oldIngs = initialData.ingredients;
+          const newIngs = selectedIngredients;
+          
+          if (oldIngs.length === newIngs.length) {
+              // Verifica profonda
+              const isSame = oldIngs.every((old, i) => {
+                  const curr = newIngs[i];
+                  // Confronta ID, Quantità Ricetta e Quantità Pesata
+                  return String(old.id) === String(curr.id) &&
+                         parseFloat(old.amountUsed) === parseFloat(curr.amountUsed) &&
+                         parseFloat(old.stockDeduction || 0) === parseFloat(curr.stockDeduction || 0);
+              });
+              if (isSame) hasIngredientsChanged = false;
+          }
+      } else if (initialData && !initialData.ingredients) {
+          // Se stiamo modificando una bozza che non aveva ingredienti salvati? Raro ma possibile.
+          // Se è una nuova prep (initialData null o senza id), hasChanged è true di default.
+      }
+
+      // Se modifico solo anagrafica, mantengo la data vecchia. Se cambio sostanze, aggiorno a oggi.
+      const finalDate = (initialData?.id && !hasIngredientsChanged) ? initialData.date : today;
+
       onComplete(selectedIngredients, { 
           ...details, 
-          date: today, // Forza la data di oggi
+          date: finalDate,
           prepUnit: getPrepUnit(details.pharmaceuticalForm), 
           totalPrice: pricing.final, 
           batches, 
