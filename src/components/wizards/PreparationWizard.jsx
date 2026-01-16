@@ -208,10 +208,10 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   const dopingWarning = "Per chi svolge attività sportiva: l’uso del farmaco senza necessità terapeutica costituisce doping e può determinare comunque positività ai test antidoping.";
 
   const getPrepUnit = (form) => {
-    if (['Preparazioni semisolide per applicazione cutanea e paste', 'Polveri composte e piante per tisane', 'Preparazioni semisolide orali vet (a peso)', 'Pillole, pastiglie e granulati (a peso)', 'Pillole omeopatiche', 'Triturazioni e diluizioni omeopatiche', 'Emulsioni, sospensioni e miscele di olii'].includes(form)) {
+    if (['Preparazioni semisolide per applicazione cutanea e paste', 'Polveri composte e piante per tisane', 'Preparazioni semisolide orali vet (a peso)', 'Pillole, pastiglie e granulati (a peso)', 'Pillole omeopatiche', 'Triturazioni e diluizioni omeopatiche', 'Emulsioni, sospensioni e miscele di olii', 'Prep. oftalmiche sterili semisolide'].includes(form)) {
         return 'g';
     }
-    if (['Preparazioni liquide (soluzioni)', 'Estratti liquidi e tinture', 'Colliri e preparazioni oftalmiche semisolide', 'Soluzioni e sospensioni sterili', 'Emulsioni sterili'].includes(form)) {
+    if (['Preparazioni liquide (soluzioni)', 'Estratti liquidi e tinture', 'Soluzioni e sospensioni sterili', 'Emulsioni sterili', 'Colliri sterili (soluzioni)'].includes(form)) {
         return 'ml';
     }
     if (['Capsule', 'Suppositori e ovuli', 'Cartine e cialdini', 'Compresse e gomme da masticare medicate', 'Preparazioni semisolide orali vet (a unità)', 'Pillole, pastiglie e granulati (a unità)'].includes(form)) {
@@ -223,6 +223,13 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   const isStep1Valid = (() => {
     const baseFields = details.name && details.prepNumber && details.quantity && details.pharmaceuticalForm && details.expiryDate && details.posology && details.usage;
     if (!baseFields) return false;
+    
+    // Validazione specifica per Colliri Sterili
+    if (['Colliri sterili (soluzioni)', 'Prep. oftalmiche sterili semisolide'].includes(details.pharmaceuticalForm)) {
+        const qty = parseFloat(details.quantity);
+        if (qty % 10 !== 0) return false;
+    }
+
     if (isOfficinale) return true;
     return !!(details.patient && details.doctor && details.recipeDate);
   })();
@@ -419,6 +426,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   let extraOpsCount = 0;
   let extraComponentsCount = 0;
   let extraCompUnitCost = 0.60;
+  let extraOpsUnitCost = 2.30;
   
   const form = details.pharmaceuticalForm;
 
@@ -454,12 +462,26 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
       extraOpsCount = Math.max(0, techOpsCount - 4);
       extraComponentsCount = Math.max(0, activeSubstancesCount - 1);
       extraCompUnitCost = 0.60;
+  } else if (['Colliri sterili (soluzioni)', 'Prep. oftalmiche sterili semisolide'].includes(form)) {
+      const numRecipients = Math.ceil((parseFloat(details.quantity) || 0) / 10);
+      extraOpsCount = Math.max(0, techOpsCount - 4);
+      extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
+      
+      // Qui il costo unitario è complesso perché moltiplicato per recipienti.
+      // Per la visualizzazione, mostriamo il costo TOTALE degli extra.
+      // Trucco: impostiamo "unit cost" già moltiplicato per i recipienti
+      extraOpsUnitCost = 10.00 * numRecipients; 
+      extraCompUnitCost = 5.00 * numRecipients;
   } else {
+      // Default
       extraOpsCount = techOpsCount;
       extraComponentsCount = 0;
   }
 
-  const extraOpsFee = extraOpsCount * 2.30;
+  // Se è sterile, extraOpsUnitCost è già modificato sopra, altrimenti usa default
+  const finalOpsUnitCost = (['Colliri sterili (soluzioni)', 'Prep. oftalmiche sterili semisolide'].includes(form)) ? extraOpsUnitCost : 2.30;
+
+  const extraOpsFee = extraOpsCount * finalOpsUnitCost;
   const extraComponentsFee = extraComponentsCount * extraCompUnitCost;
 
   const handleDownloadWorksheet = () => generateWorkSheetPDF({ details: { ...details, worksheetItems }, ingredients: selectedIngredients, pricing }, pharmacySettings);
@@ -556,6 +578,8 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   const pharmaForms = [
     'Preparazioni liquide (soluzioni)',
     'Estratti liquidi e tinture',
+    'Colliri sterili (soluzioni)',
+    'Prep. oftalmiche sterili semisolide',
     'Emulsioni, sospensioni e miscele di olii',
     'Preparazioni semisolide per applicazione cutanea e paste',
     'Preparazioni semisolide orali vet (a peso)',
@@ -624,7 +648,13 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                       <div><label className="block text-sm font-bold">N.P. *</label><input className="w-full border p-3 rounded-md outline-none bg-slate-50 font-mono" value={details.prepNumber} readOnly /></div>
                       <div><label className="block text-sm font-bold">Forma *</label><select className="w-full border p-3 rounded-md outline-none bg-white" value={details.pharmaceuticalForm} onChange={e => setDetails({...details, pharmaceuticalForm: e.target.value})}>
                                     {pharmaForms.map(f => (<option key={f} value={f}>{f}</option>))}
-                                    </select></div>                      <div><label className="block text-sm font-bold">Q.tà Totale ({getPrepUnit(details.pharmaceuticalForm)}) *</label><input type="number" step="0.01" className="w-full border p-3 rounded-md outline-none" value={details.quantity} onChange={e => setDetails({...details, quantity: e.target.value})} /></div>
+                                    </select></div>                      <div>
+                          <label className="block text-sm font-bold">Q.tà Totale ({getPrepUnit(details.pharmaceuticalForm)}) *</label>
+                          <input type="number" step="0.01" className="w-full border p-3 rounded-md outline-none" value={details.quantity} onChange={e => setDetails({...details, quantity: e.target.value})} />
+                          {['Colliri sterili (soluzioni)', 'Prep. oftalmiche sterili semisolide'].includes(details.pharmaceuticalForm) && details.quantity && parseFloat(details.quantity) % 10 !== 0 && (
+                              <p className="text-xs text-red-600 mt-1 font-bold">⚠ Deve essere un multiplo di 10 (es. 10, 20, 30...)</p>
+                          )}
+                      </div>
                       <div><label className="block text-sm font-bold">Scadenza *</label><input type="date" className="w-full border p-3 rounded-md outline-none" value={details.expiryDate} onChange={e => setDetails({...details, expiryDate: e.target.value})} /></div>
                       {!isOfficinale && (
                         <>
@@ -984,6 +1014,8 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                         return <>• Base: 13,30 € (fino a 5 unità o 50g)<br/>• Extra Q.tà: +0,30€ ogni unità/10g in più / -0,80€ ogni unità/5g in meno<br/>• Extra Componenti: +0,60€ (oltre il 2°)<br/>• Op. Tecnologiche: 3 incluse, +2,30€ per le extra</>;
                       } else if (form.includes('Pillole, pastiglie e granulati')) {
                         return <>• Base: 19,95 € (fino a 20 unità o 100g)<br/>• Extra Q.tà: +0,15€ ogni unità/50g in più / -0,30€ ogni 10 unità/50g in meno<br/>• Extra Componenti: +0,60€ (oltre il 1°)<br/>• Op. Tecnologiche: 4 incluse, +2,30€ per le extra</>;
+                      } else if (form.includes('Colliri sterili') || form.includes('Prep. oftalmiche sterili')) {
+                        return <>• Base: 31,65 € per recipiente (ogni 10ml o 10g)<br/>• Extra Componenti: +5,00€ (oltre il 2°)<br/>• Op. Tecnologiche: 4 incluse, +10,00€ per le extra</>;
                       } else {
                         return <>• Tariffa Tabellare Standard</>;
                       }

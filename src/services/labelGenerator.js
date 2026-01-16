@@ -114,11 +114,27 @@ const drawComposition = (doc, prep, layout, startY) => {
     let cursorY = startY;
     const colSplitX = layout.isOfficinale ? (width * 0.65) : (width / 2);
 
-    const DIVIDED_FORMS = ['Capsule', 'Cartine e cialdini', 'Compresse e gomme da masticare medicate', 'Suppositori e ovuli', 'Pillole, pastiglie e granulati (a unità)', 'Preparazioni semisolide orali vet (a unità)'];
+    const DIVIDED_FORMS = ['Capsule', 'Cartine e cialdini', 'Compresse e gomme da masticare medicate', 'Suppositori e ovuli', 'Pillole, pastiglie e granulati (a unità)', 'Preparazioni semisolide orali vet (a unità)', 'Colliri sterili (soluzioni)', 'Prep. oftalmiche sterili semisolide'];
     const isDivided = DIVIDED_FORMS.includes(prep.pharmaceuticalForm);
     
-    const unitCount = layout.isOfficinale ? parseFloat(layout.batchData.productQuantity) : parseFloat(prep.quantity);
-    const compLabel = isDivided ? `Composizione (per unità di cui ${unitCount}):` : "Composizione:";
+    let unitCount;
+    if (['Colliri sterili (soluzioni)', 'Prep. oftalmiche sterili semisolide'].includes(prep.pharmaceuticalForm)) {
+        // Per oftalmici, l'unità è il recipiente standard da 10ml/g
+        unitCount = Math.ceil(parseFloat(prep.quantity) / 10);
+    } else {
+        unitCount = layout.isOfficinale ? parseFloat(layout.batchData.productQuantity) : parseFloat(prep.quantity);
+    }
+
+    let compLabel = "Composizione:";
+    if (isDivided) {
+        if (prep.pharmaceuticalForm === 'Colliri sterili (soluzioni)') {
+            compLabel = "Composizione (per flacone da 10ml):";
+        } else if (prep.pharmaceuticalForm === 'Prep. oftalmiche sterili semisolide') {
+            compLabel = "Composizione (per flacone da 10g):";
+        } else {
+            compLabel = `Composizione (per unità di cui ${unitCount}):`;
+        }
+    }
     
     doc.setFontSize(Math.max(4, (isSmall ? 5 : 7) * scale));
     doc.setFont("helvetica", "bold");
@@ -239,10 +255,16 @@ const drawCosts = (doc, prep, layout, startY, bodyStartY, barcodeDataUrl) => {
     let costY = bodyStartY; 
     const colSplitX = layout.isOfficinale ? (width * 0.65) : (width / 2);
 
+    // Calcolo divisore per costi unitari (solo oftalmici)
+    let costDivisor = 1;
+    if (['Colliri sterili (soluzioni)', 'Prep. oftalmiche sterili semisolide'].includes(prep.pharmaceuticalForm)) {
+        costDivisor = Math.ceil(parseFloat(prep.quantity) / 10) || 1;
+    }
+
     if (!layout.isOfficinale) {
         if (!isSmall) {
             doc.setFontSize(fonts.body); doc.setFont("helvetica", "bold");
-            doc.text("Dettaglio Costi:", colSplitX + 2, costY);
+            doc.text(costDivisor > 1 ? "Dettaglio Costi (Unitario):" : "Dettaglio Costi:", colSplitX + 2, costY);
             costY += (3 * scale);
             doc.setFontSize(fonts.cost); doc.setFont("helvetica", "normal");
 
@@ -251,6 +273,14 @@ const drawCosts = (doc, prep, layout, startY, bodyStartY, barcodeDataUrl) => {
             let fee = 0, add = 0, vat = 0, tot = parseFloat(prep.totalPrice || 0);
             if (prep.pricingData) { fee = parseFloat(prep.pricingData.fee || 0); add = parseFloat(prep.pricingData.additional || 0); vat = parseFloat(prep.pricingData.vat || 0); tot = parseFloat(prep.pricingData.final || tot); } 
             else { const net = tot / (1 + VAT_RATE); vat = tot - net; fee = net - (costMatP + costCont); }
+
+            // Applico divisione per visualizzare costo singolo flacone
+            costMatP /= costDivisor;
+            costCont /= costDivisor;
+            fee /= costDivisor;
+            add /= costDivisor;
+            vat /= costDivisor;
+            tot /= costDivisor;
 
             const printL = (l, v, b = false) => {
                 doc.setFont("helvetica", b ? "bold" : "normal");
@@ -267,7 +297,7 @@ const drawCosts = (doc, prep, layout, startY, bodyStartY, barcodeDataUrl) => {
             costY += (1 * scale); doc.setFontSize(fonts.body + 1);
             printL("TOTALE:", tot, true);
         } else {
-            let tot = parseFloat(prep.totalPrice || 0);
+            let tot = parseFloat(prep.totalPrice || 0) / costDivisor;
             costY += 2 * scale; doc.setFontSize(fonts.body); doc.text("TOTALE:", colSplitX + 2, costY);
             doc.text(`€ ${tot.toFixed(2)}`, width - MARGIN, costY + 4 * scale, { align: 'right' });
             costY += 8 * scale;

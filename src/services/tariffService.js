@@ -68,6 +68,22 @@ export const calculateComplexFee = (details, selectedIngredients) => {
         fee += extraComponentsCount * 0.75;
         const extraOpsCount = Math.max(0, techOpsCount - 2);
         fee += extraOpsCount * 2.30;
+    } else if (form.includes('Colliri sterili') || form.includes('Prep. oftalmiche sterili')) {
+        // Tariffa Colliri Sterili (per recipiente)
+        const numRecipients = Math.ceil(qty / 10); // 10ml/g è la dimensione standard
+        const baseFeePerRecipient = 31.65;
+        
+        // Componenti extra (2 inclusi)
+        const extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
+        const extraCompFee = extraComponentsCount * 5.00;
+
+        // Operazioni extra (4 incluse - Aggiornato)
+        const extraOpsCount = Math.max(0, techOpsCount - 4);
+        const extraOpsFee = extraOpsCount * 10.00;
+
+        // Totale per N recipienti
+        fee = numRecipients * (baseFeePerRecipient + extraCompFee + extraOpsFee);
+
     } else if (form.includes('Preparazioni semisolide orali vet')) {
         // Tariffa Veterinaria Semisolida Orale
         fee = 13.30;
