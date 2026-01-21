@@ -71,7 +71,8 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
     const currentYear = new Date().getFullYear().toString().slice(-2);
     let maxProg = 0;
     (preparations || []).forEach(p => {
-        if (p.prepNumber && p.prepNumber.startsWith(`${currentYear}/P`)) {
+        // Ignora bozze temporanee nel calcolo del progressivo
+        if (p.prepNumber && p.prepNumber.startsWith(`${currentYear}/P`) && !p.prepNumber.startsWith('BOZZA')) {
             try {
                 const progNum = parseInt(p.prepNumber.split('/P')[1]);
                 if (!isNaN(progNum) && progNum > maxProg) maxProg = progNum;
@@ -94,7 +95,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
         setDetails({
             ...defaultDetails, 
             ...initialData,
-            prepNumber: (isNew || isDuplicate) ? getNextPrepNumber() : initialData.prepNumber,
+            prepNumber: (isNew || isDuplicate) ? 'TEMP' : initialData.prepNumber,
             status: initialData.status || 'Bozza'
         });
         
@@ -119,17 +120,16 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
           if (!inventoryItem) {
             return { ...ing, securityData: ing.securityData || { pictograms: [] } };
           }
-          // Determina il ruolo (Attivo/Eccipiente)
-          let finalIsExcipient = inventoryItem.isExcipient || false; // Default Inventario
+          let finalIsExcipient = inventoryItem.isExcipient || false;
           if (ing.savedIsExcipient !== undefined) {
-              finalIsExcipient = ing.savedIsExcipient; // Priorità assoluta al salvataggio
+              finalIsExcipient = ing.savedIsExcipient;
           } else if (ing.isExcipient !== undefined) {
-              finalIsExcipient = ing.isExcipient; // Fallback legacy
+              finalIsExcipient = ing.isExcipient;
           }
 
           return {
             id: ing.id, amountUsed: ing.amountUsed,
-            stockDeduction: ing.stockDeduction || null, // Carica la tolleranza salvata
+            stockDeduction: ing.stockDeduction || null,
             name: inventoryItem.name, ni: inventoryItem.ni, lot: inventoryItem.lot || '', unit: inventoryItem.unit,
             costPerGram: inventoryItem.costPerGram || 0,
             isExcipient: finalIsExcipient,
@@ -143,7 +143,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
     } else {
       setDetails({ 
         ...defaultDetails,
-        prepNumber: getNextPrepNumber(), 
+        prepNumber: 'TEMP', 
       });
       setSelectedIngredients([]);
        setWorksheetItems([
@@ -502,28 +502,28 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
           const newIngs = selectedIngredients;
           
           if (oldIngs.length === newIngs.length) {
-              // Verifica profonda
               const isSame = oldIngs.every((old, i) => {
                   const curr = newIngs[i];
-                  // Confronta ID, Quantità Ricetta e Quantità Pesata
                   return String(old.id) === String(curr.id) &&
                          parseFloat(old.amountUsed) === parseFloat(curr.amountUsed) &&
                          parseFloat(old.stockDeduction || 0) === parseFloat(curr.stockDeduction || 0);
               });
               if (isSame) hasIngredientsChanged = false;
           }
-      } else if (initialData && !initialData.ingredients) {
-          // Se stiamo modificando una bozza che non aveva ingredienti salvati? Raro ma possibile.
-          // Se è una nuova prep (initialData null o senza id), hasChanged è true di default.
       }
 
-      // Se modifico solo anagrafica di una COMPLETATA, mantengo la data vecchia.
-      // Se cambio sostanze O se sto confermando una BOZZA, aggiorno a oggi.
       const isConfirmingDraft = initialData?.status === 'Bozza';
       const finalDate = (initialData?.id && !hasIngredientsChanged && !isConfirmingDraft) ? initialData.date : today;
 
+      // LAZY NUMBERING: Assegna numero reale solo ora
+      let finalPrepNumber = details.prepNumber;
+      if (finalPrepNumber === 'TEMP' || finalPrepNumber.startsWith('BOZZA')) {
+          finalPrepNumber = getNextPrepNumber();
+      }
+
       onComplete(selectedIngredients, { 
           ...details, 
+          prepNumber: finalPrepNumber, // Salva col numero definitivo
           date: finalDate,
           prepUnit: getPrepUnit(details.pharmaceuticalForm), 
           totalPrice: pricing.final, 
@@ -539,7 +539,22 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
       alert("Per salvare una bozza, il nome della preparazione è obbligatorio.");
       return;
     }
-    onComplete(selectedIngredients, { ...details, prepUnit: getPrepUnit(details.pharmaceuticalForm), totalPrice: pricing.final, batches, worksheetItems, pricingData: pricing }, true);
+    
+    // Assegna ID temporaneo se non ne ha uno
+    let draftPrepNumber = details.prepNumber;
+    if (draftPrepNumber === 'TEMP') {
+        draftPrepNumber = `BOZZA-${Date.now().toString().slice(-6)}`;
+    }
+
+    onComplete(selectedIngredients, { 
+        ...details, 
+        prepNumber: draftPrepNumber,
+        prepUnit: getPrepUnit(details.pharmaceuticalForm), 
+        totalPrice: pricing.final, 
+        batches, 
+        worksheetItems, 
+        pricingData: pricing 
+    }, true);
   };
 
   const handleStepClick = (targetStep) => {
@@ -647,7 +662,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                   <h2 className="text-xl font-bold text-slate-800">Anagrafica Ricetta</h2>
                   <div className="grid grid-cols-2 gap-4 pt-4">
                       <div className="col-span-2"><label className="block text-sm font-bold">Nome *</label><input className="w-full border p-3 rounded-md outline-none focus:ring-2 ring-teal-500" value={details.name} onChange={e => setDetails({...details, name: e.target.value})} /></div>
-                      <div><label className="block text-sm font-bold">N.P. *</label><input className="w-full border p-3 rounded-md outline-none bg-slate-50 font-mono" value={details.prepNumber} readOnly /></div>
+                      <div><label className="block text-sm font-bold">N.P. *</label><input className="w-full border p-3 rounded-md outline-none bg-slate-50 font-mono" value={(details.prepNumber === 'TEMP' || details.prepNumber.startsWith('BOZZA')) ? 'BOZZA (Assegnato al completamento)' : details.prepNumber} readOnly /></div>
                       <div><label className="block text-sm font-bold">Forma *</label><select className="w-full border p-3 rounded-md outline-none bg-white" value={details.pharmaceuticalForm} onChange={e => setDetails({...details, pharmaceuticalForm: e.target.value})}>
                                     {pharmaForms.map(f => (<option key={f} value={f}>{f}</option>))}
                                     </select></div>                      <div>

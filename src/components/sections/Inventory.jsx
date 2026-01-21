@@ -142,7 +142,7 @@ const InventoryTable = ({ data, type, sortConfig, requestSort, handleOpenViewMod
               const totalStatus = anyExpired ? <Badge type="danger">Lotti Scaduti</Badge> : anyExpiring ? <Badge type="warning">In Scadenza</Badge> : <Badge type="success">OK</Badge>;
 
               return (
-                  <React.Fragment key={groupIdx}>
+                  <React.Fragment key={group.name}>
                       <tr className="bg-slate-50 hover:bg-slate-100 cursor-pointer font-semibold" onClick={() => toggleGroup(group.name)}>
                           <td className="px-6 py-4 flex items-center gap-2 whitespace-nowrap">
                               {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
