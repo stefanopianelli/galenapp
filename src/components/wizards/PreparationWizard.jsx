@@ -601,7 +601,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
     // 'Triturazioni e diluizioni omeopatiche', // Tariffazione non implementata
     // 'Pillole omeopatiche' // Tariffazione non implementata
   ];
-  const usageOptions = ['Orale', 'Topica', 'Sublinguale', 'Buccale', 'Rettale', 'Inalatoria', 'Transdermica', 'Vaginale', 'Parenterale'];
+  const usageOptions = ['Orale', 'Topico', 'Sublinguale', 'Buccale', 'Rettale', 'Inalatoria', 'Transdermica', 'Vaginale', 'Parenterale'];
 
   return (
     <>
