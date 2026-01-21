@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Hash, Calendar, Pencil, Trash2, Filter, X, Search, ChevronDown, ChevronUp, Stethoscope, FlaskConical, Printer, Copy, User, Pill, ArrowRight, FileDown } from 'lucide-react';
+import { Hash, Calendar, Pencil, Trash2, Filter, X, Search, ChevronDown, ChevronUp, Stethoscope, FlaskConical, Printer, Copy, User, Pill, ArrowRight, FileDown, LayoutGrid, LayoutList } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import { generateWorkSheetPDF } from '../../services/pdfGenerator';
@@ -138,40 +138,201 @@ const PreparationCard = ({ prep, isExpanded, toggleExpand, handleJumpToStep, han
   );
 };
 
+const PreparationsTable = ({ preparations, handleJumpToStep, handleDeletePreparation, handleDuplicatePreparation, canEdit, pharmacySettings, onPrintLabel }) => {
+    return (
+        <Card className="border border-slate-200 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold">
+                        <tr>
+                            <th className="px-4 py-3 whitespace-nowrap">N.P.</th>
+                            <th className="px-4 py-3 whitespace-nowrap">Data</th>
+                            <th className="px-4 py-3">Nome Preparazione</th>
+                            <th className="px-4 py-3">Forma</th>
+                            <th className="px-4 py-3">Paziente</th>
+                            <th className="px-4 py-3 text-right">Prezzo</th>
+                            <th className="px-4 py-3 text-center">Stato</th>
+                            <th className="px-4 py-3 text-center">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                        {preparations.map(prep => (
+                            <tr key={prep.id} className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => handleJumpToStep(prep, 1)}>
+                                <td className="px-4 py-3 font-mono text-xs font-bold text-slate-600 whitespace-nowrap">
+                                    {(prep.prepNumber.startsWith('BOZZA') || prep.prepNumber === 'TEMP') ? <span className="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">BOZZA</span> : prep.prepNumber}
+                                </td>
+                                <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{prep.date}</td>
+                                <td className="px-4 py-3 font-medium text-slate-800">
+                                    <div className="flex items-center gap-2">
+                                        {prep.name}
+                                        {prep.prepType === 'officinale' && <FlaskConical size={12} className="text-blue-500" title="Officinale"/>}
+                                    </div>
+                                </td>
+                                <td className="px-4 py-3 text-slate-500 max-w-[150px] truncate" title={prep.pharmaceuticalForm}>{prep.pharmaceuticalForm}</td>
+                                <td className="px-4 py-3 text-slate-700 font-medium">{prep.patient || '-'}</td>
+                                <td className="px-4 py-3 text-right font-mono font-bold text-teal-700 whitespace-nowrap">
+                                    {prep.totalPrice ? `€ ${parseFloat(prep.totalPrice).toFixed(2)}` : '-'}
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                    {prep.status === 'Bozza' ? <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-1 rounded font-bold uppercase">Bozza</span> : <span className="text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded font-bold uppercase">OK</span>}
+                                </td>
+                                <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex justify-center gap-1">
+                                        <button onClick={() => onPrintLabel(prep)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Stampa Etichetta"><Printer size={16}/></button>
+                                        <button onClick={() => generateWorkSheetPDF({ details: prep, ingredients: prep.ingredients, pricing: prep.pricingData }, pharmacySettings)} className="p-1.5 text-slate-600 hover:bg-slate-100 rounded" title="Scarica Foglio"><FileDown size={16}/></button>
+                                        {canEdit && (
+                                            <>
+                                                <button onClick={() => handleDuplicatePreparation(prep)} className="p-1.5 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded" title="Duplica"><Copy size={16}/></button>
+                                                <button onClick={() => handleDeletePreparation(prep.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded" title="Elimina"><Trash2 size={16}/></button>
+                                            </>
+                                        )}
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </Card>
+    );
+};
+
 const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparation, handleDuplicatePreparation, activeFilter, clearFilter, searchTerm, setSearchTerm, prepTypeFilter, setPrepTypeFilter, canEdit, pharmacySettings, onPrintLabel }) => {
   const [expandedId, setExpandedId] = useState(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
+  const [dateRange, setDateRange] = useState({ from: '', to: '' });
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [formFilter, setFormFilter] = useState('all');
+  
+  // Paginazione
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = viewMode === 'table' ? 100 : 50; // Più item in tabella
+
   const filteredPrepName = activeFilter && preparations.length === 1 ? preparations[0].name : null;
+  
+  // Estrai forme farmaceutiche uniche per il filtro
+  const uniqueForms = [...new Set(preparations.map(p => p.pharmaceuticalForm))].sort();
 
   const toggleExpand = (id) => {
     setExpandedId(prev => prev === id ? null : id);
   };
 
+  // Logica Filtro Client-Side Avanzata
+  const advancedFilteredPreparations = preparations.filter(prep => {
+      // Filtro Data
+      if (dateRange.from) {
+          const [d, m, y] = prep.date.split('/');
+          const pDate = new Date(`${y}-${m}-${d}`);
+          const fromDate = new Date(dateRange.from);
+          if (pDate < fromDate) return false;
+      }
+      if (dateRange.to) {
+          const [d, m, y] = prep.date.split('/');
+          const pDate = new Date(`${y}-${m}-${d}`);
+          const toDate = new Date(dateRange.to);
+          if (pDate > toDate) return false;
+      }
+      // Filtro Stato
+      if (statusFilter !== 'all' && prep.status !== statusFilter) return false;
+      // Filtro Forma
+      if (formFilter !== 'all' && prep.pharmaceuticalForm !== formFilter) return false;
+
+      return true;
+  });
+
+  // Logica Paginazione
+  const totalItems = advancedFilteredPreparations.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const paginatedPreparations = advancedFilteredPreparations.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+  );
+
+  const handlePageChange = (newPage) => {
+      if (newPage >= 1 && newPage <= totalPages) {
+          setCurrentPage(newPage);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+  };
+
   return (
     <div className="space-y-6">
        {/* FILTRI E RICERCA */}
-       <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-lg border border-slate-200 shadow-sm gap-4">
-        <div className="relative w-full sm:w-auto">
-            <Search className="absolute left-3 top-2.5 text-slate-400 h-4 w-4" />
-            <input 
-                type="text" 
-                value={searchTerm} 
-                onChange={(e) => setSearchTerm(e.target.value)} 
-                placeholder="Cerca per nome, paziente, n.p..." 
-                className="pl-9 pr-4 py-2 border border-slate-300 rounded-md text-sm w-full sm:w-72 focus:ring-2 focus:ring-teal-500 outline-none transition-all"
-            />
-        </div>
+       <div className="flex flex-col gap-4">
+           <div className="flex flex-col xl:flex-row justify-between items-center bg-white p-4 rounded-lg border border-slate-200 shadow-sm gap-4">
+            <div className="flex items-center gap-2 w-full xl:w-auto">
+                <div className="relative w-full xl:w-auto flex-1">
+                    <Search className="absolute left-3 top-2.5 text-slate-400 h-4 w-4" />
+                    <input 
+                        type="text" 
+                        value={searchTerm} 
+                        onChange={(e) => setSearchTerm(e.target.value)} 
+                        placeholder="Cerca per nome, paziente, n.p..." 
+                        className="pl-9 pr-4 py-2 border border-slate-300 rounded-md text-sm w-full xl:w-72 focus:ring-2 focus:ring-teal-500 outline-none transition-all"
+                    />
+                </div>
+                <button 
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={`p-2 rounded-md border transition-colors ${showFilters ? 'bg-teal-50 border-teal-200 text-teal-700' : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'}`}
+                    title="Filtri Avanzati"
+                >
+                    <Filter size={18} />
+                </button>
+                <div className="flex border border-slate-300 rounded-md bg-white p-0.5 ml-2">
+                    <button onClick={() => setViewMode('cards')} className={`p-1.5 rounded ${viewMode === 'cards' ? 'bg-slate-100 text-slate-800' : 'text-slate-400 hover:text-slate-600'}`} title="Vista Card"><LayoutGrid size={16}/></button>
+                    <button onClick={() => setViewMode('table')} className={`p-1.5 rounded ${viewMode === 'table' ? 'bg-slate-100 text-slate-800' : 'text-slate-400 hover:text-slate-600'}`} title="Vista Tabella"><LayoutList size={16}/></button>
+                </div>
+            </div>
 
-        <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 w-full sm:w-auto">
-          {['all', 'magistrale', 'officinale'].map((type) => (
-            <button 
-              key={type}
-              onClick={() => setPrepTypeFilter(type)}
-              className={`flex-1 sm:flex-none px-4 py-1.5 rounded-md text-xs font-bold capitalize transition-all ${prepTypeFilter === type ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              {type === 'all' ? 'Tutte' : type}
-            </button>
-          ))}
-        </div>
+            <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 w-full xl:w-auto overflow-x-auto">
+              {['all', 'magistrale', 'officinale'].map((type) => (
+                <button 
+                  key={type}
+                  onClick={() => setPrepTypeFilter(type)}
+                  className={`flex-1 xl:flex-none px-4 py-1.5 rounded-md text-xs font-bold capitalize transition-all whitespace-nowrap ${prepTypeFilter === type ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  {type === 'all' ? 'Tutte' : type}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* PANNELLO FILTRI AVANZATI */}
+          {showFilters && (
+              <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-inner animate-in slide-in-from-top-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                      <div>
+                          <label className="block text-xs font-bold text-slate-500 mb-1">Data Dal</label>
+                          <input type="date" value={dateRange.from} onChange={e => setDateRange({...dateRange, from: e.target.value})} className="w-full border p-2 rounded text-sm" />
+                      </div>
+                      <div>
+                          <label className="block text-xs font-bold text-slate-500 mb-1">Data Al</label>
+                          <input type="date" value={dateRange.to} onChange={e => setDateRange({...dateRange, to: e.target.value})} className="w-full border p-2 rounded text-sm" />
+                      </div>
+                      <div>
+                          <label className="block text-xs font-bold text-slate-500 mb-1">Stato</label>
+                          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="w-full border p-2 rounded text-sm bg-white">
+                              <option value="all">Tutti</option>
+                              <option value="Bozza">Bozza</option>
+                              <option value="Completata">Completata</option>
+                          </select>
+                      </div>
+                      <div>
+                          <label className="block text-xs font-bold text-slate-500 mb-1">Forma Farmaceutica</label>
+                          <select value={formFilter} onChange={e => setFormFilter(e.target.value)} className="w-full border p-2 rounded text-sm bg-white">
+                              <option value="all">Tutte</option>
+                              {uniqueForms.map(form => (
+                                  <option key={form} value={form}>{form}</option>
+                              ))}
+                          </select>
+                      </div>
+                  </div>
+                  <div className="flex justify-end mt-3">
+                      <button onClick={() => { setDateRange({from:'', to:''}); setStatusFilter('all'); setFormFilter('all'); }} className="text-xs text-red-500 hover:underline flex items-center gap-1"><X size={12}/> Resetta Filtri</button>
+                  </div>
+              </div>
+          )}
       </div>
 
       {activeFilter && (
@@ -187,23 +348,60 @@ const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparati
         </div>
       )}
 
-      {/* LISTA PREPARAZIONI (ACCORDION) */}
+      {/* LISTA PREPARAZIONI (PAGINATA) */}
       <div className="space-y-3">
-        {preparations.length > 0 ? (
-          preparations.map(prep => (
-            <PreparationCard 
-              key={prep.id} 
-              prep={prep} 
-              isExpanded={expandedId === prep.id} 
-              toggleExpand={() => toggleExpand(prep.id)}
-              handleJumpToStep={handleJumpToStep}
-              handleDeletePreparation={handleDeletePreparation}
-              handleDuplicatePreparation={handleDuplicatePreparation}
-              canEdit={canEdit}
-              pharmacySettings={pharmacySettings}
-              onPrintLabel={onPrintLabel}
-            />
-          ))
+        {paginatedPreparations.length > 0 ? (
+          <>
+            {viewMode === 'cards' ? (
+                paginatedPreparations.map(prep => (
+                    <PreparationCard 
+                    key={prep.id} 
+                    prep={prep} 
+                    isExpanded={expandedId === prep.id} 
+                    toggleExpand={() => toggleExpand(prep.id)}
+                    handleJumpToStep={handleJumpToStep}
+                    handleDeletePreparation={handleDeletePreparation}
+                    handleDuplicatePreparation={handleDuplicatePreparation}
+                    canEdit={canEdit}
+                    pharmacySettings={pharmacySettings}
+                    onPrintLabel={onPrintLabel}
+                    />
+                ))
+            ) : (
+                <PreparationsTable 
+                    preparations={paginatedPreparations}
+                    handleJumpToStep={handleJumpToStep}
+                    handleDeletePreparation={handleDeletePreparation}
+                    handleDuplicatePreparation={handleDuplicatePreparation}
+                    canEdit={canEdit}
+                    pharmacySettings={pharmacySettings}
+                    onPrintLabel={onPrintLabel}
+                />
+            )}
+            
+            {/* CONTROLLI PAGINAZIONE */}
+            {totalPages > 1 && (
+                <div className="flex justify-between items-center pt-4 border-t border-slate-200">
+                    <button 
+                        onClick={() => handlePageChange(currentPage - 1)} 
+                        disabled={currentPage === 1}
+                        className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Precedente
+                    </button>
+                    <span className="text-sm text-slate-500 font-mono">
+                        Pagina {currentPage} di {totalPages}
+                    </span>
+                    <button 
+                        onClick={() => handlePageChange(currentPage + 1)} 
+                        disabled={currentPage === totalPages}
+                        className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Successiva
+                    </button>
+                </div>
+            )}
+          </>
         ) : (
           <div className="text-center py-12 bg-white rounded-lg border border-slate-200 border-dashed">
             <div className="bg-slate-50 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
