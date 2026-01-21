@@ -295,7 +295,7 @@ const drawCompositionTable = (doc, ingredients, prep, isOfficinale, startY) => {
         y += 2;
         const batchesBody = prep.batches.map(batch => {
             const container = ingredients.find(ing => ing.id === batch.containerId);
-            return [container ? container.name : `ID: ${batch.containerId}`, Number(container ? container.amountUsed : 0).toFixed(0), batch.productQuantity, `€ ${parseFloat(batch.unitPrice || 0).toFixed(2)}` ];
+            return [container ? container.name : `ID: ${batch.containerId}`, Number(container ? container.amountUsed : 0).toFixed(0), `${batch.productQuantity} ${prep.prepUnit}`, `€ ${parseFloat(batch.unitPrice || 0).toFixed(2)}` ];
         });
         doc.autoTable({
             startY: y, head: [['CONTENITORE', 'N. CONFEZIONI', 'Q.TÀ / CONF.', 'PREZZO UNITARIO']], body: batchesBody, theme: 'grid',
