@@ -1,157 +1,234 @@
 import { NATIONAL_TARIFF_FEES } from '../constants/tariffs';
 
 export const calculateComplexFee = (details, selectedIngredients) => {
-    const qty = parseFloat(details.quantity) || 0;
+    let fee = 0;
     const form = details.pharmaceuticalForm;
+    const qty = parseFloat(details.quantity) || 0;
     const activeSubstancesCount = selectedIngredients.filter(i => !i.isExcipient && !i.isContainer).length;
     const techOpsCount = (details.techOps || []).length;
-    let fee = 0;
+
+    // Variabili Breakdown
+    let extraOpsCount = 0;
+    let extraCompCount = 0;
+    let extraOpsFee = 0;
+    let extraCompFee = 0;
+    let qtyFee = 0;
 
     if (form === 'Capsule') {
         const BASE_QTY = 120;
         fee = 22.00;
-        if (qty > BASE_QTY) fee += (Math.ceil((qty - BASE_QTY) / 10) * 2.00);
-        else if (qty < BASE_QTY && qty > 0) fee -= (Math.ceil((BASE_QTY - qty) / 10) * 1.00);
+        if (qty > BASE_QTY) {
+            qtyFee = (Math.ceil((qty - BASE_QTY) / 10) * 2.00);
+            fee += qtyFee;
+        } else if (qty < BASE_QTY && qty > 0) {
+            qtyFee = -(Math.ceil((BASE_QTY - qty) / 10) * 1.00);
+            fee += qtyFee;
+        }
         
-        const extraComponentsCount = Math.max(0, activeSubstancesCount - 1);
-        fee += Math.min(extraComponentsCount, 4) * 0.60;
+        extraCompCount = Math.min(Math.max(0, activeSubstancesCount - 1), 4);
+        extraCompFee = extraCompCount * 0.60;
+        fee += extraCompFee;
 
-        const extraOpsCount = Math.max(0, techOpsCount - 3);
-        fee += extraOpsCount * 2.30;
+        extraOpsCount = Math.max(0, techOpsCount - 3);
+        extraOpsFee = extraOpsCount * 2.30;
+        fee += extraOpsFee;
+
     } else if (form === 'Cartine e cialdini') {
-        const BASE_QTY_CARTINE = 10;
+        const BASE_QTY = 10;
         fee = 11.00;
-        if (qty > BASE_QTY_CARTINE) fee += ((qty - BASE_QTY_CARTINE) * 0.25);
-        else if (qty < BASE_QTY_CARTINE && qty > 0) fee -= ((BASE_QTY_CARTINE - qty) * 0.35);
+        if (qty > BASE_QTY) {
+            qtyFee = ((qty - BASE_QTY) * 0.25);
+            fee += qtyFee;
+        } else if (qty < BASE_QTY && qty > 0) {
+            qtyFee = -((BASE_QTY - qty) * 0.35);
+            fee += qtyFee;
+        }
         
-        const extraComponentsCount = Math.max(0, activeSubstancesCount - 1);
-        fee += Math.min(extraComponentsCount, 4) * 0.60;
+        extraCompCount = Math.min(Math.max(0, activeSubstancesCount - 1), 4);
+        extraCompFee = extraCompCount * 0.60;
+        fee += extraCompFee;
 
-        const extraOpsCount = Math.max(0, techOpsCount - 3);
-        fee += extraOpsCount * 2.30;
+        extraOpsCount = Math.max(0, techOpsCount - 3);
+        extraOpsFee = extraOpsCount * 2.30;
+        fee += extraOpsFee;
+
     } else if (form === 'Suppositori e ovuli') {
-        const BASE_QTY_OVULI = 6;
+        const BASE_QTY = 6;
         fee = 13.30;
-        if (qty > BASE_QTY_OVULI) fee += ((qty - BASE_QTY_OVULI) * 0.60);
-        else if (qty < BASE_QTY_OVULI && qty > 0) fee -= ((BASE_QTY_OVULI - qty) * 1.10);
+        if (qty > BASE_QTY) {
+            qtyFee = ((qty - BASE_QTY) * 0.60);
+            fee += qtyFee;
+        } else if (qty < BASE_QTY && qty > 0) {
+            qtyFee = -((BASE_QTY - qty) * 1.10);
+            fee += qtyFee;
+        }
 
-        const extraComponentsCount = Math.max(0, activeSubstancesCount - 3);
-        fee += extraComponentsCount * 0.60;
+        extraCompCount = Math.max(0, activeSubstancesCount - 3);
+        extraCompFee = extraCompCount * 0.60;
+        fee += extraCompFee;
 
-        const extraOpsCount = Math.max(0, techOpsCount - 4);
-        fee += extraOpsCount * 2.30;
+        extraOpsCount = Math.max(0, techOpsCount - 4);
+        extraOpsFee = extraOpsCount * 2.30;
+        fee += extraOpsFee;
+
     } else if (form === 'Preparazioni liquide (soluzioni)') {
         fee = 6.65;
-        const extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
-        fee += extraComponentsCount * 0.80;
-        const extraOpsCount = Math.max(0, techOpsCount - 2);
-        fee += extraOpsCount * 2.30;
+        extraCompCount = Math.max(0, activeSubstancesCount - 2);
+        extraCompFee = extraCompCount * 0.80;
+        fee += extraCompFee;
+
+        extraOpsCount = Math.max(0, techOpsCount - 2);
+        extraOpsFee = extraOpsCount * 2.30;
+        fee += extraOpsFee;
+
     } else if (form === 'Estratti liquidi e tinture') {
         fee = 8.00;
-        const extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
-        fee += extraComponentsCount * 0.80;
-        const extraOpsCount = Math.max(0, techOpsCount - 2);
-        fee += extraOpsCount * 2.30;
+        extraCompCount = Math.max(0, activeSubstancesCount - 2);
+        extraCompFee = extraCompCount * 0.80;
+        fee += extraCompFee;
+
+        extraOpsCount = Math.max(0, techOpsCount - 2);
+        extraOpsFee = extraOpsCount * 2.30;
+        fee += extraOpsFee;
+
     } else if (form === 'Emulsioni, sospensioni e miscele di olii') {
+        fee = 13.30;
         const BASE_QTY = 250;
-        fee = 13.30;
-        if (qty > BASE_QTY) fee += (Math.ceil((qty - BASE_QTY) / 100) * 0.70);
-        const extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
-        fee += extraComponentsCount * 0.70;
-        const extraOpsCount = Math.max(0, techOpsCount - 2);
-        fee += extraOpsCount * 2.30;
+        if (qty > BASE_QTY) {
+            qtyFee = (Math.ceil((qty - BASE_QTY) / 100) * 0.70);
+            fee += qtyFee;
+        }
+        
+        extraCompCount = Math.max(0, activeSubstancesCount - 2);
+        extraCompFee = extraCompCount * 0.70;
+        fee += extraCompFee;
+
+        extraOpsCount = Math.max(0, techOpsCount - 2);
+        extraOpsFee = extraOpsCount * 2.30;
+        fee += extraOpsFee;
+
     } else if (form === 'Preparazioni semisolide per applicazione cutanea e paste') {
-        const BASE_QTY = 50;
         fee = 13.30;
-        if (qty > BASE_QTY) fee += (Math.ceil((qty - BASE_QTY) / 50) * 0.75);
-        const extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
-        fee += extraComponentsCount * 0.75;
-        const extraOpsCount = Math.max(0, techOpsCount - 2);
-        fee += extraOpsCount * 2.30;
+        const BASE_QTY = 50;
+        if (qty > BASE_QTY) {
+            qtyFee = (Math.ceil((qty - BASE_QTY) / 50) * 0.75);
+            fee += qtyFee;
+        }
+
+        extraCompCount = Math.max(0, activeSubstancesCount - 2);
+        extraCompFee = extraCompCount * 0.75;
+        fee += extraCompFee;
+
+        extraOpsCount = Math.max(0, techOpsCount - 2);
+        extraOpsFee = extraOpsCount * 2.30;
+        fee += extraOpsFee;
+
+    } else if (form === 'Compresse e gomme da masticare medicate') {
+        const BASE_QTY = 100;
+        fee = 33.25;
+        if (qty > BASE_QTY) {
+            qtyFee = (Math.ceil((qty - BASE_QTY) / 10) * 3.00);
+            fee += qtyFee;
+        } else if (qty < BASE_QTY && qty > 0) {
+            qtyFee = -(Math.ceil((BASE_QTY - qty) / 10) * 2.00);
+            fee += qtyFee;
+        }
+        
+        // Componenti extra (4 inclusi) - costo 0? Mantengo logica esistente
+        extraCompCount = Math.max(0, activeSubstancesCount - 4);
+        extraCompFee = 0;
+        fee += extraCompFee;
+
+        extraOpsCount = Math.max(0, techOpsCount - 3);
+        extraOpsFee = extraOpsCount * 2.30;
+        fee += extraOpsFee;
+
     } else if (form.includes('Colliri sterili') || form.includes('Prep. oftalmiche sterili')) {
-        // Tariffa Colliri Sterili (per recipiente)
-        const numRecipients = Math.ceil(qty / 10); // 10ml/g è la dimensione standard
+        const numRecipients = Math.ceil(qty / 10);
         const baseFeePerRecipient = 31.65;
         
-        // Componenti extra (2 inclusi)
-        const extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
-        const extraCompFee = extraComponentsCount * 5.00;
+        const countExtra = Math.max(0, activeSubstancesCount - 2);
+        const feePerComp = countExtra * 5.00;
 
-        // Operazioni extra (4 incluse - Aggiornato)
-        const extraOpsCount = Math.max(0, techOpsCount - 4);
-        const extraOpsFee = extraOpsCount * 10.00;
+        const countOps = Math.max(0, techOpsCount - 4); // 4 incluse
+        const feePerOp = countOps * 10.00;
 
-        // Totale per N recipienti
-        fee = numRecipients * (baseFeePerRecipient + extraCompFee + extraOpsFee);
+        fee = numRecipients * (baseFeePerRecipient + feePerComp + feePerOp);
+        
+        extraCompCount = countExtra; // x N recipients? Visualmente meglio mostrare unitario o totale? Mostriamo conteggio base.
+        extraCompFee = feePerComp * numRecipients; // Costo totale visualizzato
+        extraOpsCount = countOps;
+        extraOpsFee = feePerOp * numRecipients;
 
     } else if (form.includes('Preparazioni semisolide orali vet')) {
-        // Tariffa Veterinaria Semisolida Orale
         fee = 13.30;
         const isWeight = form.includes('(a peso)');
-        
         const BASE_QTY = isWeight ? 50 : 5;
         const STEP_OVER = isWeight ? 10 : 1;
         const STEP_UNDER = isWeight ? 5 : 1;
 
         if (qty > BASE_QTY) {
-            fee += (Math.ceil((qty - BASE_QTY) / STEP_OVER) * 0.30);
+            qtyFee = (Math.ceil((qty - BASE_QTY) / STEP_OVER) * 0.30);
+            fee += qtyFee;
         } else if (qty < BASE_QTY && qty > 0) {
-            fee -= (Math.ceil((BASE_QTY - qty) / STEP_UNDER) * 0.80);
+            qtyFee = -(Math.ceil((BASE_QTY - qty) / STEP_UNDER) * 0.80);
+            fee += qtyFee;
         }
 
-        // Componenti extra (2 inclusi)
-        const extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
-        fee += extraComponentsCount * 0.60;
+        extraCompCount = Math.max(0, activeSubstancesCount - 2);
+        extraCompFee = extraCompCount * 0.60;
+        fee += extraCompFee;
 
-        // Operazioni extra (3 incluse)
-        const extraOpsCount = Math.max(0, techOpsCount - 3);
-        fee += extraOpsCount * 2.30;
+        extraOpsCount = Math.max(0, techOpsCount - 3);
+        extraOpsFee = extraOpsCount * 2.30;
+        fee += extraOpsFee;
 
     } else if (form.includes('Pillole, pastiglie e granulati')) {
-        // Tariffa Pillole/Pastiglie/Granulati
         fee = 19.95;
         const isWeight = form.includes('(a peso)');
-        
         const BASE_QTY = isWeight ? 100 : 20;
         const STEP_OVER = isWeight ? 50 : 1;
         const STEP_UNDER = isWeight ? 50 : 10;
 
         if (qty > BASE_QTY) {
-            fee += (Math.ceil((qty - BASE_QTY) / STEP_OVER) * 0.15);
+            qtyFee = (Math.ceil((qty - BASE_QTY) / STEP_OVER) * 0.15);
+            fee += qtyFee;
         } else if (qty < BASE_QTY && qty > 0) {
-            fee -= (Math.ceil((BASE_QTY - qty) / STEP_UNDER) * 0.30);
+            qtyFee = -(Math.ceil((BASE_QTY - qty) / STEP_UNDER) * 0.30);
+            fee += qtyFee;
         }
 
-        // Componenti extra (1 incluso)
-        const extraComponentsCount = Math.max(0, activeSubstancesCount - 1);
-        fee += extraComponentsCount * 0.60;
+        extraCompCount = Math.max(0, activeSubstancesCount - 1);
+        extraCompFee = extraCompCount * 0.60;
+        fee += extraCompFee;
 
-        // Operazioni extra (4 incluse)
-        const extraOpsCount = Math.max(0, techOpsCount - 4);
-        fee += extraOpsCount * 2.30;
+        extraOpsCount = Math.max(0, techOpsCount - 4);
+        extraOpsFee = extraOpsCount * 2.30;
+        fee += extraOpsFee;
 
     } else if (form === 'Polveri composte e piante per tisane') {
         fee = 6.65;
-        const extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
-        fee += extraComponentsCount * 0.75;
-        const extraOpsCount = Math.max(0, techOpsCount - 2);
-        fee += extraOpsCount * 2.30;
-    } else if (form === 'Compresse e gomme da masticare medicate') {
-        const BASE_QTY = 100;
-        fee = 33.25;
-        if (qty > BASE_QTY) fee += (Math.ceil((qty - BASE_QTY) / 10) * 3.00);
-        else if (qty < BASE_QTY && qty > 0) fee -= (Math.ceil((BASE_QTY - qty) / 10) * 2.00);
-        
-        const extraOpsCount = Math.max(0, techOpsCount - 3);
-        fee += extraOpsCount * 2.30;
-    } else { // Default per altre forme (Tariffa Tabellare)
-        fee = NATIONAL_TARIFF_FEES[form] || 8.00;
-        const extraOpsCount = techOpsCount;
-        fee += extraOpsCount * 2.30;
+        extraCompCount = Math.max(0, activeSubstancesCount - 2);
+        extraCompFee = extraCompCount * 0.75;
+        fee += extraCompFee;
+
+        extraOpsCount = Math.max(0, techOpsCount - 2);
+        extraOpsFee = extraOpsCount * 2.30;
+        fee += extraOpsFee;
+
+    } else {
+        // Fallback
+        fee = 8.00;
     }
 
-    // Moltiplicatore finale 1.40 applicato a tutte le forme farmaceutiche
-    fee *= 1.40;
-
-    return fee;
+    return {
+        fee: fee * 1.40, // Prezzo finale calcolato con onorario
+        breakdown: {
+            extraOpsCount,
+            extraCompCount,
+            extraOpsFee,
+            extraCompFee,
+            qtyFee
+        }
+    };
 };

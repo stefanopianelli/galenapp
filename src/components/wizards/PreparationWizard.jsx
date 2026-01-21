@@ -401,91 +401,48 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   };
 
   const calculateTotal = () => {
-    const substancesCost = selectedIngredients.reduce((acc, ing) => acc + (ing.costPerGram ? ing.costPerGram * ing.amountUsed : 0), 0);
-    const currentFee = parseFloat(professionalFee);
-    
+    // Calcolo Costo Sostanze
+    const substancesCost = selectedIngredients.reduce((acc, ing) => {
+        if (ing.isContainer) return acc; // I contenitori (primari) vanno nel prezzo unitario lotti per le officinali? No, qui calcoliamo il costo totale grezzo.
+        // Nel wizard officinale, il costo contenitori è separato? No, il "totale materie prime" include i contenitori usati.
+        // Se isContainer, calcoliamo amountUsed * costPerGram (che è costo pezzo).
+        // Se isOfficinale, i lotti hanno un prezzo di vendita, ma qui stiamo calcolando i costi di produzione?
+        // No, questo calculateTotal sembra calcolare il Prezzo al Pubblico della preparazione Magistrale.
+        return acc + (ing.costPerGram ? ing.costPerGram * ing.amountUsed : 0);
+    }, 0);
+
+    // Calcolo Onorario Professionale (dal Service centralizzato)
+    const { fee: professionalFee, breakdown } = calculateComplexFee(details, selectedIngredients);
+
+    // Calcolo Addizionali (Veleni/Doping)
     let additional = 0;
-    
-    // Logica cumulativa per categoria (Max 7.50€)
-    const hasPictograms = selectedIngredients.some(ing => ing.securityData?.pictograms?.length > 0);
-    const hasNarcotic = selectedIngredients.some(ing => ing.isNarcotic);
-    const hasDoping = selectedIngredients.some(ing => ing.isDoping);
+    const hasHazardousSubstance = selectedIngredients.some(ing => (ing.securityData?.pictograms?.length > 0) || ing.isDoping || ing.isNarcotic);
+    if (hasHazardousSubstance) {
+        additional = 2.50;
+    }
 
-    if (hasPictograms) additional += 2.50;
-    if (hasNarcotic) additional += 2.50;
-    if (hasDoping) additional += 2.50;
-
-    const net = substancesCost + currentFee + additional;
+    const net = substancesCost + professionalFee + additional;
     const vat = net * VAT_RATE;
-    return { substances: substancesCost, fee: currentFee, disposal: 0, additional, net, vat, final: net + vat };
+    const final = net + vat;
+
+    return { 
+        substances: substancesCost, 
+        fee: professionalFee, 
+        additional, 
+        net, 
+        vat, 
+        final,
+        breakdown // Passiamo il breakdown alla UI
+    };
   };
 
   const pricing = calculateTotal();
 
-  // Calcolo conteggi extra per visualizzazione (Logica semplificata UI)
-  const activeSubstancesCount = selectedIngredients.filter(i => !i.isExcipient && !i.isContainer).length;
-  const techOpsCount = (details.techOps || []).length;
-  
-  let extraOpsCount = 0;
-  let extraComponentsCount = 0;
-  let extraCompUnitCost = 0.60;
-  let extraOpsUnitCost = 2.30;
-  
-  const form = details.pharmaceuticalForm;
-
-  if (['Capsule', 'Cartine e cialdini'].includes(form)) {
-      extraOpsCount = Math.max(0, techOpsCount - 3);
-      extraComponentsCount = Math.max(0, activeSubstancesCount - 1);
-      extraCompUnitCost = 0.60;
-  } else if (['Suppositori e ovuli'].includes(form)) {
-      extraOpsCount = Math.max(0, techOpsCount - 4);
-      extraComponentsCount = Math.max(0, activeSubstancesCount - 3);
-      extraCompUnitCost = 0.60;
-  } else if (['Preparazioni liquide (soluzioni)', 'Estratti liquidi e tinture'].includes(form)) {
-      extraOpsCount = Math.max(0, techOpsCount - 2);
-      extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
-      extraCompUnitCost = 0.80;
-  } else if (['Emulsioni, sospensioni e miscele di olii'].includes(form)) {
-      extraOpsCount = Math.max(0, techOpsCount - 2);
-      extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
-      extraCompUnitCost = 0.70;
-  } else if (['Preparazioni semisolide per applicazione cutanea e paste', 'Polveri composte e piante per tisane'].includes(form)) {
-      extraOpsCount = Math.max(0, techOpsCount - 2);
-      extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
-      extraCompUnitCost = 0.75;
-  } else if (['Compresse e gomme da masticare medicate'].includes(form)) {
-      extraOpsCount = Math.max(0, techOpsCount - 3);
-      extraComponentsCount = Math.max(0, activeSubstancesCount - 4);
-      extraCompUnitCost = 0;
-  } else if (form && form.includes('semisolide orali vet')) {
-      extraOpsCount = Math.max(0, techOpsCount - 3);
-      extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
-      extraCompUnitCost = 0.60;
-  } else if (form && form.includes('Pillole, pastiglie e granulati')) {
-      extraOpsCount = Math.max(0, techOpsCount - 4);
-      extraComponentsCount = Math.max(0, activeSubstancesCount - 1);
-      extraCompUnitCost = 0.60;
-  } else if (['Colliri sterili (soluzioni)', 'Prep. oftalmiche sterili semisolide'].includes(form)) {
-      const numRecipients = Math.ceil((parseFloat(details.quantity) || 0) / 10);
-      extraOpsCount = Math.max(0, techOpsCount - 4);
-      extraComponentsCount = Math.max(0, activeSubstancesCount - 2);
-      
-      // Qui il costo unitario è complesso perché moltiplicato per recipienti.
-      // Per la visualizzazione, mostriamo il costo TOTALE degli extra.
-      // Trucco: impostiamo "unit cost" già moltiplicato per i recipienti
-      extraOpsUnitCost = 10.00 * numRecipients; 
-      extraCompUnitCost = 5.00 * numRecipients;
-  } else {
-      // Default
-      extraOpsCount = techOpsCount;
-      extraComponentsCount = 0;
-  }
-
-  // Se è sterile, extraOpsUnitCost è già modificato sopra, altrimenti usa default
-  const finalOpsUnitCost = (['Colliri sterili (soluzioni)', 'Prep. oftalmiche sterili semisolide'].includes(form)) ? extraOpsUnitCost : 2.30;
-
-  const extraOpsFee = extraOpsCount * finalOpsUnitCost;
-  const extraComponentsFee = extraComponentsCount * extraCompUnitCost;
+  // Recupera i dati di dettaglio direttamente dal service (evita duplicazione logica)
+  const { extraOpsCount = 0, extraCompCount = 0, extraOpsFee = 0, extraCompFee = 0 } = pricing.breakdown || {};
+  // Mappatura nomi variabili legacy per compatibilità UI esistente
+  const extraComponentsCount = extraCompCount;
+  const extraComponentsFee = extraCompFee;
 
   const handleDownloadWorksheet = () => generateWorkSheetPDF({ details: { ...details, worksheetItems }, ingredients: selectedIngredients, pricing }, pharmacySettings);
   

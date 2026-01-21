@@ -10,7 +10,7 @@ $socket_path = getenv('DB_SOCKET_PATH') ?: ''; // Lasciare vuoto se non si usa u
 const GEMINI_API_KEY = 'AIzaSyBvdnkwcplEH0IyjPJzZgJ4yUXzwSOUEBw'; // Sostituisci con la tua chiave da Google AI Studio
 
 // Configurazione Sicurezza
-const JWT_SECRET_KEY = 'la-tua-chiave-segreta-super-sicura-da-cambiare';
+const JWT_SECRET_KEY = '7f8e9d2a3b4c5e6f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f';
 
 // DSN di connessione
 if (!empty($socket_path)) {
@@ -36,4 +36,12 @@ try {
     // echo json_encode(['error' => 'Failed to connect to database: ' . $e->getMessage()]);
     exit;
 }
+// Ritorna la configurazione come array per api.php
+return [
+    'jwt_secret' => JWT_SECRET_KEY,
+    'db_host' => $host,
+    'db_name' => $dbname,
+    'db_user' => $username,
+    'db_pass' => $password
+];
 ?>

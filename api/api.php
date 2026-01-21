@@ -28,13 +28,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-// --- CONNESSIONE AL DATABASE ---
-require_once 'config.php';
-
-// Fallback per JWT_SECRET_KEY
-if (!defined('JWT_SECRET_KEY')) {
-    define('JWT_SECRET_KEY', '8f9e2b1c4d0a5f6e7b8c9d0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c');
+// Carica configurazione
+$configPath = __DIR__ . '/config.php';
+if (!file_exists($configPath)) {
+    http_response_code(500);
+    die(json_encode(['error' => 'Configuration file missing']));
 }
+$config = include($configPath);
+
+if (!$config || !isset($config['jwt_secret'])) {
+    http_response_code(500);
+    die(json_encode(['error' => 'Invalid configuration: JWT secret missing']));
+}
+
+define('JWT_SECRET_KEY', $config['jwt_secret']);
 
 // --- GESTIONE JWT E RUOLI ---
 function create_jwt($user_id, $username, $role) {
