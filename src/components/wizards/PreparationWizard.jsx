@@ -238,7 +238,10 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
     const totalExpected = parseFloat(details.quantity) || 0;
     const totalAllocated = batches.reduce((acc, batch) => {
       const container = selectedIngredients.find(ing => ing.id === batch.containerId);
-      const numContainers = container ? parseFloat(container.amountUsed) : 0;
+      // Considera solo contenitori primari (non accessori)
+      if (!container || (container.isExcipient && container.isContainer)) return acc;
+      
+      const numContainers = parseFloat(container.amountUsed) || 0;
       const qtyPerContainer = parseFloat(batch.productQuantity) || 0;
       return acc + (numContainers * qtyPerContainer);
     }, 0);
@@ -928,12 +931,16 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                             )}
                         </div>
                       </div>
-                      {!ing.isContainer && (
+                      
+                      {/* Toggle Tipo (Attivo/Eccipiente o Primario/Accessorio) */}
+                      {(!ing.isContainer || isOfficinale) && (
                           <div 
                               onClick={() => canEdit && !ing.isDisposed && toggleExcipient(idx)}
-                              className={`px-2 py-1 rounded text-xs font-bold select-none ${canEdit && !ing.isDisposed ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed opacity-50'} ${ing.isExcipient ? 'bg-slate-200 text-slate-600' : 'bg-teal-100 text-teal-700'}`}
+                              className={`px-2 py-1 rounded text-xs font-bold select-none ${canEdit && !ing.isDisposed ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed opacity-50'} ${ing.isExcipient ? 'bg-slate-200 text-slate-600' : (ing.isContainer ? 'bg-blue-100 text-blue-700' : 'bg-teal-100 text-teal-700')}`}
                           >
-                              {ing.isExcipient ? "Eccipiente" : "Principio Attivo"}
+                              {ing.isContainer 
+                                  ? (ing.isExcipient ? "Accessorio" : "Primario (Lotto)") 
+                                  : (ing.isExcipient ? "Eccipiente" : "Principio Attivo")}
                           </div>
                       )}
                       <div className="flex items-center gap-2">
@@ -1088,7 +1095,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
               })()}
               <div className="bg-blue-50 p-4 rounded-md border border-blue-100 text-sm text-blue-800 mb-4"><p>Definisci la quantità di prodotto per ogni confezione e il prezzo di vendita finale per ciascuna.</p></div>
               <div className="space-y-4">
-                {selectedIngredients.filter(ing => ing.isContainer).map((container, index) => {
+                {selectedIngredients.filter(ing => ing.isContainer && !ing.isExcipient).map((container, index) => {
                   const batchInfo = batches.find(b => b.containerId === container.id) || {};
                   return (
                     <div key={index} className="bg-slate-50 p-4 rounded-md border border-slate-200">
@@ -1124,7 +1131,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                     </div>
                   )
                 })}
-                {selectedIngredients.filter(ing => ing.isContainer).length === 0 && (<p className="text-center text-slate-400 italic py-12">Nessun contenitore selezionato nello Step 2.<br/>Torna indietro per aggiungerne uno.</p>)}
+                {selectedIngredients.filter(ing => ing.isContainer && !ing.isExcipient).length === 0 && (<p className="text-center text-slate-400 italic py-12">Nessun contenitore primario selezionato.<br/>Definisci almeno un contenitore come 'Primario (Lotto)' nello Step 2.</p>)}
               </div>
               <div className="pt-4 flex justify-between"><button onClick={() => setStep(3)} className="text-slate-500 hover:underline">Indietro</button><button disabled={Math.abs(calculateBatchBalance()) >= 0.01} onClick={() => setStep(5)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed">Avanti</button></div>
             </div>

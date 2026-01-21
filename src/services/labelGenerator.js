@@ -210,9 +210,11 @@ const drawComposition = (doc, prep, layout, startY) => {
 
     // Uso e Posologia
     cursorY += (isSmall ? 0.8 : 1.2) * scale; 
-    const baseSmallFont = isSmall ? 2.8 : (isMedium ? 3.0 : 3.5);
-    const fontSmall = Math.max(2.5, baseSmallFont * scale);
-    const gapSmall = (isSmall ? 1.0 : (isMedium ? 1.3 : 1.5)) * scale;
+    
+    // Font leggermente aumentato per leggibilità, ma sempre scalabile
+    const baseSmallFont = isSmall ? 3.2 : (isMedium ? 3.8 : 4.5);
+    const fontSmall = Math.max(2.8, baseSmallFont * scale); // Minimo di sicurezza alzato a 2.8
+    const gapSmall = (isSmall ? 1.2 : (isMedium ? 1.5 : 1.8)) * scale;
     const maxTextW = (colSplitX - MARGIN - 2);
 
     doc.setFontSize(fontSmall);
