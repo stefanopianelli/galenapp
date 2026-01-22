@@ -1007,7 +1007,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                     <div className="bg-slate-50 p-4 rounded-md border border-slate-200"><h3 className="font-bold text-sm text-slate-700 mb-3 border-b pb-2">Costo Materie Prime</h3>{selectedIngredients.map((ing, i) => <div key={i} className="flex justify-between text-sm"><span>{ing.name} ({Number(ing.amountUsed).toFixed(ing.isContainer ? 0 : 2)}{ing.unit})</span><span className="font-mono">€ {(ing.costPerGram * ing.amountUsed).toFixed(2)}</span></div>)}<div className="flex justify-between font-bold text-sm mt-3 pt-2 border-t border-slate-300"><span>Totale Sostanze</span><span>€ {pricing.substances.toFixed(2)}</span></div></div>
                     <div className="bg-slate-50 p-4 rounded-md border border-slate-200 space-y-4">
                         <h3 className="font-bold text-sm text-slate-700 mb-3 border-b pb-2">Onorari & Costi</h3>
-                        <div><label className="block text-xs font-bold text-slate-500 mb-1">Onorario Professionale</label><input type="number" className="w-full border p-2 rounded text-right font-mono bg-slate-100" value={professionalFee.toFixed(2)} readOnly /></div>
+                        <div><label className="block text-xs font-bold text-slate-500 mb-1">Onorario Professionale</label><input type="number" className="w-full border p-2 rounded text-right font-mono bg-slate-100" value={pricing.fee.toFixed(2)} readOnly /></div>
                         <div>
                             <label className="block text-xs font-bold text-slate-500 mb-1">Componenti Attivi Extra (+0.60€ cad.)</label>
                             <div className="w-full flex justify-between items-center bg-slate-100 p-2 rounded text-sm font-mono">
