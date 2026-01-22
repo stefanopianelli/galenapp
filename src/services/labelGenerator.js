@@ -398,7 +398,9 @@ export const generateLabelPDF = async (prep, pharmacySettings, rollFormat = 62) 
   let qrDataUrl = null;
   const qrSize = isSmall ? 0 : (isMedium ? 8 : 9); 
   try {
-      const qrData = JSON.stringify({ type: 'prep', id: prep.id });
+      // Usa formato semplice TEXT-COMPATIBILE per evitare problemi di layout tastiera con scanner hardware
+      // Niente JSON { " : } che diventano è ° ç
+      const qrData = `PREP-${prep.id}`;
       qrDataUrl = await QRCode.toDataURL(qrData, { margin: 0 });
   } catch (e) { console.error("QR Error", e); }
 

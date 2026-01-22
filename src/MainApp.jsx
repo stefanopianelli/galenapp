@@ -391,13 +391,20 @@ export default function MainApp() {
     if (prepTypeFilter !== 'all') filtered = filtered.filter(p => p.prepType === prepTypeFilter || (prepTypeFilter === 'magistrale' && !p.prepType));
     if (prepSearchTerm) {
       const term = prepSearchTerm.toLowerCase();
-      filtered = filtered.filter(p => 
-        (p.name && p.name.toLowerCase().includes(term)) || 
-        (p.patient && p.patient.toLowerCase().includes(term)) ||
-        (p.doctor && p.doctor.toLowerCase().includes(term)) ||
-        (p.prepNumber && p.prepNumber.toLowerCase().includes(term)) ||
-        (p.ingredients && p.ingredients.some(ing => ing.name.toLowerCase().includes(term)))
-      );
+      
+      // Supporto ricerca diretta da QR Code (Format: PREP-123)
+      if (term.startsWith('prep-')) {
+          const searchId = term.replace('prep-', '');
+          filtered = filtered.filter(p => String(p.id) === searchId);
+      } else {
+          filtered = filtered.filter(p => 
+            (p.name && p.name.toLowerCase().includes(term)) || 
+            (p.patient && p.patient.toLowerCase().includes(term)) ||
+            (p.doctor && p.doctor.toLowerCase().includes(term)) ||
+            (p.prepNumber && p.prepNumber.toLowerCase().includes(term)) ||
+            (p.ingredients && p.ingredients.some(ing => ing.name.toLowerCase().includes(term)))
+          );
+      }
     }
     if (prepSortConfig.key) {
       filtered.sort((a, b) => {
