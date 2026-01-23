@@ -80,9 +80,9 @@ const SubstanceModal = ({
   const today = new Date().toISOString().split('T')[0];
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-2xl p-0 w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden ring-1 ring-white/20">
+        <div className="p-6 border-b border-slate-100 bg-white/95 backdrop-blur sticky top-0 z-10 flex justify-between items-center">
           <h2 className="text-xl font-bold flex items-center gap-2 text-slate-800">
             {isContainer ? <Box className="text-blue-600" /> : <Package className="text-teal-600" />}
             {isReadOnly ? (isContainer ? "Dettaglio Contenitore" : "Dettaglio Sostanza") : editingSubstance ? (isContainer ? "Modifica Contenitore" : "Modifica Sostanza") : (isContainer ? "Nuovo Contenitore" : "Nuovo Carico Sostanza")}

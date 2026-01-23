@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Euro, Plus, Trash2, Save, FileDown, Pencil, Check, Info, Box, FlaskConical, ClipboardCheck, ListOrdered, FileText, Printer, Search, X } from 'lucide-react';
+import { Euro, Plus, Trash2, Save, FileDown, Pencil, Check, Info, Box, FlaskConical, ClipboardCheck, ListOrdered, FileText, Printer, Search, X, User, ArrowRight, AlertTriangle } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import { NATIONAL_TARIFF_FEES, VAT_RATE } from '../../constants/tariffs';
@@ -581,18 +581,45 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   return (
     <>
       <div className="max-w-3xl mx-auto space-y-6">
-        <div className="flex justify-between mb-4">
-          {stepLabels.map((label, index) => {
-            const num = index + 1;
-            return (
-              <div key={num} onClick={() => handleStepClick(num)} className={`flex items-center gap-2 cursor-pointer select-none transition-colors ${step >= num ? 'text-teal-600 font-bold' : 'text-slate-400 hover:text-slate-500'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${step >= num ? 'border-teal-600 bg-teal-50' : 'border-slate-300 bg-white'}`}>
-                  {num}
-                </div>
-                <span className="text-sm hidden sm:inline">{label}</span>
-              </div>
-            )
-          })}
+        <div className="mb-12 px-4">
+          <div className="flex items-center justify-between relative">
+            {/* Linea di sfondo */}
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-200 -z-10 rounded-full"></div>
+            {/* Linea di progresso attiva */}
+            <div 
+                className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-teal-500 -z-10 rounded-full transition-all duration-500 ease-out" 
+                style={{ width: `${((step - 1) / (stepLabels.length - 1)) * 100}%` }}
+            ></div>
+
+            {stepLabels.map((label, index) => {
+                const num = index + 1;
+                const isCompleted = step > num;
+                const isCurrent = step === num;
+                
+                return (
+                    <div 
+                        key={num} 
+                        onClick={() => handleStepClick(num)} 
+                        className={`flex flex-col items-center gap-2 cursor-pointer select-none group relative ${isCurrent ? 'scale-110' : ''} transition-transform duration-300`}
+                    >
+                        <div className={`
+                            w-10 h-10 rounded-full flex items-center justify-center border-4 shadow-sm transition-all duration-300 z-10
+                            ${isCompleted ? 'bg-teal-500 border-teal-500 text-white' : 
+                              isCurrent ? 'bg-white border-teal-500 text-teal-600 shadow-teal-200 ring-2 ring-teal-100 ring-offset-2' : 
+                              'bg-white border-slate-200 text-slate-400 hover:border-slate-300'}
+                        `}>
+                            {isCompleted ? <Check size={20} strokeWidth={3} /> : <span className="font-bold text-sm">{num}</span>}
+                        </div>
+                        <span className={`
+                            absolute -bottom-8 text-xs font-bold whitespace-nowrap transition-colors duration-300
+                            ${isCurrent ? 'text-teal-700' : isCompleted ? 'text-teal-600' : 'text-slate-400'}
+                        `}>
+                            {label}
+                        </span>
+                    </div>
+                );
+            })}
+          </div>
         </div>
 
         <div className="flex justify-between items-center mb-6">
@@ -618,41 +645,98 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
         <Card className="p-8 min-h-[500px]">
           {step === 1 && (
-              <div className="space-y-4 animate-in fade-in">
-                  <h2 className="text-xl font-bold text-slate-800">Anagrafica Ricetta</h2>
-                  <div className="grid grid-cols-2 gap-4 pt-4">
-                      <div className="col-span-2"><label className="block text-sm font-bold">Nome *</label><input className="w-full border p-3 rounded-md outline-none focus:ring-2 ring-teal-500" value={details.name} onChange={e => setDetails({...details, name: e.target.value})} /></div>
-                      <div><label className="block text-sm font-bold">N.P. *</label><input className="w-full border p-3 rounded-md outline-none bg-slate-50 font-mono" value={(details.prepNumber === 'TEMP' || details.prepNumber.startsWith('BOZZA')) ? 'BOZZA (Assegnato al completamento)' : details.prepNumber} readOnly /></div>
-                      <div><label className="block text-sm font-bold">Forma *</label><select className="w-full border p-3 rounded-md outline-none bg-white" value={details.pharmaceuticalForm} onChange={e => setDetails({...details, pharmaceuticalForm: e.target.value})}>
-                                    {pharmaForms.map(f => (<option key={f} value={f}>{f}</option>))}
-                                    </select></div>                      <div>
-                          <label className="block text-sm font-bold">Q.tà Totale ({getPrepUnit(details.pharmaceuticalForm)}) *</label>
-                          <input type="number" step="0.01" className="w-full border p-3 rounded-md outline-none" value={details.quantity} onChange={e => setDetails({...details, quantity: e.target.value})} />
-                          {['Colliri sterili (soluzioni)', 'Prep. oftalmiche sterili semisolide'].includes(details.pharmaceuticalForm) && details.quantity && parseFloat(details.quantity) % 10 !== 0 && (
-                              <p className="text-xs text-red-600 mt-1 font-bold">⚠ Deve essere un multiplo di 10 (es. 10, 20, 30...)</p>
-                          )}
-                      </div>
-                      <div><label className="block text-sm font-bold">Scadenza *</label><input type="date" className="w-full border p-3 rounded-md outline-none" value={details.expiryDate} onChange={e => setDetails({...details, expiryDate: e.target.value})} /></div>
-                      {!isOfficinale && (
-                        <>
-                          <div className="col-span-2 grid grid-cols-2 gap-4">
-                            <div><label className="block text-sm font-bold">Paziente *</label><input className="w-full border p-3 rounded-md outline-none" value={details.patient} onChange={e => setDetails({...details, patient: e.target.value})} /></div>
-                            <div><label className="block text-sm font-bold">Telefono Paziente</label><input className="w-full border p-3 rounded-md outline-none" value={details.patientPhone} onChange={e => setDetails({...details, patientPhone: e.target.value})} placeholder="Opzionale" /></div>
+              <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                  <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                      <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                          <FlaskConical className="text-teal-600" size={20}/> Dati Tecnici
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="md:col-span-2">
+                              <label className="block text-sm font-bold text-slate-700 mb-1">Nome Preparazione *</label>
+                              <input className="w-full border p-3 rounded-lg outline-none focus:ring-2 ring-teal-500 bg-white" value={details.name} onChange={e => setDetails({...details, name: e.target.value})} placeholder="Es. Minoxidil Lozione 5%" />
                           </div>
-                          <div className="col-span-2 grid grid-cols-2 gap-4">
-                            <div><label className="block text-sm font-bold">Medico *</label><input className="w-full border p-3 rounded-md outline-none" value={details.doctor} onChange={e => setDetails({...details, doctor: e.target.value})} /></div>
-                            <div><label className="block text-sm font-bold">Data Ricetta *</label><input type="date" className="w-full border p-3 rounded-md outline-none" value={details.recipeDate} onChange={e => setDetails({...details, recipeDate: e.target.value})} /></div>
+                          <div>
+                              <label className="block text-sm font-bold text-slate-700 mb-1">Numero Preparazione</label>
+                              <input className="w-full border p-3 rounded-lg outline-none bg-slate-200 text-slate-600 font-mono cursor-not-allowed" value={(details.prepNumber === 'TEMP' || details.prepNumber.startsWith('BOZZA')) ? 'BOZZA (Auto-assegnato)' : details.prepNumber} readOnly />
                           </div>
-                        </>
-                      )}
-                      <div className="col-span-2"><label className="block text-sm font-bold">Uso *</label>
-                        <select className="w-full border p-3 rounded-md outline-none bg-white" value={details.usage} onChange={e => setDetails({...details, usage: e.target.value})}>
-                          {usageOptions.map(u => <option key={u} value={u}>{u}</option>)}
-                        </select>
+                          <div>
+                              <label className="block text-sm font-bold text-slate-700 mb-1">Forma Farmaceutica *</label>
+                              <select className="w-full border p-3 rounded-lg outline-none bg-white focus:ring-2 ring-teal-500" value={details.pharmaceuticalForm} onChange={e => setDetails({...details, pharmaceuticalForm: e.target.value})}>
+                                  {pharmaForms.map(f => (<option key={f} value={f}>{f}</option>))}
+                              </select>
+                          </div>
+                          <div>
+                              <label className="block text-sm font-bold text-slate-700 mb-1">Quantità Totale ({getPrepUnit(details.pharmaceuticalForm)}) *</label>
+                              <input type="number" step="0.01" className="w-full border p-3 rounded-lg outline-none focus:ring-2 ring-teal-500 bg-white" value={details.quantity} onChange={e => setDetails({...details, quantity: e.target.value})} />
+                              {['Colliri sterili (soluzioni)', 'Prep. oftalmiche sterili semisolide'].includes(details.pharmaceuticalForm) && details.quantity && parseFloat(details.quantity) % 10 !== 0 && (
+                                  <p className="text-xs text-red-600 mt-1 font-bold flex items-center gap-1"><Info size={12}/> Deve essere un multiplo di 10</p>
+                              )}
+                          </div>
+                          <div>
+                              <label className="block text-sm font-bold text-slate-700 mb-1">Data Scadenza *</label>
+                              <input type="date" className="w-full border p-3 rounded-lg outline-none focus:ring-2 ring-teal-500 bg-white" value={details.expiryDate} onChange={e => setDetails({...details, expiryDate: e.target.value})} />
+                          </div>
                       </div>
-                      <div className="col-span-2"><label className="block text-sm font-bold">Posologia *</label><textarea className="w-full border p-3 rounded-md outline-none h-20 resize-none" value={details.posology} onChange={e => setDetails({...details, posology: e.target.value})} /></div>
                   </div>
-                  <div className="flex justify-end pt-4"><button disabled={!isStep1Valid} onClick={() => setStep(2)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 disabled:opacity-50">Avanti</button></div>
+
+                  {!isOfficinale && (
+                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <User className="text-blue-600" size={20}/> Riferimenti Ricetta
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">Paziente *</label>
+                                <input className="w-full border p-3 rounded-lg outline-none focus:ring-2 ring-blue-500" value={details.patient} onChange={e => setDetails({...details, patient: e.target.value})} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">Telefono (Opzionale)</label>
+                                <input className="w-full border p-3 rounded-lg outline-none focus:ring-2 ring-blue-500" value={details.patientPhone} onChange={e => setDetails({...details, patientPhone: e.target.value})} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">Medico Prescrittore *</label>
+                                <input className="w-full border p-3 rounded-lg outline-none focus:ring-2 ring-blue-500" value={details.doctor} onChange={e => setDetails({...details, doctor: e.target.value})} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">Data Ricetta *</label>
+                                <input type="date" className="w-full border p-3 rounded-lg outline-none focus:ring-2 ring-blue-500" value={details.recipeDate} onChange={e => setDetails({...details, recipeDate: e.target.value})} />
+                            </div>
+                        </div>
+                    </div>
+                  )}
+
+                  <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                      <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                          <ClipboardCheck className="text-indigo-600" size={20}/> Modalità d'Uso
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="md:col-span-2">
+                              <label className="block text-sm font-bold text-slate-700 mb-1">Via di Somministrazione *</label>
+                              <select className="w-full border p-3 rounded-lg outline-none bg-white focus:ring-2 ring-indigo-500" value={details.usage} onChange={e => setDetails({...details, usage: e.target.value})}>
+                                  {usageOptions.map(u => <option key={u} value={u}>{u}</option>)}
+                              </select>
+                          </div>
+                          <div className="md:col-span-2">
+                              <label className="block text-sm font-bold text-slate-700 mb-1">Posologia e Avvertenze *</label>
+                              <textarea className="w-full border p-3 rounded-lg outline-none h-24 resize-y focus:ring-2 ring-indigo-500 bg-white" value={details.posology} onChange={e => setDetails({...details, posology: e.target.value})} placeholder="Es. 1 capsula 2 volte al dì dopo i pasti..." />
+                          </div>
+                      </div>
+                  </div>
+
+                  <div className="flex justify-end items-center gap-4 pt-4 mt-6">
+                      {!isStep1Valid && (
+                          <span className="text-sm text-red-500 font-bold bg-red-50 px-4 py-2 rounded-lg border border-red-100 animate-pulse flex items-center gap-2">
+                              <AlertTriangle size={16}/> Compila i campi obbligatori
+                          </span>
+                      )}
+                      <button 
+                          disabled={!isStep1Valid} 
+                          onClick={() => setStep(2)} 
+                          className="bg-teal-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 flex items-center gap-2"
+                      >
+                          Avanti <ArrowRight size={18}/>
+                      </button>
+                  </div>
               </div>
           )}
           
@@ -660,204 +744,175 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
             <div className="space-y-6 animate-in fade-in">
                 <h2 className="text-xl font-bold text-slate-800">Selezione Componenti</h2>
                 <div className="bg-blue-50 p-4 rounded-md border border-blue-100 text-sm text-blue-800 mb-4 pt-4"><p>Seleziona i lotti specifici. Il sistema calcola la giacenza residua.</p></div>
-                <div className="space-y-1 mb-4">
-                  <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1"><FlaskConical size={14}/> Aggiungi Sostanza</label>
-                  <div className="bg-slate-50 p-4 rounded-md border border-slate-200 space-y-3">
-                      <div className="relative">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-3 text-slate-400 h-4 w-4" />
+                {/* Sezione Aggiunta Sostanze */}
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
+                    <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <FlaskConical className="text-teal-600" size={20}/> Sostanze e Principi Attivi
+                    </h2>
+                    
+                    {/* Search Bar Sostanze */}
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Cerca Sostanza in Magazzino</label>
+                        <div className="relative group">
+                            <Search className="absolute left-4 top-3.5 text-slate-400 group-focus-within:text-teal-500 transition-colors" size={18} />
                             <input 
                                 type="text" 
-                                className={`w-full border p-2 pl-9 rounded text-sm outline-none focus:ring-2 focus:ring-teal-500 ${!currentIngredientId && substanceSearchTerm ? 'border-teal-300' : ''}`}
-                                placeholder="Cerca sostanza (Nome, N.I. o Lotto)..." 
+                                className={`w-full border p-3 pl-12 rounded-lg text-sm outline-none focus:ring-2 focus:ring-teal-500 bg-slate-50 focus:bg-white transition-all ${!currentIngredientId && substanceSearchTerm ? 'border-teal-300' : 'border-slate-200'}`}
+                                placeholder="Nome, N.I. o Lotto..." 
                                 value={substanceSearchTerm}
                                 onChange={(e) => { 
                                     setSubstanceSearchTerm(e.target.value); 
                                     setIsSearchOpen(true); 
-                                    if(currentIngredientId) setCurrentIngredientId(''); // Reset selezione se scrivo
+                                    if(currentIngredientId) setCurrentIngredientId('');
                                 }}
                                 onFocus={() => setIsSearchOpen(true)}
-                                onBlur={() => setTimeout(() => setIsSearchOpen(false), 200)} // Ritardo per permettere il click
+                                onBlur={() => setTimeout(() => setIsSearchOpen(false), 200)}
                             />
                             {currentIngredientId && (
-                                <button onClick={() => { setCurrentIngredientId(''); setSubstanceSearchTerm(''); }} className="absolute right-3 top-2.5 text-slate-400 hover:text-red-500">
-                                    <X size={16} />
+                                <button onClick={() => { setCurrentIngredientId(''); setSubstanceSearchTerm(''); }} className="absolute right-4 top-3.5 text-slate-400 hover:text-red-500 transition-colors">
+                                    <X size={18} />
                                 </button>
                             )}
-                        </div>
 
-                        {isSearchOpen && (
-                            <div className="absolute z-50 w-full bg-white border border-slate-200 mt-1 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                                {availableSubstances
-                                    .filter(item => {
-                                        const term = substanceSearchTerm.toLowerCase();
-                                        return !term || 
-                                            item.name.toLowerCase().includes(term) || 
-                                            (item.ni && item.ni.toLowerCase().includes(term)) || 
-                                            (item.lot && item.lot.toLowerCase().includes(term));
-                                    })
-                                    .sort((a, b) => {
-                                        // 1. Ordine Alfabetico Nome
-                                        const nameCompare = a.name.localeCompare(b.name);
-                                        if (nameCompare !== 0) return nameCompare;
-                                        // 2. A parità di nome, Ordine Cronologico Scadenza (FIFO)
-                                        return new Date(a.expiry) - new Date(b.expiry);
-                                    })
-                                    .map(item => {
-                                        const isOldest = batchCounts[item.name] > 1 && oldestBatches[item.name] && oldestBatches[item.name].id === item.id;
-                                        return (
-                                            <div 
-                                                key={item.id} 
-                                                onClick={() => {
-                                                    setCurrentIngredientId(item.id);
-                                                    setSubstanceSearchTerm(item.name);
-                                                    setIsSearchOpen(false);
-                                                }}
-                                                className={`p-3 border-b border-slate-50 cursor-pointer hover:bg-teal-50 transition-colors ${isOldest ? 'bg-green-50/50' : ''}`}
-                                            >
-                                                <div className="flex justify-between items-start">
-                                                    <div>
-                                                        <div className="font-bold text-slate-800 flex items-center gap-2">
-                                                            {item.name}
-                                                            {isOldest && <span className="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded border border-green-200 uppercase tracking-wide">Prioritario (FIFO)</span>}
+                            {/* Dropdown Risultati Sostanze */}
+                            {isSearchOpen && (
+                                <div className="absolute z-50 w-full bg-white border border-slate-200 mt-2 rounded-xl shadow-xl max-h-72 overflow-y-auto ring-1 ring-slate-900/5">
+                                    {availableSubstances
+                                        .filter(item => {
+                                            const term = substanceSearchTerm.toLowerCase();
+                                            return !term || item.name.toLowerCase().includes(term) || (item.ni && item.ni.toLowerCase().includes(term)) || (item.lot && item.lot.toLowerCase().includes(term));
+                                        })
+                                        .sort((a, b) => {
+                                            const nameCompare = a.name.localeCompare(b.name);
+                                            if (nameCompare !== 0) return nameCompare;
+                                            return new Date(a.expiry) - new Date(b.expiry);
+                                        })
+                                        .map(item => {
+                                            const isOldest = batchCounts[item.name] > 1 && oldestBatches[item.name] && oldestBatches[item.name].id === item.id;
+                                            return (
+                                                <div 
+                                                    key={item.id} 
+                                                    onClick={() => { setCurrentIngredientId(item.id); setSubstanceSearchTerm(item.name); setIsSearchOpen(false); }}
+                                                    className={`p-4 border-b border-slate-50 cursor-pointer hover:bg-teal-50 transition-colors ${isOldest ? 'bg-green-50/30' : ''}`}
+                                                >
+                                                    <div className="flex justify-between items-start">
+                                                        <div>
+                                                            <div className="font-bold text-slate-800 flex items-center gap-2">
+                                                                {item.name}
+                                                                {isOldest && <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold border border-green-200">FIFO</span>}
+                                                            </div>
+                                                            <div className="text-xs text-slate-500 mt-1 flex gap-3">
+                                                                <span>N.I.: <strong className="font-mono text-slate-700">{item.ni}</strong></span>
+                                                                {item.lot && <span>Lotto: <strong className="font-mono text-slate-700">{item.lot}</strong></span>}
+                                                            </div>
                                                         </div>
-                                                        <div className="text-xs text-slate-500 mt-0.5">
-                                                            N.I.: <span className="font-mono text-slate-700">{item.ni}</span> 
-                                                            {item.lot && <span className="ml-2">| Lotto: <span className="font-mono text-slate-700">{item.lot}</span></span>}
+                                                        <div className="text-right">
+                                                            <div className={`text-xs font-bold ${isOldest ? 'text-green-700' : 'text-slate-600'}`}>Scad: {formatDate(item.expiry)}</div>
+                                                            <div className="mt-1"><span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-100">Disp: {getRemainingQuantity(item).toFixed(2)} {item.unit}</span></div>
                                                         </div>
                                                     </div>
-                                                    <div className="text-right">
-                                                        <div className={`text-xs font-bold whitespace-nowrap ${isOldest ? 'text-green-700' : 'text-slate-600'}`}>
-                                                            Scad: {formatDate(item.expiry)}
+                                                </div>
+                                            );
+                                        })}
+                                    {availableSubstances.filter(item => item.name.toLowerCase().includes(substanceSearchTerm.toLowerCase())).length === 0 && (
+                                        <div className="p-6 text-center text-slate-400 text-sm italic">Nessuna sostanza trovata.</div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                        {!isSelectedBatchOptimal() && (
+                            <div className="flex items-center gap-2 text-xs text-amber-600 font-bold bg-amber-50 p-2 rounded border border-amber-100 animate-pulse">
+                                <AlertTriangle size={14} /> Attenzione: Esiste un lotto con scadenza precedente.
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Campi Input Sostanza */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end pt-2">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Q.tà Ricetta</label>
+                            <input type="number" step="0.01" placeholder="0.00" className="w-full border p-3 rounded-lg text-sm outline-none focus:ring-2 ring-teal-500" value={amountNeeded} onChange={e => setAmountNeeded(e.target.value)} />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Q.tà Pesata (Reale)</label>
+                            <input type="number" step="0.01" placeholder="Auto" className="w-full border p-3 rounded-lg text-sm outline-none bg-amber-50 focus:ring-2 ring-amber-500" value={weighedAmount} onChange={e => setWeighedAmount(e.target.value)} />
+                        </div>
+                        <button onClick={addIngredient} disabled={!currentIngredientId} className="bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed font-bold shadow-sm flex items-center justify-center gap-2 transition-colors">
+                            <Plus size={18} /> Aggiungi
+                        </button>
+                    </div>
+                </div>
+                {/* Sezione Aggiunta Contenitori */}
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
+                    <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <Box className="text-blue-600" size={20}/> Aggiungi Contenitore
+                    </h2>
+                    <div className="flex flex-col sm:flex-row gap-4 items-end">
+                        <div className="relative flex-1 w-full">
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wide block mb-2">Cerca Contenitore</label>
+                            <div className="relative group">
+                                <Search className="absolute left-4 top-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
+                                <input 
+                                    type="text" 
+                                    className={`w-full border p-3 pl-12 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 focus:bg-white transition-all ${!currentContainerId && containerSearchTerm ? 'border-blue-300' : 'border-slate-200'}`}
+                                    placeholder="Nome o N.I. del contenitore..." 
+                                    value={containerSearchTerm}
+                                    onChange={(e) => { 
+                                        setContainerSearchTerm(e.target.value); 
+                                        setIsContainerSearchOpen(true); 
+                                        if(currentContainerId) setCurrentContainerId('');
+                                    }}
+                                    onFocus={() => setIsContainerSearchOpen(true)}
+                                    onBlur={() => setTimeout(() => setIsContainerSearchOpen(false), 200)}
+                                />
+                                {currentContainerId && (
+                                    <button onClick={() => { setCurrentContainerId(''); setContainerSearchTerm(''); }} className="absolute right-4 top-3.5 text-slate-400 hover:text-red-500 transition-colors">
+                                        <X size={18} />
+                                    </button>
+                                )}
+                                
+                                {/* Dropdown Contenitori */}
+                                {isContainerSearchOpen && (
+                                    <div className="absolute z-50 w-full bg-white border border-slate-200 mt-2 rounded-xl shadow-xl max-h-60 overflow-y-auto ring-1 ring-slate-900/5">
+                                        {availableContainers
+                                            .filter(item => { const term = containerSearchTerm.toLowerCase(); return !term || item.name.toLowerCase().includes(term) || (item.ni && item.ni.toLowerCase().includes(term)); })
+                                            .sort((a, b) => a.name.localeCompare(b.name))
+                                            .map(item => (
+                                                <div 
+                                                    key={item.id} 
+                                                    onClick={() => { setCurrentContainerId(item.id); setContainerSearchTerm(item.name); setIsContainerSearchOpen(false); }} 
+                                                    className="p-4 border-b border-slate-50 cursor-pointer hover:bg-blue-50 transition-colors"
+                                                >
+                                                    <div className="flex justify-between items-center">
+                                                        <div>
+                                                            <div className="font-bold text-slate-800">{item.name}</div>
+                                                            <div className="text-xs text-slate-500 mt-0.5">N.I.: <span className="font-mono text-slate-700">{item.ni}</span></div>
                                                         </div>
-                                                        <div className="mt-1 flex justify-end">
+                                                        <div className="text-right">
                                                             <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 shadow-sm">
-                                                                Disp: {getRemainingQuantity(item).toFixed(2)} {item.unit}
+                                                                Disp: {getRemainingQuantity(item).toFixed(0)} pz
                                                             </span>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        );
-                                    })}
-                                {availableSubstances.filter(item => item.name.toLowerCase().includes(substanceSearchTerm.toLowerCase())).length === 0 && (
-                                    <div className="p-4 text-center text-slate-400 text-xs italic">Nessuna sostanza trovata.</div>
+                                            ))}
+                                        {availableContainers.filter(item => item.name.toLowerCase().includes(containerSearchTerm.toLowerCase())).length === 0 && (
+                                            <div className="p-6 text-center text-slate-400 text-sm italic">Nessun contenitore trovato.</div>
+                                        )}
+                                    </div>
                                 )}
                             </div>
-                        )}
-                      </div>
-
-                      {/* Campi Quantità e Bottone Aggiungi */}
-                      <div className="flex flex-wrap gap-3 items-end mt-2 pt-2 border-t border-slate-200">
-                        <div className="flex-1 min-w-[120px]">
-                            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Q.tà in Ricetta</label>
-                            <input type="number" step="0.01" placeholder="Valore" className="w-full border p-2 rounded text-sm outline-none focus:ring-1 ring-teal-500" value={amountNeeded} onChange={e => setAmountNeeded(e.target.value)} title="Quantità prevista in formula" />
                         </div>
-
-                        <div className="flex-1 min-w-[120px]">
-                            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
-                                Q.tà Pesata ({currentIngredientId ? inventory.find(i => String(i.id) === String(currentIngredientId))?.unit : '-'})
-                            </label>
-                            <input 
-                                type="number" 
-                                step="0.01" 
-                                placeholder="Auto" 
-                                className="w-full border p-2 rounded text-sm outline-none bg-amber-50 focus:ring-1 ring-amber-500" 
-                                value={weighedAmount} 
-                                onChange={e => setWeighedAmount(e.target.value)} 
-                                title="Quantità effettiva pesata (se diversa, es. perdite)"
-                            />
+                        <div className="w-full sm:w-32">
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wide block mb-2">Quantità</label>
+                            <input type="number" step="1" placeholder="Pezzi" className="w-full border p-3 rounded-lg text-sm outline-none focus:ring-2 ring-blue-500 bg-slate-50 focus:bg-white transition-all" value={containerAmountNeeded} onChange={e => setContainerAmountNeeded(e.target.value)} />
                         </div>
-
-                        <button onClick={addIngredient} className="bg-teal-600 text-white px-6 py-2 rounded hover:bg-teal-700 h-[38px] flex items-center gap-2 font-bold shadow-sm">
+                        <button onClick={addContainer} disabled={!currentContainerId} className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-bold shadow-sm flex items-center justify-center gap-2 transition-all transform hover:-translate-y-0.5 sm:w-auto w-full mb-0.5">
                             <Plus size={18} /> Aggiungi
                         </button>
-                      </div>
-                  </div>
-                  {!isSelectedBatchOptimal() && (
-                      <div className="text-xs text-amber-600 font-bold px-1 animate-pulse">
-                          ⚠ Attenzione: Esiste un lotto con scadenza precedente per questa sostanza. Considera di usare quello prioritario.
-                      </div>
-                  )}
+                    </div>
                 </div>
-                <div className="space-y-1 mb-6">
-                  <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1"><Box size={14}/> Aggiungi Contenitore</label>
-                  <div className="bg-slate-50 p-4 rounded-md border border-slate-200 space-y-3">
-                      <div className="relative">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-3 text-slate-400 h-4 w-4" />
-                            <input 
-                                type="text" 
-                                className={`w-full border p-2 pl-9 rounded text-sm outline-none focus:ring-2 focus:ring-blue-500 ${!currentContainerId && containerSearchTerm ? 'border-blue-300' : ''}`}
-                                placeholder="Cerca contenitore (Nome o N.I.)..." 
-                                value={containerSearchTerm}
-                                onChange={(e) => { 
-                                    setContainerSearchTerm(e.target.value); 
-                                    setIsContainerSearchOpen(true); 
-                                    if(currentContainerId) setCurrentContainerId('');
-                                }}
-                                onFocus={() => setIsContainerSearchOpen(true)}
-                                onBlur={() => setTimeout(() => setIsContainerSearchOpen(false), 200)}
-                            />
-                            {currentContainerId && (
-                                <button onClick={() => { setCurrentContainerId(''); setContainerSearchTerm(''); }} className="absolute right-3 top-2.5 text-slate-400 hover:text-red-500">
-                                    <X size={16} />
-                                </button>
-                            )}
-                        </div>
-
-                        {isContainerSearchOpen && (
-                            <div className="absolute z-50 w-full bg-white border border-slate-200 mt-1 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                                {availableContainers
-                                    .filter(item => {
-                                        const term = containerSearchTerm.toLowerCase();
-                                        return !term || 
-                                            item.name.toLowerCase().includes(term) || 
-                                            (item.ni && item.ni.toLowerCase().includes(term));
-                                    })
-                                    .sort((a, b) => a.name.localeCompare(b.name))
-                                    .map(item => (
-                                        <div 
-                                            key={item.id} 
-                                            onClick={() => {
-                                                setCurrentContainerId(item.id);
-                                                setContainerSearchTerm(item.name);
-                                                setIsContainerSearchOpen(false);
-                                            }}
-                                            className="p-3 border-b border-slate-50 cursor-pointer hover:bg-blue-50 transition-colors"
-                                        >
-                                            <div className="flex justify-between items-center">
-                                                <div>
-                                                    <div className="font-bold text-slate-800">{item.name}</div>
-                                                    <div className="text-xs text-slate-500 mt-0.5">N.I.: <span className="font-mono text-slate-700">{item.ni}</span></div>
-                                                </div>
-                                                <div className="text-right">
-                                                    <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 shadow-sm">
-                                                        Disp: {getRemainingQuantity(item).toFixed(0)} pz
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                {availableContainers.filter(item => item.name.toLowerCase().includes(containerSearchTerm.toLowerCase())).length === 0 && (
-                                    <div className="p-4 text-center text-slate-400 text-xs italic">Nessun contenitore trovato.</div>
-                                )}
-                            </div>
-                        )}
-                      </div>
-
-                      <div className="flex gap-3 items-end pt-2 border-t border-slate-200">
-                          <div className="flex-1">
-                              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">N. Confezioni</label>
-                              <input type="number" step="1" placeholder="Pezzi" className="w-full border p-2 rounded text-sm outline-none focus:ring-1 ring-blue-500" value={containerAmountNeeded} onChange={e => setContainerAmountNeeded(e.target.value)} />
-                          </div>
-                          <button onClick={addContainer} className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 h-[38px] flex items-center gap-2 font-bold shadow-sm">
-                              <Plus size={18} /> Aggiungi
-                          </button>
-                      </div>
-                  </div>
-                </div>
-                <div className="space-y-2">
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mt-8 space-y-4"><h3 className="text-lg font-bold text-slate-800 flex items-center gap-2"><ListOrdered className="text-teal-600" size={20}/> Riepilogo Composizione</h3>
                   {selectedIngredients.map((ing, idx) => {
                     const originalItem = inventory.find(i => String(i.id) === String(ing.id));
                     // Calcolo validazione giacenza per bozze riprese
@@ -945,9 +1000,14 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                 </div>
                               {/* Operazioni Tecnologiche */}
                               {!isOfficinale && (
-                                <div className="space-y-4 pt-6 border-t mt-6">
-                                  <h3 className="text-lg font-bold text-slate-700">Operazioni Tecnologiche</h3>
-                                  <div className="bg-slate-50 p-4 rounded-md border border-slate-200 min-h-[60px]">
+                                <div className="bg-white p-6 rounded-xl border-l-4 border-l-indigo-500 border border-slate-200 shadow-md mt-8 space-y-4">
+                                  <div className="flex justify-between items-center">
+                                      <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2"><ClipboardCheck size={20} className="text-indigo-600"/> Operazioni Tecnologiche</h3>
+                                      <button onClick={() => setIsTechOpsModalOpen(true)} className="text-sm text-indigo-600 hover:text-indigo-800 font-medium px-3 py-1 rounded hover:bg-indigo-50 transition-colors">
+                                          {details.techOps?.length > 0 ? "Modifica" : "+ Aggiungi"}
+                                      </button>
+                                  </div>
+                                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 min-h-[60px] flex items-center">
                                       {details.techOps && details.techOps.length > 0 ? (
                                           <div className="flex flex-wrap gap-2">
                                               {details.techOps.map(opCode => {
@@ -955,22 +1015,33 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                                                   return <Badge key={opCode} type="neutral">{op ? op.text : opCode}</Badge>
                                               })}
                                           </div>
-                                      ) : <p className="text-sm text-slate-500 italic">Nessuna operazione selezionata.</p>}
+                                      ) : <p className="text-sm text-slate-400 italic w-full text-center">Nessuna operazione speciale selezionata.</p>}
                                   </div>
-                                  <button onClick={() => setIsTechOpsModalOpen(true)} className="text-sm bg-slate-200 text-slate-700 px-4 py-2 rounded-md hover:bg-slate-300">
-                                      Modifica Operazioni Tecnologiche
-                                  </button>
                                 </div>
-                              )}                <div className="flex justify-between pt-4"><button onClick={() => setStep(1)} className="text-slate-500 hover:underline">Indietro</button><button disabled={selectedIngredients.length === 0 || (details.status !== 'Completata' && selectedIngredients.some(ing => { const item = inventory.find(i => String(i.id) === String(ing.id)); const ded = (ing.stockDeduction > 0) ? ing.stockDeduction : ing.amountUsed; return item && ded > parseFloat(item.quantity); }))} onClick={() => setStep(3)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 disabled:opacity-50 disabled:bg-slate-400 disabled:cursor-not-allowed">Calcola Prezzo</button></div>
+                              )}                <div className="pt-6 flex justify-between border-t border-slate-100 mt-8">
+                    <button onClick={() => setStep(1)} className="text-slate-500 hover:text-slate-700 font-medium px-4 py-2 hover:bg-slate-100 rounded-lg transition-colors">Indietro</button>
+                    <button 
+                        disabled={selectedIngredients.length === 0 || (details.status !== 'Completata' && selectedIngredients.some(ing => { const item = inventory.find(i => String(i.id) === String(ing.id)); const ded = (ing.stockDeduction > 0) ? ing.stockDeduction : ing.amountUsed; return item && ded > parseFloat(item.quantity); }))} 
+                        onClick={() => setStep(3)} 
+                        className="bg-teal-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-md transition-all transform hover:-translate-y-0.5 flex items-center gap-2"
+                    >
+                        Calcola Prezzo <ArrowRight size={18}/>
+                    </button>
+                </div>
             </div>
           )}
           
           {step === 3 && (
-            <div className="space-y-6 animate-in fade-in">
-                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 pt-4"><Euro size={24} className="text-teal-600"/> Tariffazione Nazionale</h2>
-                <div className="bg-blue-50 border border-blue-200 rounded p-3 text-xs text-blue-800 flex items-start gap-2"><Info size={16} className="mt-0.5 shrink-0" />
-                  <div>
-                    <strong>Dettaglio Calcolo:</strong><br/>
+            <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                    <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Euro size={24} className="text-teal-600"/> Tariffazione Nazionale</h2>
+                    <Badge type="info">D.M. 22/09/2017</Badge>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-900 flex items-start gap-3 shadow-sm">
+                  <Info size={20} className="mt-0.5 shrink-0 text-blue-600" />
+                  <div className="leading-relaxed">
+                    <strong className="block mb-1 text-blue-700">Dettaglio Applicazione Tariffa:</strong>
                     {(() => {
                       const form = details.pharmaceuticalForm;
                       if (form === 'Capsule') {
@@ -1003,35 +1074,108 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                     })()}
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-slate-50 p-4 rounded-md border border-slate-200"><h3 className="font-bold text-sm text-slate-700 mb-3 border-b pb-2">Costo Materie Prime</h3>{selectedIngredients.map((ing, i) => <div key={i} className="flex justify-between text-sm"><span>{ing.name} ({Number(ing.amountUsed).toFixed(ing.isContainer ? 0 : 2)}{ing.unit})</span><span className="font-mono">€ {(ing.costPerGram * ing.amountUsed).toFixed(2)}</span></div>)}<div className="flex justify-between font-bold text-sm mt-3 pt-2 border-t border-slate-300"><span>Totale Sostanze</span><span>€ {pricing.substances.toFixed(2)}</span></div></div>
-                    <div className="bg-slate-50 p-4 rounded-md border border-slate-200 space-y-4">
-                        <h3 className="font-bold text-sm text-slate-700 mb-3 border-b pb-2">Onorari & Costi</h3>
-                        <div><label className="block text-xs font-bold text-slate-500 mb-1">Onorario Professionale</label><input type="number" className="w-full border p-2 rounded text-right font-mono bg-slate-100" value={pricing.fee.toFixed(2)} readOnly /></div>
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 mb-1">Componenti Attivi Extra (+0.60€ cad.)</label>
-                            <div className="w-full flex justify-between items-center bg-slate-100 p-2 rounded text-sm font-mono">
-                                <span>{extraComponentsCount} comp.</span>
-                                <span>€ {extraComponentsFee.toFixed(2)}</span>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Card Materie Prime */}
+                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-full flex flex-col">
+                        <h3 className="font-bold text-lg text-slate-800 mb-4 pb-3 border-b border-slate-100 flex justify-between items-center">
+                            <span>Costo Materie Prime</span>
+                            <FlaskConical size={18} className="text-slate-400"/>
+                        </h3>
+                        <div className="space-y-1 flex-1">
+                            {selectedIngredients.map((ing, i) => (
+                                <div key={i} className="flex justify-between items-start gap-4 hover:bg-slate-50 p-1 rounded transition-colors">
+                                    <span className="text-slate-600 text-sm leading-tight">
+                                        {ing.name} <span className="text-[10px] text-slate-400">({Number(ing.amountUsed).toFixed(ing.isContainer ? 0 : 2)}{ing.unit})</span>
+                                    </span>
+                                    <span className="font-mono font-bold text-slate-700 whitespace-nowrap text-right shrink-0">
+                                        € {(ing.costPerGram * ing.amountUsed).toFixed(2)}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="flex justify-between font-bold text-base mt-6 pt-4 border-t border-slate-200 text-slate-800">
+                            <span>Totale Sostanze</span>
+                            <span>€ {pricing.substances.toFixed(2)}</span>
+                        </div>
+                    </div>
+
+                    {/* Card Onorari */}
+                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-full flex flex-col">
+                        <h3 className="font-bold text-lg text-slate-800 mb-4 pb-3 border-b border-slate-100 flex justify-between items-center">
+                            <span>Onorari & Costi</span>
+                            <Euro size={18} className="text-slate-400"/>
+                        </h3>
+                        <div className="space-y-4 flex-1">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Onorario Professionale</label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-2.5 text-slate-400">€</span>
+                                    <input type="number" className="w-full border p-2 pl-8 rounded-lg text-right font-mono font-bold bg-slate-50 text-slate-800 outline-none" value={pricing.fee.toFixed(2)} readOnly />
+                                </div>
+                            </div>
+                            
+                            <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                <label className="block text-xs font-bold text-slate-500 mb-2">Supplementi</label>
+                                <div className="flex justify-between items-center text-sm mb-1">
+                                    <span className="text-slate-600">Componenti Extra</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs bg-white border px-1.5 rounded">{extraComponentsCount}</span>
+                                        <span className="font-mono">€ {extraComponentsFee.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-slate-600">Op. Tecnologiche Extra</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs bg-white border px-1.5 rounded">{extraOpsCount}</span>
+                                        <span className="font-mono">€ {extraOpsFee.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Costo Addizionale</label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-2.5 text-slate-400">€</span>
+                                    <input type="text" className="w-full border p-2 pl-8 rounded-lg text-right font-mono font-bold bg-slate-50 text-slate-800 outline-none" value={pricing.additional.toFixed(2)} readOnly />
+                                </div>
                             </div>
                         </div>
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 mb-1">Op. Tecnologiche Extra (+2.30€ cad.)</label>
-                            <div className="w-full flex justify-between items-center bg-slate-100 p-2 rounded text-sm font-mono">
-                                <span>{extraOpsCount} oper.</span>
-                                <span>€ {extraOpsFee.toFixed(2)}</span>
-                            </div>
-                        </div>
-                        <div><label className="block text-xs font-bold text-slate-500 mb-1">Addizionale</label><input type="text" className="w-full border p-2 rounded text-right font-mono bg-slate-100" value={pricing.additional.toFixed(2)} readOnly /></div>
                     </div>
                 </div>
-                <div className="bg-teal-50 p-6 rounded-lg border border-teal-200 flex flex-col items-end">
-                  {initialData?.id && initialData.totalPrice && (<div className="w-full flex justify-between text-sm text-slate-700 mb-1"><span>Prezzo Salvato (All'ultima modifica)</span><span className="font-bold">€ {parseFloat(initialData.totalPrice).toFixed(2)}</span></div>)}
-                  <div className="w-full flex justify-between text-sm text-teal-800 mb-1"><span>Totale Netto</span><span>€ {pricing.net.toFixed(2)}</span></div>
-                  <div className="w-full flex justify-between text-sm text-teal-800 mb-2 border-b border-teal-200 pb-2"><span>IVA (10%)</span><span>€ {pricing.vat.toFixed(2)}</span></div>
-                  <div className="flex items-baseline gap-4"><span className="text-lg font-bold text-teal-900">PREZZO FINALE</span><span className="text-3xl font-bold text-teal-700">€ {pricing.final.toFixed(2)}</span></div>
+
+                {/* Hero Card Totale */}
+                <div className="bg-gradient-to-r from-teal-600 to-teal-700 p-8 rounded-2xl shadow-lg text-white flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 -mr-10 -mt-10 w-40 h-40 bg-white opacity-10 rounded-full blur-2xl"></div>
+                  
+                  <div className="z-10 w-full md:w-auto">
+                      <div className="text-teal-100 text-sm font-medium mb-1">Riepilogo Finale</div>
+                      {initialData?.id && initialData.totalPrice && (
+                          <div className="text-xs text-teal-200 bg-teal-800/30 px-3 py-1 rounded-full inline-block mb-2">
+                              Salvato prec: € {parseFloat(initialData.totalPrice).toFixed(2)}
+                          </div>
+                      )}
+                      <div className="space-y-1">
+                          <div className="flex justify-between text-sm text-teal-100 w-48"><span>Imponibile</span> <span>€ {pricing.net.toFixed(2)}</span></div>
+                          <div className="flex justify-between text-sm text-teal-100 w-48 border-b border-teal-500/50 pb-1"><span>IVA (10%)</span> <span>€ {pricing.vat.toFixed(2)}</span></div>
+                      </div>
+                  </div>
+
+                  <div className="text-center md:text-right z-10">
+                      <span className="block text-sm font-bold text-teal-200 uppercase tracking-widest mb-1">Prezzo al Pubblico</span>
+                      <span className="text-5xl font-extrabold tracking-tight drop-shadow-sm">€ {pricing.final.toFixed(2)}</span>
+                  </div>
                 </div>
-                <div className="pt-4 flex justify-between"><button onClick={() => setStep(2)} className="text-slate-500 hover:underline">Indietro</button><button onClick={() => setStep(4)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700">Avanti</button></div>
+
+                <div className="flex justify-between pt-6 border-t border-slate-200">
+                    <button onClick={() => setStep(2)} className="text-slate-500 hover:text-slate-700 font-medium px-4 py-2 hover:bg-slate-100 rounded-lg transition-colors">Indietro</button>
+                    <button 
+                        onClick={() => setStep(4)} 
+                        className="bg-teal-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-md transition-all transform hover:-translate-y-0.5 flex items-center gap-2"
+                    >
+                        Avanti <ArrowRight size={18}/>
+                    </button>
+                </div>
             </div>
           )}
 
@@ -1090,7 +1234,16 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                 })}
                 {selectedIngredients.filter(ing => ing.isContainer && !ing.isExcipient).length === 0 && (<p className="text-center text-slate-400 italic py-12">Nessun contenitore primario selezionato.<br/>Definisci almeno un contenitore come 'Primario (Lotto)' nello Step 2.</p>)}
               </div>
-              <div className="pt-4 flex justify-between"><button onClick={() => setStep(3)} className="text-slate-500 hover:underline">Indietro</button><button disabled={Math.abs(calculateBatchBalance()) >= 0.01} onClick={() => setStep(5)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed">Avanti</button></div>
+              <div className="pt-6 flex justify-between border-t border-slate-100 mt-8">
+                  <button onClick={() => setStep(3)} className="text-slate-500 hover:text-slate-700 font-medium px-4 py-2 hover:bg-slate-100 rounded-lg transition-colors">Indietro</button>
+                  <button 
+                      disabled={Math.abs(calculateBatchBalance()) >= 0.01} 
+                      onClick={() => setStep(5)} 
+                      className="bg-teal-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-md transition-all transform hover:-translate-y-0.5 flex items-center gap-2"
+                  >
+                      Avanti <ArrowRight size={18}/>
+                  </button>
+              </div>
             </div>
           )}
           
@@ -1107,7 +1260,15 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                   placeholder="Inserisci altre avvertenze da riportare in etichetta..."
                 />
               </div></div>
-              <div className="pt-4 flex justify-between"><button onClick={() => setStep(isOfficinale ? 4 : 3)} className="text-slate-500 hover:underline">Indietro</button><button onClick={() => setStep(isOfficinale ? 6 : 5)} className="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700">Avanti</button></div>
+              <div className="pt-6 flex justify-between border-t border-slate-100 mt-8">
+                  <button onClick={() => setStep(isOfficinale ? 4 : 3)} className="text-slate-500 hover:text-slate-700 font-medium px-4 py-2 hover:bg-slate-100 rounded-lg transition-colors">Indietro</button>
+                  <button 
+                      onClick={() => setStep(isOfficinale ? 6 : 5)} 
+                      className="bg-teal-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-teal-700 shadow-md transition-all transform hover:-translate-y-0.5 flex items-center gap-2"
+                  >
+                      Avanti <ArrowRight size={18}/>
+                  </button>
+              </div>
             </div>
           )}
 
@@ -1115,10 +1276,17 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
               <div className="space-y-6 animate-in fade-in">
                   <div className="text-center"><h2 className="text-xl font-bold text-slate-800 pt-4 flex items-center justify-center gap-2"><ClipboardCheck size={24} />Conferma Finale</h2><div className="bg-slate-50 p-6 border rounded-md mt-4 max-w-md mx-auto"><p className="text-slate-600">Confermi la produzione di <b>{details.name}</b>?</p><p className="text-3xl font-bold mt-2 text-teal-700">€ {pricing.final.toFixed(2)}</p></div></div>
                   {isOfficinale && batches.length > 0 && (<div className="bg-blue-50/50 p-6 border border-blue-100 rounded-md mt-4"><h3 className="text-sm font-bold text-blue-800 uppercase tracking-wider mb-4 flex items-center gap-2"><ListOrdered size={16}/> Riepilogo Lotti di Produzione</h3><div className="space-y-2">{batches.map((batch, i) => { const container = selectedIngredients.find(ing => ing.id === batch.containerId); return (<div key={i} className="flex justify-between items-center bg-white p-3 rounded border border-blue-100 shadow-sm"><div className="flex items-center gap-3"><Box size={18} className="text-blue-500" /><div><div className="font-bold text-sm text-slate-800">{container?.name || 'Contenitore'}</div><div className="text-xs text-slate-500"><span className="font-bold text-blue-600">{Number(container?.amountUsed || 0).toFixed(0)} confezioni</span> preparate con {batch.productQuantity} unità cad.</div></div></div><div className="text-right"><div className="font-mono font-bold text-blue-700">€ {parseFloat(batch.unitPrice || 0).toFixed(2)}</div><div className="text-[10px] text-slate-400 font-bold uppercase">Prezzo Unitario</div></div></div>)})}</div></div>)}
-                  <div className="pt-4 flex flex-col-reverse sm:flex-row sm:justify-between items-center gap-4 border-t border-slate-100">
-                    <button onClick={() => setStep(isOfficinale ? 5 : 4)} className="text-slate-500 hover:underline w-full sm:w-auto text-center sm:text-left">Indietro</button>
+                  <div className="pt-6 flex flex-col sm:flex-row sm:justify-between items-center gap-4 border-t border-slate-100 mt-8">
+                    <button onClick={() => setStep(isOfficinale ? 5 : 4)} className="text-slate-500 hover:text-slate-700 font-medium px-4 py-2 hover:bg-slate-100 rounded-lg transition-colors">Indietro</button>
                     <div className="flex flex-wrap justify-center sm:justify-end gap-3 w-full sm:w-auto">
-                      {canEdit && <button onClick={handleFinalSave} className="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 flex items-center gap-2 whitespace-nowrap"><Save size={18}/> Salva e Completa</button>}
+                      {canEdit && (
+                        <button 
+                            onClick={handleFinalSave} 
+                            className="bg-teal-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-teal-700 shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 flex items-center gap-2 whitespace-nowrap"
+                        >
+                            <Save size={20}/> Salva e Completa Produzione
+                        </button>
+                      )}
                     </div>
                   </div>
               </div>
