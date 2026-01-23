@@ -108,7 +108,7 @@ function checkPermission($action, $role) {
     if (in_array($action, $adminOnlyActions) && $role !== 'admin') return false;
     $admins = ['admin', 'pharmacist']; 
     $readers = ['operator']; 
-    $readActions = ['get_all_data', 'ask_ai', 'get_settings'];
+    $readActions = ['get_all_data', 'ask_ai', 'get_settings', 'get_logs_paginated'];
     if (in_array($role, $admins)) return true;
     if (in_array($role, $readers) && in_array($action, $readActions)) return true;
     return false;
@@ -200,6 +200,10 @@ try {
             if ($method === 'GET') getAuditLogs($pdo);
             else sendError(405, 'Metodo non consentito.');
             break;
+        case 'get_logs_paginated':
+            if ($method === 'GET') getLogsPaginated($pdo);
+            else sendError(405, 'Metodo non consentito.');
+            break;
         default:
             sendError(404, 'Azione non valida o non specificata.');
             break;
@@ -238,6 +242,51 @@ function logAudit($pdo, $userId, $username, $role, $action, $entityId = null, $d
     }
 }
 
+function getLogsPaginated($pdo) {
+    $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+    $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 50;
+    $offset = ($page - 1) * $limit;
+    
+    $search = $_GET['search'] ?? '';
+    $type = $_GET['type'] ?? 'all';
+    
+    $where = ["1=1"];
+    $params = [];
+
+    if (!empty($search)) {
+        $where[] = "(substance LIKE :search OR ni LIKE :search OR notes LIKE :search OR operator LIKE :search)";
+        $params[':search'] = "%$search%";
+    }
+    if ($type !== 'all') {
+        $where[] = "`type` = :type";
+        $params[':type'] = $type;
+    }
+
+    $whereSql = implode(' AND ', $where);
+
+    try {
+        $countStmt = $pdo->prepare("SELECT COUNT(*) FROM `logs` WHERE $whereSql");
+        $countStmt->execute($params);
+        $total = $countStmt->fetchColumn();
+
+        $stmt = $pdo->prepare("SELECT * FROM `logs` WHERE $whereSql ORDER BY `date` DESC, `id` DESC LIMIT :limit OFFSET :offset");
+        foreach ($params as $k => $v) $stmt->bindValue($k, $v);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        echo json_encode([
+            'data' => $stmt->fetchAll(),
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
+            'totalPages' => ceil($total / $limit)
+        ]);
+    } catch (Exception $e) {
+        sendError(500, "Errore recupero log: " . $e->getMessage());
+    }
+}
+
 function getAllData($pdo) {
     $stmt_inv = $pdo->query("SELECT * FROM `inventory` ORDER BY `name` ASC");
     $inventory = $stmt_inv->fetchAll();
@@ -273,7 +322,7 @@ function getAllData($pdo) {
         }
     }
     
-    $stmt_logs = $pdo->query("SELECT * FROM `logs` ORDER BY `date` DESC, `id` DESC");
+    $stmt_logs = $pdo->query("SELECT * FROM `logs` ORDER BY `date` DESC, `id` DESC LIMIT 50");
     $logs = $stmt_logs->fetchAll();
     echo json_encode(['inventory' => $inventory, 'preparations' => $preparations, 'logs' => $logs]);
 }
