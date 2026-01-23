@@ -316,9 +316,18 @@ export default function MainApp() {
   useEffect(() => { loadData(); }, [loadData]);
   useEffect(() => { localStorage.setItem('galenico_settings', JSON.stringify(pharmacySettings)); }, [pharmacySettings]);
   useEffect(() => { 
-      // Sicurezza: se sono su user_management ma non sono admin, torno alla dashboard
-      if (AUTH_ENABLED && activeTab === 'user_management' && user?.role !== 'admin') {
-          setActiveTab('dashboard');
+      // Sicurezza: Reindirizza ruoli limitati se tentano di accedere a tab vietati
+      if (AUTH_ENABLED && user) {
+          const role = user.role?.toLowerCase();
+          // Admin only
+          if (activeTab === 'user_management' && role !== 'admin') {
+              setActiveTab('dashboard');
+          }
+          // Admin & Pharmacist only (No Operator)
+          const operatorForbiddenTabs = ['settings', 'ai-assistant', 'reporting'];
+          if (role === 'operator' && operatorForbiddenTabs.includes(activeTab)) {
+              setActiveTab('dashboard');
+          }
       }
       localStorage.setItem('activeTab', activeTab); 
   }, [activeTab, AUTH_ENABLED, user]);
@@ -596,8 +605,8 @@ export default function MainApp() {
           <SidebarItem icon={<History size={20} />} label="Registro Movimenti" active={activeTab === 'logs'} onClick={() => handleTabChange('logs')} />
           {canEdit && <SidebarItem icon={<BarChart2 size={20} />} label="Analisi & Report" active={activeTab === 'reporting'} onClick={() => handleTabChange('reporting')} />}
                     <div className="pt-4 mt-4 border-t border-slate-700">
-                                  <SidebarItem icon={<Sparkles size={20} className="text-purple-400" />} label="Assistente IA" active={activeTab === 'ai-assistant'} onClick={() => handleTabChange('ai-assistant')} />
-                                  <SidebarItem icon={<Settings size={20} />} label="Impostazioni" active={activeTab === 'settings'} onClick={() => handleTabChange('settings')} />
+                                  {canEdit && <SidebarItem icon={<Sparkles size={20} className="text-purple-400" />} label="Assistente IA" active={activeTab === 'ai-assistant'} onClick={() => handleTabChange('ai-assistant')} />}
+                                  {canEdit && <SidebarItem icon={<Settings size={20} />} label="Impostazioni" active={activeTab === 'settings'} onClick={() => handleTabChange('settings')} />}
                                   {(!AUTH_ENABLED || user?.role === 'admin') && (
                                     <SidebarItem icon={<Shield size={20} />} label="Gestione Utenti" active={activeTab === 'user_management'} onClick={() => handleTabChange('user_management')} />
                                   )}
