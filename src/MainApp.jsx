@@ -13,6 +13,7 @@ import {
   Loader2,
   Settings,
   Shield,
+  FileText,
   QrCode,
   BarChart2,
 } from 'lucide-react';
@@ -30,6 +31,7 @@ import PreparationsLog from './components/sections/PreparationsLog';
 import Logs from './components/sections/Logs';
 import Reporting from './components/sections/Reporting';
 import AIAssistant from './components/sections/AIAssistant';
+import AuditLog from './components/sections/AuditLog';
 import PreparationWizard from './components/wizards/PreparationWizard';
 import SubstanceModal from './components/modals/SubstanceModal';
 import PrepTypeSelectionModal from './components/modals/PrepTypeSelectionModal';
@@ -583,9 +585,11 @@ export default function MainApp() {
       case 'reporting':
         return <Reporting preparations={preparations} inventory={inventory} />;
       case 'settings':
-        return <SettingsComponent settings={pharmacySettings} setSettings={handleSaveSettings} />;
+        return <SettingsComponent settings={pharmacySettings} setSettings={handleSaveSettings} isAdmin={isAdmin} />;
       case 'user_management':
         return <UserManagement />;
+      case 'audit_log':
+        return <AuditLog />;
       case 'ai-assistant':
         return <AIAssistant pharmacySettings={pharmacySettings} setPharmacySettings={handleSaveSettings} handleTabChange={handleTabChange} />;
       default:
@@ -597,7 +601,7 @@ export default function MainApp() {
     <div className="flex h-screen bg-slate-50 font-sans text-slate-900">
       <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl">
         <div className="p-6 border-b border-slate-700"><div className="flex items-center gap-3 text-white mb-1"><Beaker className="w-8 h-8 text-teal-400" /><span className="font-bold text-xl tracking-tight">Galenico<span className="text-teal-400">Lab</span></span></div><p className="text-xs text-slate-500">Gestione Norme NBP</p></div>
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           <SidebarItem icon={<ClipboardList size={20} />} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => handleTabChange('dashboard')} />
           <SidebarItem icon={<Package size={20} />} label="Magazzino Sostanze" active={activeTab === 'inventory'} onClick={() => { setInventoryFilter('all'); handleTabChange('inventory'); }} />
           {canEdit && <SidebarItem icon={<Pill size={20} />} label={editingPrep ? "Modifica Prep." : "Nuova Prep. (+)"} active={activeTab === 'preparation'} onClick={handleNewPreparation} />}
@@ -608,7 +612,10 @@ export default function MainApp() {
                                   {canEdit && <SidebarItem icon={<Sparkles size={20} className="text-purple-400" />} label="Assistente IA" active={activeTab === 'ai-assistant'} onClick={() => handleTabChange('ai-assistant')} />}
                                   {canEdit && <SidebarItem icon={<Settings size={20} />} label="Impostazioni" active={activeTab === 'settings'} onClick={() => handleTabChange('settings')} />}
                                   {(!AUTH_ENABLED || user?.role === 'admin') && (
-                                    <SidebarItem icon={<Shield size={20} />} label="Gestione Utenti" active={activeTab === 'user_management'} onClick={() => handleTabChange('user_management')} />
+                                    <>
+                                      <SidebarItem icon={<Shield size={20} />} label="Gestione Utenti" active={activeTab === 'user_management'} onClick={() => handleTabChange('user_management')} />
+                                      <SidebarItem icon={<FileText size={20} />} label="Audit Log" active={activeTab === 'audit_log'} onClick={() => handleTabChange('audit_log')} />
+                                    </>
                                   )}
                                 </div>        </nav>
         <div className="p-4 border-t border-slate-800">
