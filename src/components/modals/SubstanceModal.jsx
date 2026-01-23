@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Package, Biohazard, FileUp, FileText, Trash2, FileDown, History, Pencil, Check, Box, Search } from 'lucide-react';
 import { GHS_PICTOGRAMS } from '../../constants/ghsPictograms';
+import { formatDate } from '../../utils/dateUtils';
 
 const SubstanceModal = ({
   isOpen,
@@ -357,7 +358,7 @@ const SubstanceModal = ({
                             <span className="text-sm font-mono bg-slate-100 px-2 py-0.5 rounded">{prep.prepNumber}</span>
                           </div>
                           <div className="text-xs text-slate-500 mt-1">
-                            <span>Data: {prep.date}</span> | <span>Paziente: {prep.patient}</span>
+                            <span>Data: {formatDate(prep.date)}</span> | <span>Paziente: {prep.patient}</span>
                           </div>
                         </button>
                       </li>

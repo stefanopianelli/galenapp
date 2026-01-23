@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Hash, Calendar, Pencil, Trash2, Filter, X, Search, ChevronDown, ChevronUp, Stethoscope, FlaskConical, Printer, Copy, User, Pill, ArrowRight, FileDown, LayoutGrid, LayoutList } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import { generateWorkSheetPDF } from '../../services/pdfGenerator';
+import { formatDate } from '../../utils/dateUtils';
 
 const PreparationCard = ({ prep, isExpanded, toggleExpand, handleJumpToStep, handleDeletePreparation, handleDuplicatePreparation, canEdit, pharmacySettings, onPrintLabel, isAdmin }) => {
   return (
@@ -19,7 +20,7 @@ const PreparationCard = ({ prep, isExpanded, toggleExpand, handleJumpToStep, han
               <Hash size={12} /> {(prep.prepNumber.startsWith('BOZZA') || prep.prepNumber === 'TEMP') ? 'BOZZA' : prep.prepNumber}
             </div>
             <div className="text-xs text-slate-400 mt-1 flex items-center gap-1">
-              <Calendar size={10} /> {prep.date}
+              <Calendar size={10} /> {formatDate(prep.date)}
             </div>
           </div>
 
@@ -60,7 +61,7 @@ const PreparationCard = ({ prep, isExpanded, toggleExpand, handleJumpToStep, han
               <div className="grid grid-cols-2 gap-y-2">
                 <span className="text-slate-500">Paziente:</span> <span className="font-bold text-slate-800">{prep.patient || '-'}</span>
                 <span className="text-slate-500">Medico:</span> <span className="font-medium">{prep.doctor || '-'}</span>
-                <span className="text-slate-500">Scadenza:</span> <span className="font-medium text-red-600">{prep.expiryDate}</span>
+                <span className="text-slate-500">Scadenza:</span> <span className="font-medium text-red-600">{formatDate(prep.expiryDate)}</span>
                 <span className="text-slate-500">Quantità:</span> <span className="font-medium">{prep.quantity} {prep.prepUnit}</span>
               </div>
               <div className="bg-slate-50 p-2 rounded border border-slate-100 mt-2">
@@ -163,7 +164,7 @@ const PreparationsTable = ({ preparations, handleJumpToStep, handleDeletePrepara
                                 <td className="px-4 py-3 font-mono text-xs font-bold text-slate-600 whitespace-nowrap">
                                     {(prep.prepNumber.startsWith('BOZZA') || prep.prepNumber === 'TEMP') ? <span className="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">BOZZA</span> : prep.prepNumber}
                                 </td>
-                                <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{prep.date}</td>
+                                <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{formatDate(prep.date)}</td>
                                 <td className="px-4 py-3 font-medium text-slate-800">
                                     <div className="flex items-center gap-2">
                                         {prep.name}
@@ -204,7 +205,8 @@ const PreparationsTable = ({ preparations, handleJumpToStep, handleDeletePrepara
 const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparation, handleDuplicatePreparation, activeFilter, clearFilter, searchTerm, setSearchTerm, prepTypeFilter, setPrepTypeFilter, canEdit, pharmacySettings, onPrintLabel, isAdmin }) => {
   const [expandedId, setExpandedId] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem('prepLogViewMode') || 'cards');
+  useEffect(() => { localStorage.setItem('prepLogViewMode', viewMode); }, [viewMode]);
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
   const [statusFilter, setStatusFilter] = useState('all');
   const [formFilter, setFormFilter] = useState('all');
