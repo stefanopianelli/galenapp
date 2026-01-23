@@ -847,8 +847,8 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                     <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                         <Box className="text-blue-600" size={20}/> Aggiungi Contenitore
                     </h2>
-                    <div className="flex flex-col sm:flex-row gap-4 items-end">
-                        <div className="relative flex-1 w-full">
+                    <div className="space-y-4">
+                        <div className="relative w-full">
                             <label className="text-xs font-bold text-slate-500 uppercase tracking-wide block mb-2">Cerca Contenitore</label>
                             <div className="relative group">
                                 <Search className="absolute left-4 top-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
@@ -903,13 +903,15 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                                 )}
                             </div>
                         </div>
-                        <div className="w-full sm:w-32">
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wide block mb-2">Quantità</label>
-                            <input type="number" step="1" placeholder="Pezzi" className="w-full border p-3 rounded-lg text-sm outline-none focus:ring-2 ring-blue-500 bg-slate-50 focus:bg-white transition-all" value={containerAmountNeeded} onChange={e => setContainerAmountNeeded(e.target.value)} />
+                        <div className="flex items-end gap-4">
+                            <div className="w-32">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wide block mb-2">Quantità</label>
+                                <input type="number" step="1" placeholder="Pezzi" className="w-full border p-3 rounded-lg text-sm outline-none focus:ring-2 ring-blue-500 bg-slate-50 focus:bg-white transition-all" value={containerAmountNeeded} onChange={e => setContainerAmountNeeded(e.target.value)} />
+                            </div>
+                            <button onClick={addContainer} disabled={!currentContainerId} className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-bold shadow-sm flex items-center justify-center gap-2 transition-all transform hover:-translate-y-0.5 whitespace-nowrap">
+                                <Plus size={18} /> Aggiungi
+                            </button>
                         </div>
-                        <button onClick={addContainer} disabled={!currentContainerId} className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-bold shadow-sm flex items-center justify-center gap-2 transition-all transform hover:-translate-y-0.5 sm:w-auto w-full mb-0.5">
-                            <Plus size={18} /> Aggiungi
-                        </button>
                     </div>
                 </div>
                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mt-8 space-y-4"><h3 className="text-lg font-bold text-slate-800 flex items-center gap-2"><ListOrdered className="text-teal-600" size={20}/> Riepilogo Composizione</h3>
