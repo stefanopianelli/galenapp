@@ -154,7 +154,7 @@ try {
             else sendError(405, 'Metodo non consentito.');
             break;
         case 'delete_preparation':
-            if ($method === 'POST') deletePreparation($pdo);
+            if ($method === 'POST') deletePreparation($pdo, $userRole);
             else sendError(405, 'Metodo non consentito.');
             break;
         case 'clear_logs':
@@ -484,7 +484,7 @@ function savePreparation($pdo) {
     }
 }
 
-function deletePreparation($pdo) {
+function deletePreparation($pdo, $userRole) {
     $data = json_decode(file_get_contents('php://input'), true);
     $prepId = $data['id'] ?? null;
     if (!$prepId) { sendError(400, 'ID preparazione mancante.'); return; }
@@ -496,7 +496,16 @@ function deletePreparation($pdo) {
         $stmtStatus->execute([$prepId]);
         $status = $stmtStatus->fetchColumn();
 
-        // Se NON è una bozza, ripristina le scorte
+        if (!$status) { sendError(404, 'Preparazione non trovata.'); $pdo->rollBack(); return; }
+
+        // PROTEZIONE: Solo admin può cancellare preparazioni completate
+        if ($status !== 'Bozza' && $userRole !== 'admin') {
+            sendError(403, 'Solo l\'amministratore può eliminare preparazioni completate.');
+            $pdo->rollBack();
+            return;
+        }
+
+        // Se NON è una bozza (completata), ripristina le scorte
         if ($status !== 'Bozza') {
             $stmt = $pdo->prepare("SELECT i.name, i.ni, i.unit, pi.inventoryId, pi.amountUsed, pi.stockDeduction FROM `preparation_ingredients` pi JOIN `inventory` i ON pi.inventoryId = i.id WHERE pi.`preparationId` = ?");
             $stmt->execute([$prepId]);

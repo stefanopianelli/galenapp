@@ -46,7 +46,13 @@ export default function MainApp() {
 
   const canEdit = useMemo(() => {
     if (!AUTH_ENABLED) return true;
-    return user?.role === 'admin' || user?.role === 'pharmacist';
+    const r = user?.role?.toLowerCase();
+    return r === 'admin' || r === 'pharmacist';
+  }, [AUTH_ENABLED, user]);
+
+  const isAdmin = useMemo(() => {
+    if (!AUTH_ENABLED) return true;
+    return user?.role?.toLowerCase() === 'admin';
   }, [AUTH_ENABLED, user]);
 
   const [inventory, setInventory] = useState([]);
@@ -242,6 +248,7 @@ export default function MainApp() {
   }, [preparations, createApiRequest, AUTH_ENABLED]);
 
   const handleClearLogs = async (options) => {
+    if (!isAdmin) { alert("Solo l'amministratore può svuotare i log."); return; }
     if (USE_MOCK_DATA || !AUTH_ENABLED) {
       if (options.mode === 'all') setLogs([]);
       else if (options.mode === 'range') {
@@ -261,6 +268,7 @@ export default function MainApp() {
   };
 
   const handleDeleteLog = async (id) => {
+      if (!isAdmin) { alert("Solo l'amministratore può eliminare i log."); return; }
       if (USE_MOCK_DATA || !AUTH_ENABLED) {
           setLogs(logs.filter(log => log.id !== id));
       } else {
@@ -504,9 +512,17 @@ export default function MainApp() {
         alert("Errore durante lo smaltimento.");
       }
     };
-      const handleDeletePreparation = async (prepId) => {
-        if (!canEdit) { alert("Permesso negato"); return; }
-        if (!window.confirm(`Eliminare la preparazione?`)) return;      try {
+        const handleDeletePreparation = async (prepId) => {
+          if (!canEdit) { alert("Permesso negato"); return; }
+          
+          // Controllo permesso eliminazione per non-admin
+          const prepToDelete = preparations.find(p => p.id === prepId);
+          if (prepToDelete && prepToDelete.status === 'Completata' && !isAdmin) {
+              alert("Solo l'amministratore può eliminare preparazioni completate.");
+              return;
+          }
+      
+          if (!window.confirm(`Eliminare la preparazione?`)) return;      try {
         const result = await deletePreparationData(prepId);
         if (result.error) throw new Error(result.error);
         if (!USE_MOCK_DATA && AUTH_ENABLED) await loadData();
@@ -550,11 +566,11 @@ export default function MainApp() {
       case 'inventory':
         return <Inventory inventoryFilter={inventoryFilter} setInventoryFilter={setInventoryFilter} searchTerm={searchTerm} setSearchTerm={setSearchTerm} sortedActiveInventory={sortedActiveInventory} sortedDisposedInventory={sortedDisposedInventory} handleOpenAddModal={handleOpenAddModal} handleOpenEditModal={handleOpenEditModal} handleOpenViewModal={handleOpenViewModal} handleDispose={handleDispose} sortConfig={sortConfig} requestSort={requestSort} activeSubstanceFilter={inventoryFilterSubstance} clearSubstanceFilter={() => setInventoryFilterSubstance(null)} canEdit={canEdit} />;
       case 'preparations_log':
-        return <PreparationsLog preparations={filteredPreparations} handleJumpToStep={handleJumpToStep} handleDuplicatePreparation={handleDuplicatePreparation} handleDeletePreparation={handleDeletePreparation} activeFilter={preparationLogFilter} clearFilter={() => setPreparationLogFilter(null)} searchTerm={prepSearchTerm} setSearchTerm={setPrepSearchTerm} sortConfig={prepSortConfig} requestSort={requestPrepSort} prepTypeFilter={prepTypeFilter} setPrepTypeFilter={setPrepTypeFilter} canEdit={canEdit} pharmacySettings={pharmacySettings} onPrintLabel={handleOpenPrintModal} />;
+        return <PreparationsLog preparations={filteredPreparations} handleJumpToStep={handleJumpToStep} handleDuplicatePreparation={handleDuplicatePreparation} handleDeletePreparation={handleDeletePreparation} activeFilter={preparationLogFilter} clearFilter={() => setPreparationLogFilter(null)} searchTerm={prepSearchTerm} setSearchTerm={setPrepSearchTerm} sortConfig={prepSortConfig} requestSort={requestPrepSort} prepTypeFilter={prepTypeFilter} setPrepTypeFilter={setPrepTypeFilter} canEdit={canEdit} pharmacySettings={pharmacySettings} onPrintLabel={handleOpenPrintModal} isAdmin={isAdmin} />;
       case 'preparation':
         return <PreparationWizard inventory={inventory} preparations={preparations} onComplete={handleSavePreparation} initialData={editingPrep} pharmacySettings={pharmacySettings} initialStep={initialWizardStep} canEdit={canEdit} onPrintLabel={handleOpenPrintModal} />;
       case 'logs':
-        return <Logs logs={logs} preparations={preparations} handleShowPreparation={handleShowPreparation} handleClearLogs={handleClearLogs} handleDeleteLog={handleDeleteLog} canEdit={canEdit} />;
+        return <Logs logs={logs} preparations={preparations} handleShowPreparation={handleShowPreparation} handleClearLogs={handleClearLogs} handleDeleteLog={handleDeleteLog} canEdit={canEdit} isAdmin={isAdmin} />;
       case 'reporting':
         return <Reporting preparations={preparations} inventory={inventory} />;
       case 'settings':

@@ -4,7 +4,7 @@ import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import { generateWorkSheetPDF } from '../../services/pdfGenerator';
 
-const PreparationCard = ({ prep, isExpanded, toggleExpand, handleJumpToStep, handleDeletePreparation, handleDuplicatePreparation, canEdit, pharmacySettings, onPrintLabel }) => {
+const PreparationCard = ({ prep, isExpanded, toggleExpand, handleJumpToStep, handleDeletePreparation, handleDuplicatePreparation, canEdit, pharmacySettings, onPrintLabel, isAdmin }) => {
   return (
     <div className={`border rounded-lg transition-all duration-200 ${isExpanded ? 'bg-white border-teal-200 shadow-md ring-1 ring-teal-100' : 'bg-white border-slate-200 hover:border-teal-200'}`}>
       {/* HEADER CARD (Sempre visibile) */}
@@ -122,12 +122,14 @@ const PreparationCard = ({ prep, isExpanded, toggleExpand, handleJumpToStep, han
                     <Copy size={16} /> Duplica come Nuova
                   </button>
                   
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); handleDeletePreparation(prep.id); }} 
-                    className="w-full text-left px-3 py-2 bg-white border border-red-100 text-red-600 rounded hover:bg-red-50 flex items-center gap-2 transition-colors text-sm mt-auto"
-                  >
-                    <Trash2 size={16} /> Elimina
-                  </button>
+                  {(isAdmin || prep.status === 'Bozza') && (
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); handleDeletePreparation(prep.id); }} 
+                        className="w-full text-left px-3 py-2 bg-white border border-red-100 text-red-600 rounded hover:bg-red-50 flex items-center gap-2 transition-colors text-sm mt-auto"
+                    >
+                        <Trash2 size={16} /> Elimina
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -138,7 +140,7 @@ const PreparationCard = ({ prep, isExpanded, toggleExpand, handleJumpToStep, han
   );
 };
 
-const PreparationsTable = ({ preparations, handleJumpToStep, handleDeletePreparation, handleDuplicatePreparation, canEdit, pharmacySettings, onPrintLabel }) => {
+const PreparationsTable = ({ preparations, handleJumpToStep, handleDeletePreparation, handleDuplicatePreparation, canEdit, pharmacySettings, onPrintLabel, isAdmin }) => {
     return (
         <Card className="border border-slate-200 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
@@ -183,7 +185,9 @@ const PreparationsTable = ({ preparations, handleJumpToStep, handleDeletePrepara
                                         {canEdit && (
                                             <>
                                                 <button onClick={() => handleDuplicatePreparation(prep)} className="p-1.5 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded" title="Duplica"><Copy size={16}/></button>
-                                                <button onClick={() => handleDeletePreparation(prep.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded" title="Elimina"><Trash2 size={16}/></button>
+                                                {(isAdmin || prep.status === 'Bozza') && (
+                                                    <button onClick={() => handleDeletePreparation(prep.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded" title="Elimina"><Trash2 size={16}/></button>
+                                                )}
                                             </>
                                         )}
                                     </div>
@@ -197,7 +201,7 @@ const PreparationsTable = ({ preparations, handleJumpToStep, handleDeletePrepara
     );
 };
 
-const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparation, handleDuplicatePreparation, activeFilter, clearFilter, searchTerm, setSearchTerm, prepTypeFilter, setPrepTypeFilter, canEdit, pharmacySettings, onPrintLabel }) => {
+const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparation, handleDuplicatePreparation, activeFilter, clearFilter, searchTerm, setSearchTerm, prepTypeFilter, setPrepTypeFilter, canEdit, pharmacySettings, onPrintLabel, isAdmin }) => {
   const [expandedId, setExpandedId] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
@@ -365,6 +369,7 @@ const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparati
                     canEdit={canEdit}
                     pharmacySettings={pharmacySettings}
                     onPrintLabel={onPrintLabel}
+                    isAdmin={isAdmin}
                     />
                 ))
             ) : (
@@ -376,6 +381,7 @@ const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparati
                     canEdit={canEdit}
                     pharmacySettings={pharmacySettings}
                     onPrintLabel={onPrintLabel}
+                    isAdmin={isAdmin}
                 />
             )}
             

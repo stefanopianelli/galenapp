@@ -4,7 +4,7 @@ import Badge from '../ui/Badge';
 import { Trash2, Calendar, AlertTriangle, X } from 'lucide-react';
 import { formatDate } from '../../utils/dateUtils';
 
-const Logs = ({ logs, preparations, handleShowPreparation, handleClearLogs, handleDeleteLog, canEdit }) => {
+const Logs = ({ logs, preparations, handleShowPreparation, handleClearLogs, handleDeleteLog, canEdit, isAdmin }) => {
   const [showClearPanel, setShowClearPanel] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -57,7 +57,7 @@ const Logs = ({ logs, preparations, handleShowPreparation, handleClearLogs, hand
       <div className="bg-white p-4 rounded-md border border-slate-200 shadow-sm flex flex-col gap-4">
         <div className="flex justify-between items-center">
             <h2 className="text-lg font-bold text-slate-800">Opzioni Registro</h2>
-            {canEdit && (
+            {isAdmin && (
               <button
                   onClick={() => setShowClearPanel(!showClearPanel)}
                   className="flex items-center gap-2 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-md"
@@ -126,7 +126,7 @@ const Logs = ({ logs, preparations, handleShowPreparation, handleClearLogs, hand
                   </td>
                   <td className="px-6 py-3 text-slate-500 text-xs whitespace-nowrap">{renderNote(log.notes)}</td>
                   <td className="px-6 py-3 text-center whitespace-nowrap">
-                      {canEdit && (
+                      {isAdmin && (
                           <button 
                               onClick={() => handleConfirmDelete(log.id)} 
                               className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-full transition-colors"
