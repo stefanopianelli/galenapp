@@ -148,7 +148,11 @@ const drawComposition = (doc, prep, layout, startY) => {
     const aggMap = new Map();
 
     prep.ingredients.forEach(ing => {
-        if (ing.isContainer) return; // Ignora contenitori per la lista composizione
+        if (ing.isContainer) return; // Ignora contenitori nativi
+        
+        // HACK: Ignora capsule caricate come sostanze nella lista composizione etichetta
+        const lowerName = (ing.name || "").toLowerCase();
+        if (lowerName.includes("capsul")) return;
 
         if (!aggMap.has(ing.name)) {
             aggMap.set(ing.name, {
