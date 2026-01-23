@@ -719,8 +719,34 @@ function saveSettings($pdo, $userData) {
 }
 
 function getAuditLogs($pdo) {
-    $stmt = $pdo->query("SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT 500");
-    echo json_encode($stmt->fetchAll());
+    $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+    $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 50;
+    if ($page < 1) $page = 1;
+    if ($limit < 1) $limit = 50;
+    $offset = ($page - 1) * $limit;
+
+    try {
+        // Conta totale
+        $countStmt = $pdo->query("SELECT COUNT(*) FROM audit_logs");
+        $total = $countStmt->fetchColumn();
+
+        // Recupera dati paginati
+        $stmt = $pdo->prepare("SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT :limit OFFSET :offset");
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        $logs = $stmt->fetchAll();
+
+        echo json_encode([
+            'data' => $logs,
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
+            'totalPages' => ceil($total / $limit)
+        ]);
+    } catch (Exception $e) {
+        sendError(500, "Errore recupero audit: " . $e->getMessage());
+    }
 }
 
 function login($pdo) {
