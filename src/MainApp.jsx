@@ -398,7 +398,9 @@ export default function MainApp() {
         const isExpired = new Date(i.expiry) < new Date();
         const isExpiring = !isExpired && daysUntilExpiry > 0 && daysUntilExpiry <= 60; // Esteso a 60gg come in Dashboard
         
-        if (inventoryFilter === 'expiring') return isExpiring || isExpired;
+        if (inventoryFilter === 'expiring') return !isExpired && daysUntilExpiry > 0 && daysUntilExpiry <= 60;
+        if (inventoryFilter === 'expired') return isExpired;
+        if (inventoryFilter === 'outOfStock') return parseFloat(i.quantity) === 0;
         if (inventoryFilter === 'lowStock') {
             const minStock = parseFloat(i.minStock) || (i.isContainer ? 10 : 5);
             return parseFloat(i.quantity) <= minStock;

@@ -214,11 +214,24 @@ const Inventory = ({
   const activeContainers = sortedActiveInventory.filter(item => item.isContainer);
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <div className="relative"><Search className="absolute left-3 top-2.5 text-slate-400 h-4 w-4" /><input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Cerca per nome, N.I. o lotto..." className="pl-9 pr-4 py-2 border border-slate-300 rounded-md text-sm w-64 focus:ring-2 focus:ring-teal-500 outline-none" /></div>
-        <div className="flex gap-2">
-          {inventoryFilter !== 'all' && (<div className="flex items-center gap-2 bg-amber-50 text-amber-800 px-3 py-1 rounded border border-amber-200 text-sm"><Filter size={14} /> Filtro: {inventoryFilter === 'expiring' ? 'In Scadenza' : 'Scadute'}<button onClick={() => setInventoryFilter('all')} className="hover:text-amber-900"><X size={14} /></button></div>)}
+    <div className="space-y-6">
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col lg:flex-row justify-between items-center gap-4 animate-in fade-in duration-300">
+        <div className="flex flex-col lg:flex-row items-center gap-4 w-full lg:w-auto">
+            <div className="relative w-full lg:w-auto">
+                <Search className="absolute left-3 top-2.5 text-slate-400 h-4 w-4" />
+                <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Cerca nel magazzino..." className="pl-9 pr-4 py-2 border border-slate-300 rounded-md text-sm w-full lg:w-64 focus:ring-2 focus:ring-teal-500 outline-none" />
+            </div>
+            
+            <div className="flex bg-slate-100 p-1 rounded-lg gap-1 overflow-x-auto w-full lg:w-auto">
+                <button onClick={() => setInventoryFilter('all')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap ${inventoryFilter === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Tutte</button>
+                <button onClick={() => setInventoryFilter('expiring')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap ${inventoryFilter === 'expiring' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>In Scadenza</button>
+                <button onClick={() => setInventoryFilter('expired')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap ${inventoryFilter === 'expired' ? 'bg-white text-red-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Scadute</button>
+                <button onClick={() => setInventoryFilter('lowStock')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap ${inventoryFilter === 'lowStock' ? 'bg-white text-yellow-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Sotto Scorta</button>
+                <button onClick={() => setInventoryFilter('outOfStock')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap ${inventoryFilter === 'outOfStock' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Terminate</button>
+            </div>
+        </div>
+
+        <div className="flex gap-2 w-full lg:w-auto justify-end">
           {canEdit && (
             <div className="relative">
               <button 
