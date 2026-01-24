@@ -396,17 +396,28 @@ export default function MainApp() {
         if (i.disposed) return false;
         const daysUntilExpiry = (new Date(i.expiry) - new Date()) / (1000 * 60 * 60 * 24);
         const isExpired = new Date(i.expiry) < new Date();
-        const isExpiring = !isExpired && daysUntilExpiry > 0 && daysUntilExpiry <= 30;
-        if (inventoryFilter === 'expiring') return isExpiring;
-        if (inventoryFilter === 'expired') return isExpired;
-        return true;
+        const isExpiring = !isExpired && daysUntilExpiry > 0 && daysUntilExpiry <= 60; // Esteso a 60gg come in Dashboard
+        
+        if (inventoryFilter === 'expiring') return isExpiring || isExpired;
+        if (inventoryFilter === 'lowStock') {
+            const minStock = parseFloat(i.minStock) || (i.isContainer ? 10 : 5);
+            return parseFloat(i.quantity) <= minStock;
+        }
+        return true; // 'all' or default
       }),
       sortedDisposedInventory: sortableItems.filter(i => i.disposed)
     };
   }, [inventory, sortConfig, searchTerm, preparations, inventoryFilter, inventoryFilterSubstance]);
   const filteredPreparations = useMemo(() => {
     let filtered = preparations || [];
-    if (preparationLogFilter) filtered = filtered.filter(p => p.id === preparationLogFilter);
+    if (preparationLogFilter) {
+        if (preparationLogFilter === 'Bozza' || preparationLogFilter === 'Completata') {
+            filtered = filtered.filter(p => p.status === preparationLogFilter);
+        } else {
+            // Filtro per ID (da click su log)
+            filtered = filtered.filter(p => p.id === preparationLogFilter);
+        }
+    }
     if (prepTypeFilter !== 'all') filtered = filtered.filter(p => p.prepType === prepTypeFilter || (prepTypeFilter === 'magistrale' && !p.prepType));
     if (prepSearchTerm) {
       const term = prepSearchTerm.toLowerCase();
@@ -573,7 +584,7 @@ export default function MainApp() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard stats={stats} logs={logs} inventory={inventory} preparations={preparations} setActiveTab={handleTabChange} setInventoryFilter={setInventoryFilter} handleDispose={handleDispose} handleShowPreparation={handleShowPreparation} handleShowSubstanceInInventory={handleShowSubstanceInInventory} />;
+        return <Dashboard stats={stats} logs={logs} inventory={inventory} preparations={preparations} setActiveTab={handleTabChange} setInventoryFilter={setInventoryFilter} setPreparationLogFilter={setPreparationLogFilter} handleDispose={handleDispose} handleShowPreparation={handleShowPreparation} handleShowSubstanceInInventory={handleShowSubstanceInInventory} onNewPreparation={startNewPreparation} onOpenAddModal={handleOpenAddModal} />;
       case 'inventory':
         return <Inventory inventoryFilter={inventoryFilter} setInventoryFilter={setInventoryFilter} searchTerm={searchTerm} setSearchTerm={setSearchTerm} sortedActiveInventory={sortedActiveInventory} sortedDisposedInventory={sortedDisposedInventory} handleOpenAddModal={handleOpenAddModal} handleOpenEditModal={handleOpenEditModal} handleOpenViewModal={handleOpenViewModal} handleDispose={handleDispose} sortConfig={sortConfig} requestSort={requestSort} activeSubstanceFilter={inventoryFilterSubstance} clearSubstanceFilter={() => setInventoryFilterSubstance(null)} canEdit={canEdit} />;
       case 'preparations_log':
