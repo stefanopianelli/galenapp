@@ -68,7 +68,15 @@ const Dashboard = ({ inventory, preparations, setActiveTab, setInventoryFilter, 
   });
 
   const activeDrafts = preparations.filter(p => p.status === 'Bozza');
-  const recentPreps = preparations.slice(0, 5);
+  
+  // Ordina per data decrescente e ID decrescente (le più recenti in cima)
+  const recentPreps = [...preparations]
+    .sort((a, b) => {
+        const dateDiff = new Date(b.date) - new Date(a.date);
+        if (dateDiff !== 0) return dateDiff;
+        return b.id - a.id;
+    })
+    .slice(0, 6); // Ne mostriamo 6 per coerenza visiva con le scadenze
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
