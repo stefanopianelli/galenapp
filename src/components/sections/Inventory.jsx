@@ -13,7 +13,7 @@ const SortIcon = ({ columnKey, sortConfig }) => {
 
 const SortableHeader = ({ label, columnKey, sortConfig, requestSort, className = "" }) => (
   <th
-    className={`px-6 py-4 font-semibold cursor-pointer select-none hover:bg-slate-100 transition-colors ${className}`}
+    className={`px-3 py-2 font-bold cursor-pointer select-none hover:bg-slate-100 transition-colors text-[10px] uppercase tracking-wider ${className}`}
     onClick={() => requestSort(columnKey)}
   >
     <div className="flex items-center gap-1">
@@ -27,35 +27,35 @@ const InventoryRow = ({ item, isChild = false, handleOpenViewModal, handleOpenEd
     const days = (new Date(item.expiry) - new Date()) / (1000 * 60 * 60 * 24);
     const isExpiring = days > 0 && days <= 30;
     const rowClass = isChild ? "bg-slate-50/50 hover:bg-slate-100" : (isExpiring ? "bg-yellow-50" : "hover:bg-slate-50");
-    const paddingClass = isChild ? "pl-12" : "pl-6";
+    const paddingClass = isChild ? "pl-10" : "pl-3";
 
     return (
-      <tr className={rowClass}>
+      <tr className={`${rowClass} text-xs transition-colors border-b border-slate-50 last:border-0`}>
         <td
-          className={`${paddingClass} pr-6 py-4 font-medium cursor-pointer hover:text-teal-600 hover:underline whitespace-nowrap flex items-center gap-2`}
+          className={`${paddingClass} pr-3 py-2 font-bold cursor-pointer hover:text-teal-600 hover:underline whitespace-nowrap flex items-center gap-2`}
           onClick={() => handleOpenViewModal(item)}
         >
-          {isChild && <div className="w-4 border-l-2 border-b-2 border-slate-300 h-4 mr-2 rounded-bl-sm"></div>}
-          {item.name}
+          {isChild && <div className="w-3 border-l-2 border-b-2 border-slate-300 h-3 mr-1 rounded-bl-sm"></div>}
+          <span className="truncate max-w-[180px]" title={item.name}>{item.name}</span>
         </td>
-        <td className="px-6 py-4 whitespace-nowrap"><span className="text-xs font-mono bg-slate-100 px-1 rounded">{item.ni}</span></td>
-        <td className="px-6 py-4 whitespace-nowrap">{formatDate(item.expiry)}</td>
-        <td className="px-6 py-4 whitespace-nowrap">{item.supplier}</td>
-        <td className="px-6 py-4 text-right font-mono font-medium whitespace-nowrap">{Number(item.quantity).toFixed(item.isContainer ? 0 : 2)} {item.unit}</td>
-        <td className="px-6 py-4 text-right font-mono whitespace-nowrap">{item.costPerGram ? `€ ${Number(item.costPerGram).toFixed(2)}` : '-'}</td>
-        <td className="px-6 py-4 text-center whitespace-nowrap">{item.usageCount}</td>
-        <td className="px-6 py-4 text-center whitespace-nowrap">
+        <td className="px-3 py-2 whitespace-nowrap font-mono text-[10px] text-slate-500">{item.ni}</td>
+        <td className="px-3 py-2 whitespace-nowrap">{formatDate(item.expiry)}</td>
+        <td className="px-3 py-2 whitespace-nowrap text-slate-400 truncate max-w-[100px]" title={item.supplier}>{item.supplier}</td>
+        <td className="px-3 py-2 text-right font-mono font-bold whitespace-nowrap text-slate-700">{Number(item.quantity).toFixed(item.isContainer ? 0 : 2)} {item.unit}</td>
+        <td className="px-3 py-2 text-right font-mono whitespace-nowrap text-slate-500">{item.costPerGram ? `€ ${Number(item.costPerGram).toFixed(2)}` : '-'}</td>
+        <td className="px-3 py-2 text-center whitespace-nowrap text-slate-400">{item.usageCount}</td>
+        <td className="px-3 py-2 text-center whitespace-nowrap scale-90">
           {parseFloat(item.quantity) === 0 ? <Badge type="neutral">Terminata</Badge> : new Date(item.expiry) < new Date() ? <Badge type="danger">Scaduto</Badge> : days <= 30 ? <Badge type="warning">In Scadenza</Badge> : parseFloat(item.quantity) <= (parseFloat(item.minStock) || (item.isContainer ? 10 : 5)) ? <Badge type="warning">Scarso</Badge> : <Badge type="success">OK</Badge>}
         </td>
-        <td className="px-6 py-4 text-center">
-          <div className="flex justify-center gap-2">
+        <td className="px-3 py-2 text-center">
+          <div className="flex justify-center gap-1">
             {canEdit ? (
               <>
-                <button onClick={() => handleOpenEditModal(item)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-full transition-colors" title="Modifica"><Pencil size={16} /></button>
-                <button onClick={() => handleDispose(item.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="Smaltisci"><Trash2 size={16} /></button>
+                <button onClick={() => handleOpenEditModal(item)} className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Modifica"><Pencil size={14} /></button>
+                <button onClick={() => handleDispose(item.id)} className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Smaltisci"><Trash2 size={14} /></button>
               </>
             ) : (
-              <button onClick={() => handleOpenEditModal(item)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-slate-50 rounded-full transition-colors" title="Visualizza"><Eye size={16} /></button>
+              <button onClick={() => handleOpenEditModal(item)} className="p-1 text-slate-400 hover:text-blue-600 hover:bg-slate-50 rounded transition-colors" title="Visualizza"><Eye size={14} /></button>
             )}
           </div>
         </td>
@@ -143,24 +143,24 @@ const InventoryTable = ({ data, type, sortConfig, requestSort, handleOpenViewMod
 
               return (
                   <React.Fragment key={group.name}>
-                      <tr className="bg-slate-50 hover:bg-slate-100 cursor-pointer font-semibold" onClick={() => toggleGroup(group.name)}>
-                          <td className="px-6 py-4 flex items-center gap-2 whitespace-nowrap">
-                              {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                              {group.name} 
-                              <span className="ml-2 text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">{group.items.length} Lotti</span>
+                      <tr className={`${isExpanded ? 'bg-slate-100' : 'bg-slate-50 hover:bg-slate-100'} cursor-pointer font-bold text-xs transition-colors`} onClick={() => toggleGroup(group.name)}>
+                          <td className="px-3 py-2 flex items-center gap-2 whitespace-nowrap text-teal-800">
+                              {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                              <span className="truncate max-w-[180px]">{group.name}</span>
+                              <span className="ml-1 text-[9px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full">{group.items.length} Lotti</span>
                           </td>
-                          <td className="px-6 py-4 text-slate-400 text-xs italic">Multipli</td>
-                          <td className="px-6 py-4 text-teal-700">
+                          <td className="px-3 py-2 text-slate-400 text-[10px] italic font-mono uppercase">MULTIPLI</td>
+                          <td className="px-3 py-2 text-teal-700 font-medium">
                               <span className="whitespace-nowrap">{formatDate(group.earliestExpiry)}</span> 
-                              <span className="ml-1 text-[10px] font-bold opacity-75">(Prioritario)</span>
+                              <span className="ml-1 text-[9px] font-bold opacity-75 uppercase">(FIFO)</span>
                           </td>
-                          <td className="px-6 py-4 text-slate-400 text-xs italic">Vari</td>
-                          <td className="px-6 py-4 text-right font-mono text-slate-800">{group.totalQty.toFixed(type === 'container' ? 0 : 2)} {group.unit}</td>
-                          <td className="px-6 py-4 text-right">-</td>
-                          <td className="px-6 py-4 text-center">-</td>
-                          <td className="px-6 py-4 text-center whitespace-nowrap">{totalStatus}</td>
-                          <td className="px-6 py-4 text-center">
-                              <button className="text-xs text-slate-500 hover:text-slate-800 underline">
+                          <td className="px-3 py-2 text-slate-400 text-[10px] italic">Vari</td>
+                          <td className="px-3 py-2 text-right font-mono font-bold text-slate-800">{group.totalQty.toFixed(type === 'container' ? 0 : 2)} {group.unit}</td>
+                          <td className="px-3 py-2 text-right text-slate-300">-</td>
+                          <td className="px-3 py-2 text-center text-slate-300">-</td>
+                          <td className="px-3 py-2 text-center whitespace-nowrap scale-90">{totalStatus}</td>
+                          <td className="px-3 py-2 text-center">
+                              <button className="text-[10px] font-bold text-slate-400 uppercase hover:text-teal-600">
                                   {isExpanded ? 'Chiudi' : 'Dettagli'}
                               </button>
                           </td>
@@ -302,22 +302,35 @@ const Inventory = ({
         />
       </div>
 
-      <div>
-        <h3 className="text-lg font-bold text-slate-500 mb-3 flex items-center gap-2"><Archive className="text-slate-400" size={20} /> Archivio Smaltiti</h3>
-        <Card className="border-slate-100 bg-slate-50/50">
-          <div className="overflow-auto" style={{ maxHeight: '250px' }}>
-            <table className="w-full text-left text-sm opacity-75">
-              <thead className="sticky top-0 z-10 bg-slate-100 text-slate-500 border-b border-slate-200"><tr><th className="px-6 py-4">Sostanza/Cont.</th><th className="px-6 py-4">N.I.</th><th className="px-6 py-4">Scadenza</th><th className="px-6 py-4">Fornitore</th><th className="px-6 py-4 text-right">Residuo</th><th className="px-6 py-4 text-right">Valore</th><th className="px-6 py-4 text-center">Stato</th></tr></thead>
-              <tbody className="divide-y divide-slate-100">{sortedDisposedInventory.map(item => (
-                <tr key={item.id} className="text-slate-400">
-                  <td
-                    className="px-6 py-4 font-medium cursor-pointer hover:text-teal-600 hover:underline whitespace-nowrap"
-                    onClick={() => handleOpenViewModal(item)}
-                  >
-                    {item.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{item.ni}</td><td className="px-6 py-4 whitespace-nowrap">{formatDate(item.expiry)}</td><td className="px-6 py-4 whitespace-nowrap">{item.supplier}</td><td className="px-6 py-4 text-right whitespace-nowrap">{Number(item.quantity).toFixed(item.isContainer ? 0 : 2)} {item.unit}</td><td className="px-6 py-4 text-right whitespace-nowrap">{item.costPerGram ? `€ ${Number(item.costPerGram).toFixed(2)}` : '-'}</td><td className="px-6 py-4 text-center"><Badge type="dark">Smaltito</Badge></td>
-                </tr>))}</tbody>
+      <div className="pt-4 border-t border-slate-100">
+        <h3 className="text-sm font-bold text-slate-400 mb-3 flex items-center gap-2 uppercase tracking-widest"><Archive size={16} /> Archivio Smaltiti</h3>
+        <Card className="border-slate-100 bg-slate-50/30">
+          <div className="overflow-auto" style={{ maxHeight: '200px' }}>
+            <table className="w-full text-left text-[10px] opacity-80">
+              <thead className="sticky top-0 z-10 bg-slate-100 text-slate-500 border-b border-slate-200">
+                <tr>
+                  <th className="px-3 py-2 font-bold uppercase">Sostanza/Cont.</th>
+                  <th className="px-3 py-2 font-bold uppercase">N.I.</th>
+                  <th className="px-3 py-2 font-bold uppercase">Scadenza</th>
+                  <th className="px-3 py-2 font-bold uppercase">Fornitore</th>
+                  <th className="px-3 py-2 font-bold uppercase text-right">Residuo</th>
+                  <th className="px-3 py-2 font-bold uppercase text-right">Valore</th>
+                  <th className="px-3 py-2 font-bold uppercase text-center">Stato</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {sortedDisposedInventory.map(item => (
+                  <tr key={item.id} className="text-slate-500 hover:bg-white transition-colors">
+                    <td className="px-3 py-1.5 font-bold truncate max-w-[150px]" title={item.name}>{item.name}</td>
+                    <td className="px-3 py-1.5 font-mono opacity-75">{item.ni}</td>
+                    <td className="px-3 py-1.5">{formatDate(item.expiry)}</td>
+                    <td className="px-3 py-1.5 truncate max-w-[100px]" title={item.supplier}>{item.supplier}</td>
+                    <td className="px-3 py-1.5 text-right font-mono">{Number(item.quantity).toFixed(item.isContainer ? 0 : 2)} {item.unit}</td>
+                    <td className="px-3 py-1.5 text-right font-mono">{item.costPerGram ? `€ ${Number(item.costPerGram).toFixed(2)}` : '-'}</td>
+                    <td className="px-3 py-1.5 text-center"><Badge type="neutral">Smaltito</Badge></td>
+                  </tr>
+                ))}
+              </tbody>
             </table>
           </div>
         </Card>
