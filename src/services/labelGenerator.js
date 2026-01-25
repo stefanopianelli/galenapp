@@ -62,11 +62,12 @@ const drawHeader = (doc, settings, prep, layout, startY, qrDataUrl) => {
     doc.setFontSize(fonts.h1); doc.setFont("helvetica", "bold");
     doc.text(pharmacyName, MARGIN, cursorY);
     
-    if (!isSmall) {
-        doc.setFontSize(5); doc.setFont("helvetica", "normal");
-        const headerLeftW = isSmall ? 70 : 50;
+    if (!isSmall || width > 65) {
+        doc.setFontSize(Math.max(3, 5 * layout.scale)); doc.setFont("helvetica", "normal");
+        // Calcolo larghezza disponibile dinamica (55% larghezza totale)
+        const headerLeftW = width * 0.55; 
         const splitInfo = doc.splitTextToSize(pharmacyInfo, headerLeftW);
-        doc.text(splitInfo, MARGIN, cursorY + 2.5);
+        doc.text(splitInfo, MARGIN, cursorY + (2.5 * layout.scale));
     }
 
     // DX: N.P. & Data
@@ -79,19 +80,19 @@ const drawHeader = (doc, settings, prep, layout, startY, qrDataUrl) => {
     doc.text(`Scad: ${formatDate(prep.expiryDate)}`, rightAlignX, cursorY + (gaps.h * 2), { align: 'right' });
 
     // Sotto Farmacia (Paziente/Medico o Lotto)
-    let pzDocY = cursorY + (isSmall ? 4 : 9); 
+    let pzDocY = cursorY + (isSmall ? 4 : 9) * layout.scale; 
     if (layout.isOfficinale) {
-        doc.setFontSize(isSmall ? 6 : 7); doc.setFont("helvetica", "bold");
+        doc.setFontSize(Math.max(3.5, (isSmall ? 6 : 7) * layout.scale)); doc.setFont("helvetica", "bold");
         const batchData = layout.batchData;
         const container = prep.ingredients.find(i => String(i.id) === String(batchData.containerId));
         const containerName = container ? container.name : "Conf.";
         const lotText = `Lotto: ${batchData.productQuantity} ${prep.prepUnit}` + (isSmall ? '' : ` in ${containerName}`);
         doc.text(lotText, MARGIN, pzDocY);
-        pzDocY += (isMedium ? 2 : 2.5);
+        pzDocY += (isMedium ? 2 : 2.5) * layout.scale;
     } else {
-        doc.setFontSize(isSmall ? 5 : 6); doc.setFont("helvetica", "normal");
-        if (prep.patient) { doc.text(`Pz: ${prep.patient}`, MARGIN, pzDocY); pzDocY += (isSmall ? 2 : 2.5); }
-        if (prep.doctor) { doc.text(`Dr: ${prep.doctor}`, MARGIN, pzDocY); pzDocY += 1; }
+        doc.setFontSize(Math.max(3, (isSmall ? 5 : 6) * layout.scale)); doc.setFont("helvetica", "normal");
+        if (prep.patient) { doc.text(`Pz: ${prep.patient}`, MARGIN, pzDocY); pzDocY += (isSmall ? 2 : 2.5) * layout.scale; }
+        if (prep.doctor) { doc.text(`Dr: ${prep.doctor}`, MARGIN, pzDocY); pzDocY += 1 * layout.scale; }
     }
 
     // Divider
@@ -380,11 +381,18 @@ const drawFooter = (doc, prep, layout, startY) => {
 
 // --- MAIN GENERATOR ---
 
-export const generateLabelPDF = async (prep, pharmacySettings, rollFormat = 62) => {
-  const CURRENT_ROLL_HEIGHT = parseInt(rollFormat) || 62;
+export const generateLabelPDF = async (prep, pharmacySettings, labelFormat = { width: 100, height: 62 }) => {
+  // Supporto legacy se viene passato solo un numero (vecchia chiamata)
+  if (typeof labelFormat === 'number' || typeof labelFormat === 'string') {
+      const h = parseInt(labelFormat) || 62;
+      labelFormat = { width: h < 40 ? 130 : 100, height: h };
+  }
+
+  const CURRENT_ROLL_HEIGHT = labelFormat.height;
+  const CURRENT_LABEL_WIDTH = labelFormat.width;
+  
   const isSmall = CURRENT_ROLL_HEIGHT < 40; 
   const isMedium = CURRENT_ROLL_HEIGHT >= 40 && CURRENT_ROLL_HEIGHT < 60;
-  const CURRENT_LABEL_WIDTH = isSmall ? 130 : 100;
 
   const doc = new jsPDF({
     orientation: 'l',
@@ -426,9 +434,9 @@ export const generateLabelPDF = async (prep, pharmacySettings, rollFormat = 62) 
           ratio,
           batchData,
           fonts: {
-              h1: isSmall ? 8 : (isMedium ? 9 : 10),
-              h2: isSmall ? 6 : (isMedium ? 6 : 7),
-              title: (isSmall ? 8 : (isMedium ? 10 : (isOfficinale ? 12 : 10))) * Math.max(0.9, contentScale),
+              h1: (isSmall ? 8 : (isMedium ? 9 : 10)) * contentScale,
+              h2: (isSmall ? 6 : (isMedium ? 6 : 7)) * contentScale,
+              title: (isSmall ? 8 : (isMedium ? 10 : (isOfficinale ? 12 : 10))) * contentScale,
               body: Math.max(3.5, (isSmall ? 5 : (isMedium ? 6 : 7)) * contentScale),
               cost: Math.max(3.5, (isSmall ? 5 : (isMedium ? 5 : 6)) * contentScale),
               warn: Math.max(3.0, (isSmall ? 4 : (isMedium ? 4.5 : 5)) * contentScale)
