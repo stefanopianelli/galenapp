@@ -137,10 +137,16 @@ const drawComposition = (doc, prep, layout, startY) => {
         }
     }
     
-    doc.setFontSize(Math.max(4, (isSmall ? 5 : 7) * scale));
+    // Calcolo font dinamico per il titolo composizione
+    const baseTitleSize = width < 75 ? 5 : (isSmall ? 5 : 7);
+    doc.setFontSize(Math.max(3.5, baseTitleSize * scale));
     doc.setFont("helvetica", "bold");
-    doc.text(compLabel, MARGIN, cursorY);
-    cursorY += (isSmall ? 2.5 : 3.5) * scale;
+    
+    // Wrapping del titolo composizione
+    const maxCompTitleW = colSplitX - MARGIN - 1;
+    const splitCompLabel = doc.splitTextToSize(compLabel, maxCompTitleW);
+    doc.text(splitCompLabel, MARGIN, cursorY);
+    cursorY += (splitCompLabel.length * (width < 75 ? 2 : (isSmall ? 2.5 : 3.5)) * scale);
 
     const ratio = layout.ratio;
 
@@ -453,7 +459,8 @@ export const generateLabelPDF = async (prep, pharmacySettings, labelFormat = { w
       const barcodeDataUrl = (isOfficinale && batchData?.minsan) ? getBarcodeDataUrl(batchData.minsan) : null;
 
       // 1. Header
-      let currentY = drawHeader(targetDoc, settings, prep, layout, MARGIN + (isSmall ? 1 : 3) + startOffsetY, qrDataUrl);
+      // Riduco margine fisso per etichette basse (40-50mm) per affidarmi al centraggio automatico
+      let currentY = drawHeader(targetDoc, settings, prep, layout, MARGIN + (isSmall || isMedium ? 0.5 : 3) + startOffsetY, qrDataUrl);
       
       // 2. Title
       const bodyStartY = drawTitle(targetDoc, prep, layout, currentY);
