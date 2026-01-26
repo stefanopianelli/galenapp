@@ -401,14 +401,9 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   };
 
   const calculateTotal = () => {
-    // Calcolo Costo Sostanze
+    // Calcolo Costo Sostanze (inclusi contenitori)
     const substancesCost = selectedIngredients.reduce((acc, ing) => {
-        if (ing.isContainer) return acc; // I contenitori (primari) vanno nel prezzo unitario lotti per le officinali? No, qui calcoliamo il costo totale grezzo.
-        // Nel wizard officinale, il costo contenitori è separato? No, il "totale materie prime" include i contenitori usati.
-        // Se isContainer, calcoliamo amountUsed * costPerGram (che è costo pezzo).
-        // Se isOfficinale, i lotti hanno un prezzo di vendita, ma qui stiamo calcolando i costi di produzione?
-        // No, questo calculateTotal sembra calcolare il Prezzo al Pubblico della preparazione Magistrale.
-        return acc + (ing.costPerGram ? ing.costPerGram * ing.amountUsed : 0);
+        return acc + (ing.costPerGram ? parseFloat(ing.costPerGram) * parseFloat(ing.amountUsed) : 0);
     }, 0);
 
     // Calcolo Onorario Professionale (dal Service centralizzato)
