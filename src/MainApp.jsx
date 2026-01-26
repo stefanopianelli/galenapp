@@ -592,7 +592,7 @@ export default function MainApp() {
       case 'preparations_log':
         return <PreparationsLog preparations={filteredPreparations} handleJumpToStep={handleJumpToStep} handleDuplicatePreparation={handleDuplicatePreparation} handleDeletePreparation={handleDeletePreparation} activeFilter={preparationLogFilter} clearFilter={() => setPreparationLogFilter(null)} searchTerm={prepSearchTerm} setSearchTerm={setPrepSearchTerm} sortConfig={prepSortConfig} requestSort={requestPrepSort} prepTypeFilter={prepTypeFilter} setPrepTypeFilter={setPrepTypeFilter} canEdit={canEdit} pharmacySettings={pharmacySettings} onPrintLabel={handleOpenPrintModal} isAdmin={isAdmin} />;
       case 'preparation':
-        return <PreparationWizard inventory={inventory} preparations={preparations} onComplete={handleSavePreparation} initialData={editingPrep} pharmacySettings={pharmacySettings} initialStep={initialWizardStep} canEdit={canEdit} onPrintLabel={handleOpenPrintModal} />;
+        return <PreparationWizard inventory={inventory} preparations={preparations} onComplete={handleSavePreparation} initialData={editingPrep} pharmacySettings={pharmacySettings} initialStep={initialWizardStep} canEdit={canEdit} onPrintLabel={handleOpenPrintModal} isAdmin={isAdmin} />;
       case 'logs':
         return <Logs logs={logs} preparations={preparations} handleShowPreparation={handleShowPreparation} handleClearLogs={handleClearLogs} handleDeleteLog={handleDeleteLog} canEdit={canEdit} isAdmin={isAdmin} />;
       case 'reporting':

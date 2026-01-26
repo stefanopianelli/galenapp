@@ -9,7 +9,7 @@ import { calculateComplexFee } from '../../services/tariffService';
 import TechOpsModal, { TechOpsList } from '../modals/TechOpsModal';
 import { formatDate } from '../../utils/dateUtils';
 
-function PreparationWizard({ inventory, preparations, onComplete, initialData, pharmacySettings, initialStep, canEdit }) {
+function PreparationWizard({ inventory, preparations, onComplete, initialData, pharmacySettings, initialStep, canEdit, isAdmin }) {
   const prepType = initialData?.prepType || 'magistrale';
   const isOfficinale = prepType === 'officinale';
   const totalSteps = isOfficinale ? 6 : 5;
@@ -18,6 +18,16 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   const [selectedIngredients, setSelectedIngredients] = useState([]);
   
   const [currentIngredientId, setCurrentIngredientId] = useState('');
+  
+  // ... (omitted hooks for brevity in replace context if not needed, but keeping critical ones) ...
+
+  const [details, setDetails] = useState({ 
+    name: '', patient: '', patientPhone: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
+    expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', recipeDate: '', usage: 'Orale', operatingProcedures: '', prepType: 'magistrale', labelWarnings: [], customLabelWarning: '', techOps: []
+  });
+
+  // Logica Blocco: Bloccato se no permessi OR (Completata AND !Admin)
+  const isLocked = !canEdit || (details.status === 'Completata' && !isAdmin);
   const [substanceSearchTerm, setSubstanceSearchTerm] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   
@@ -61,11 +71,6 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
           if (item) setContainerSearchTerm(item.name);
       }
   }, [currentContainerId, inventory]);
-
-  const [details, setDetails] = useState({ 
-    name: '', patient: '', patientPhone: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
-    expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', recipeDate: '', usage: 'Orale', operatingProcedures: '', prepType: 'magistrale', labelWarnings: [], customLabelWarning: '', techOps: []
-  });
 
   const getNextPrepNumber = () => {
     const currentYear = new Date().getFullYear().toString().slice(-2);
@@ -367,7 +372,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   };
 
   const toggleExcipient = (idx) => {
-    if (!canEdit) return;
+    if (isLocked) return;
     const newIngredients = [...selectedIngredients];
     newIngredients[idx].isExcipient = !newIngredients[idx].isExcipient;
     setSelectedIngredients(newIngredients);
@@ -861,7 +866,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Q.tà Pesata (Reale)</label>
                             <input type="number" step="0.01" placeholder="Auto" className="w-full border p-3 rounded-lg text-sm outline-none bg-amber-50 focus:ring-2 ring-amber-500" value={weighedAmount} onChange={e => setWeighedAmount(e.target.value)} />
                         </div>
-                        <button onClick={addIngredient} disabled={!currentIngredientId} className="bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed font-bold shadow-sm flex items-center justify-center gap-2 transition-colors">
+                        <button onClick={addIngredient} disabled={!currentIngredientId || isLocked} className="bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed font-bold shadow-sm flex items-center justify-center gap-2 transition-colors">
                             <Plus size={18} /> Aggiungi
                         </button>
                     </div>
@@ -932,7 +937,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wide block mb-2">Quantità</label>
                                 <input type="number" step="1" placeholder="Pezzi" className="w-full border p-3 rounded-lg text-sm outline-none focus:ring-2 ring-blue-500 bg-slate-50 focus:bg-white transition-all" value={containerAmountNeeded} onChange={e => setContainerAmountNeeded(e.target.value)} />
                             </div>
-                            <button onClick={addContainer} disabled={!currentContainerId} className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-bold shadow-sm flex items-center justify-center gap-2 transition-all transform hover:-translate-y-0.5 whitespace-nowrap">
+                            <button onClick={addContainer} disabled={!currentContainerId || isLocked} className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-bold shadow-sm flex items-center justify-center gap-2 transition-all transform hover:-translate-y-0.5 whitespace-nowrap">
                                 <Plus size={18} /> Aggiungi
                             </button>
                         </div>
@@ -999,22 +1004,22 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                         )}
                         <span className="text-sm font-mono w-8">{ing.unit}</span>
                         {editingIngredientIndex === idx ? (
-                            <button type="button" onClick={() => saveEditingAmount(idx)} className="text-green-600 hover:bg-green-50 p-1.5 rounded-full"><Check size={16} /></button>
+                            <button type="button" onClick={() => saveEditingAmount(idx)} className="text-green-600 hover:bg-green-50 p-1.5 rounded-full transition-colors"><Check size={16} /></button>
                         ) : (
                             <button 
                                 type="button" 
                                 onClick={() => !ing.isDisposed && startEditingAmount(idx)} 
-                                disabled={ing.isDisposed}
-                                className={`p-1.5 rounded-full transition-colors ${ing.isDisposed ? 'text-slate-300 cursor-not-allowed' : 'text-blue-600 hover:bg-blue-50'}`}
+                                disabled={ing.isDisposed || isLocked}
+                                className={`p-1.5 rounded-full transition-colors ${ing.isDisposed || isLocked ? 'text-slate-300 cursor-not-allowed opacity-50' : 'text-blue-600 hover:bg-blue-50 cursor-pointer'}`}
                             >
                                 <Pencil size={16} />
                             </button>
                         )}
                         <button 
                             type="button" 
-                            onClick={() => canEdit && details.status !== 'Completata' && removeIngredient(idx)} 
-                            disabled={!canEdit || details.status === 'Completata'}
-                            className={`p-1.5 rounded-full transition-colors ${(!canEdit || details.status === 'Completata') ? 'text-slate-300 cursor-not-allowed' : 'text-red-500 hover:bg-red-50'}`}
+                            onClick={() => removeIngredient(idx)} 
+                            disabled={isLocked}
+                            className={`p-1.5 rounded-full transition-colors ${isLocked ? 'text-slate-300 cursor-not-allowed opacity-50' : 'text-red-500 hover:bg-red-50 cursor-pointer'}`}
                         >
                             <Trash2 size={16} />
                         </button>
