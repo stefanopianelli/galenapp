@@ -4,7 +4,15 @@ export const calculateComplexFee = (details, selectedIngredients) => {
     let fee = 0;
     const form = details.pharmaceuticalForm;
     const qty = parseFloat(details.quantity) || 0;
-    const activeSubstancesCount = selectedIngredients.filter(i => !i.isExcipient && !i.isContainer).length;
+    
+    // Conta le sostanze attive UNICHE per nome (es. 2 lotti di 'Etanolo' contano come 1)
+    const activeSubstancesUnique = new Set(
+        selectedIngredients
+            .filter(i => !i.isExcipient && !i.isContainer)
+            .map(i => i.name.trim().toLowerCase())
+    );
+    const activeSubstancesCount = activeSubstancesUnique.size;
+
     const techOpsCount = (details.techOps || []).length;
 
     // Variabili Breakdown
