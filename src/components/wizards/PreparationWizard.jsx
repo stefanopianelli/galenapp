@@ -295,27 +295,56 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
   const addIngredient = () => {
     if (!currentIngredientId || !amountNeeded) return;
-    const item = inventory.find(i => i.id === parseInt(currentIngredientId));
+    const item = inventory.find(i => String(i.id) === String(currentIngredientId));
     
+    if (!item) return;
+
     // Logica Tolleranza
     const qtyRecipe = parseFloat(amountNeeded);
-    const qtyWeighed = weighedAmount ? parseFloat(weighedAmount) : qtyRecipe;
+    const qtyWeighed = weighedAmount ? parseFloat(weighedAmount) : null;
     
-    const remaining = getRemainingQuantity(item);
-    if (qtyWeighed > remaining) {
-      alert(`Quantità insufficiente in magazzino! (Richiesti: ${qtyWeighed} ${item.unit}, Disp: ${remaining} ${item.unit})`);
-      return;
+    // Check duplicati
+    const existingIndex = selectedIngredients.findIndex(ing => String(ing.id) === String(item.id));
+
+    if (existingIndex >= 0) {
+        // Merge (Somma)
+        const newIngredients = [...selectedIngredients];
+        const existingItem = newIngredients[existingIndex];
+        
+        const oldWeighed = existingItem.stockDeduction !== null ? existingItem.stockDeduction : existingItem.amountUsed;
+        const newWeighedToAdd = qtyWeighed !== null ? qtyWeighed : qtyRecipe;
+
+        newIngredients[existingIndex] = {
+            ...existingItem,
+            amountUsed: existingItem.amountUsed + qtyRecipe,
+            stockDeduction: oldWeighed + newWeighedToAdd
+        };
+        setSelectedIngredients(newIngredients);
+    } else {
+        // Nuovo Inserimento
+        setSelectedIngredients([...selectedIngredients, { 
+            id: item.id,
+            name: item.name,
+            ni: item.ni,
+            lot: item.lot,
+            unit: item.unit,
+            costPerGram: item.costPerGram,
+            expiry: item.expiry, // Importante per controlli
+            isExcipient: item.isExcipient || false,
+            isContainer: false,
+            isDisposed: item.disposed === 1 || item.disposed === true,
+            isDoping: item.isDoping,
+            isNarcotic: item.isNarcotic,
+            securityData: item.securityData,
+            amountUsed: qtyRecipe,
+            stockDeduction: qtyWeighed
+        }]);
     }
-    
-    setSelectedIngredients([...selectedIngredients, { 
-        ...item, 
-        amountUsed: qtyRecipe,
-        stockDeduction: weighedAmount ? qtyWeighed : null
-    }]);
     
     setCurrentIngredientId('');
     setAmountNeeded('');
     setWeighedAmount('');
+    setSubstanceSearchTerm('');
   };
 
   const addContainer = () => {
