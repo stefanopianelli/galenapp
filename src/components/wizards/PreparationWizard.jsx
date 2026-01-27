@@ -623,14 +623,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
     'Cartine e cialdini',
     'Capsule',
     'Compresse e gomme da masticare medicate',
-    'Suppositori e ovuli',
-    // 'Pillole, pastiglie e granulati', // VECCHIA - SOSTITUITA
-    // 'Preparazioni semisolide per uso orale veterinario', // VECCHIA - SOSTITUITA
-    // 'Colliri e preparazioni oftalmiche semisolide', // Tariffazione non implementata
-    // 'Soluzioni e sospensioni sterili', // Tariffazione non implementata
-    // 'Emulsioni sterili', // Tariffazione non implementata
-    // 'Triturazioni e diluizioni omeopatiche', // Tariffazione non implementata
-    // 'Pillole omeopatiche' // Tariffazione non implementata
+    'Suppositori e ovuli'
   ];
   const usageOptions = ['Orale', 'Topico', 'Sublinguale', 'Buccale', 'Rettale', 'Inalatoria', 'Transdermica', 'Vaginale', 'Parenterale'];
   

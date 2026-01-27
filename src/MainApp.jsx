@@ -587,7 +587,7 @@ export default function MainApp() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard stats={stats} logs={logs} inventory={inventory} preparations={preparations} setActiveTab={handleTabChange} setInventoryFilter={setInventoryFilter} setPreparationLogFilter={setPreparationLogFilter} handleDispose={handleDispose} handleShowPreparation={handleShowPreparation} handleShowSubstanceInInventory={handleShowSubstanceInInventory} onNewPreparation={startNewPreparation} onOpenAddModal={handleOpenAddModal} />;
+        return <Dashboard stats={stats} logs={logs} inventory={inventory} preparations={preparations} setActiveTab={handleTabChange} setInventoryFilter={setInventoryFilter} setPreparationLogFilter={setPreparationLogFilter} handleShowPreparation={handleShowPreparation} handleShowSubstanceInInventory={handleShowSubstanceInInventory} onNewPreparation={startNewPreparation} onOpenAddModal={handleOpenAddModal} />;
       case 'inventory':
         return <Inventory inventoryFilter={inventoryFilter} setInventoryFilter={setInventoryFilter} searchTerm={searchTerm} setSearchTerm={setSearchTerm} sortedActiveInventory={sortedActiveInventory} sortedDisposedInventory={sortedDisposedInventory} handleOpenAddModal={handleOpenAddModal} handleOpenEditModal={handleOpenEditModal} handleOpenViewModal={handleOpenViewModal} handleDispose={handleDispose} sortConfig={sortConfig} requestSort={requestSort} activeSubstanceFilter={inventoryFilterSubstance} clearSubstanceFilter={() => setInventoryFilterSubstance(null)} canEdit={canEdit} />;
       case 'preparations_log':
