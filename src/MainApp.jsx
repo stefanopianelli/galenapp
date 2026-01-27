@@ -570,6 +570,7 @@ export default function MainApp() {
   const handleDuplicatePreparation = (prepToDuplicate) => {
     const duplicatedData = { ...prepToDuplicate, isDuplicate: true, status: 'Bozza' };
     delete duplicatedData.id; delete duplicatedData.date;
+    delete duplicatedData.uniformityCheck;
     setEditingPrep(duplicatedData); setInitialWizardStep(1); setActiveTab('preparation');
   };
   const handleNewPreparation = () => {
