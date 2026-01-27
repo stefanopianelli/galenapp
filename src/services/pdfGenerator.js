@@ -473,7 +473,10 @@ const drawCostsTable = (doc, ingredients, pricing, startY) => {
         doc.text(label, summaryX, y); doc.text(value, summaryX + summaryWidth, y, { align: 'right' });
         y += 5;
     };
-    drawSummaryLine("Totale Materie Prime:", `€ ${pricing.substances.toFixed(2)}`);
+    drawSummaryLine("Totale Sostanze:", `€ ${pricing.substances.toFixed(2)}`);
+    if (pricing.containers > 0) {
+        drawSummaryLine("Totale Contenitori:", `€ ${pricing.containers.toFixed(2)}`);
+    }
     drawSummaryLine("Onorario Professionale:", `€ ${pricing.fee.toFixed(2)}`);
     if (pricing.additional > 0) drawSummaryLine("Addizionali / Sost. Pericolose:", `€ ${pricing.additional.toFixed(2)}`);
     doc.setDrawColor(COLORS.border[0], COLORS.border[1], COLORS.border[2]); doc.line(summaryX, y, summaryX + summaryWidth, y);

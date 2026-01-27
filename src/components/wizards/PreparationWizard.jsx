@@ -7,6 +7,7 @@ import { generateWorkSheetPDF } from '../../services/pdfGenerator';
 import { generateLabelPDF } from '../../services/labelGenerator';
 import { calculateComplexFee } from '../../services/tariffService';
 import TechOpsModal, { TechOpsList } from '../modals/TechOpsModal';
+import { getDefaultControls } from '../../constants/qualityControls';
 import { formatDate } from '../../utils/dateUtils';
 
 function PreparationWizard({ inventory, preparations, onComplete, initialData, pharmacySettings, initialStep, canEdit, isAdmin }) {
@@ -109,15 +110,9 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
         if (initialData.worksheetItems && initialData.worksheetItems.length > 0) {
           setWorksheetItems(initialData.worksheetItems);
         } else {
-          setWorksheetItems([
-            { text: 'Verifica fonti documentali e calcoli', checked: true },
-            { text: 'Controllo corrispondenza materie prime', checked: true },
-            { text: 'Pesata/misura dei componenti', checked: true },
-            { text: 'Miscelazione / Lavorazione', checked: true },
-            { text: 'Allestimento / Incapsulamento / Ripartizione', checked: true },
-            { text: 'Controllo di uniformità e aspetto', checked: true },
-            { text: 'Etichettatura e confezionamento', checked: true }
-          ]);
+          const form = initialData.pharmaceuticalForm || 'Capsule';
+          const defaults = getDefaultControls(form);
+          setWorksheetItems(defaults.map(text => ({ text, checked: true })));
         }
 
         const enrichedIngredients = (initialData.ingredients || []).map(ing => {
@@ -151,15 +146,8 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
         prepNumber: 'TEMP', 
       });
       setSelectedIngredients([]);
-       setWorksheetItems([
-        { text: 'Verifica fonti documentali e calcoli', checked: true },
-        { text: 'Controllo corrispondenza materie prime', checked: true },
-        { text: 'Pesata/misura dei componenti', checked: true },
-        { text: 'Miscelazione / Lavorazione', checked: true },
-        { text: 'Allestimento / Incapsulamento / Ripartizione', checked: true },
-        { text: 'Controllo di uniformità e aspetto', checked: true },
-        { text: 'Etichettatura e confezionamento', checked: true }
-      ]);
+      const defaults = getDefaultControls('Capsule');
+      setWorksheetItems(defaults.map(text => ({ text, checked: true })));
     }
   }, [initialData, inventory, preparations]);
 
@@ -435,8 +423,15 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   };
 
   const calculateTotal = () => {
-    // Calcolo Costo Sostanze (inclusi contenitori)
+    // Calcolo Costo Sostanze
     const substancesCost = selectedIngredients.reduce((acc, ing) => {
+        if (ing.isContainer) return acc;
+        return acc + (ing.costPerGram ? parseFloat(ing.costPerGram) * parseFloat(ing.amountUsed) : 0);
+    }, 0);
+
+    // Calcolo Costo Contenitori
+    const containersCost = selectedIngredients.reduce((acc, ing) => {
+        if (!ing.isContainer) return acc;
         return acc + (ing.costPerGram ? parseFloat(ing.costPerGram) * parseFloat(ing.amountUsed) : 0);
     }, 0);
 
@@ -450,12 +445,13 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
         additional = 2.50;
     }
 
-    const net = substancesCost + professionalFee + additional;
+    const net = substancesCost + containersCost + professionalFee + additional;
     const vat = net * VAT_RATE;
     const final = net + vat;
 
     return { 
         substances: substancesCost, 
+        containers: containersCost,
         fee: professionalFee, 
         additional, 
         net, 
@@ -690,7 +686,16 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                           </div>
                           <div>
                               <label className="block text-sm font-bold text-slate-700 mb-1">Forma Farmaceutica *</label>
-                              <select className="w-full border p-3 rounded-lg outline-none bg-white focus:ring-2 ring-teal-500" value={details.pharmaceuticalForm} onChange={e => setDetails({...details, pharmaceuticalForm: e.target.value})}>
+                              <select 
+                                  className="w-full border p-3 rounded-lg outline-none bg-white focus:ring-2 ring-teal-500" 
+                                  value={details.pharmaceuticalForm} 
+                                  onChange={e => {
+                                      const form = e.target.value;
+                                      setDetails({...details, pharmaceuticalForm: form});
+                                      const newCtrls = getDefaultControls(form);
+                                      setWorksheetItems(newCtrls.map(text => ({ text, checked: true })));
+                                  }}
+                              >
                                   {pharmaForms.map(f => (<option key={f} value={f}>{f}</option>))}
                               </select>
                           </div>
@@ -1125,9 +1130,21 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                                 </div>
                             ))}
                         </div>
-                        <div className="flex justify-between font-bold text-base mt-6 pt-4 border-t border-slate-200 text-slate-800">
-                            <span>Totale Sostanze</span>
-                            <span>€ {pricing.substances.toFixed(2)}</span>
+                        <div className="mt-6 pt-4 border-t border-slate-200 text-slate-800 space-y-2">
+                            <div className="flex justify-between text-sm font-medium">
+                                <span>Totale Sostanze</span>
+                                <span>€ {pricing.substances.toFixed(2)}</span>
+                            </div>
+                            {pricing.containers > 0 && (
+                                <div className="flex justify-between text-sm font-medium text-blue-700">
+                                    <span>Totale Contenitori</span>
+                                    <span>€ {pricing.containers.toFixed(2)}</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between font-bold text-base pt-2 border-t border-slate-100">
+                                <span>Totale Materiali</span>
+                                <span>€ {(pricing.substances + pricing.containers).toFixed(2)}</span>
+                            </div>
                         </div>
                     </div>
 
