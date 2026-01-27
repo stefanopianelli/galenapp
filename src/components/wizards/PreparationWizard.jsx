@@ -9,6 +9,7 @@ import { calculateComplexFee } from '../../services/tariffService';
 import TechOpsModal, { TechOpsList } from '../modals/TechOpsModal';
 import { getDefaultControls } from '../../constants/qualityControls';
 import { formatDate } from '../../utils/dateUtils';
+import UniformityCheck from './UniformityCheck';
 
 function PreparationWizard({ inventory, preparations, onComplete, initialData, pharmacySettings, initialStep, canEdit, isAdmin }) {
   const prepType = initialData?.prepType || 'magistrale';
@@ -91,7 +92,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
   useEffect(() => {
     const defaultDetails = {
       name: '', patient: '', patientPhone: '', doctor: '', notes: '', prepNumber: '', quantity: '', 
-      expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', recipeDate: '', usage: 'Orale', operatingProcedures: '', status: 'Bozza', prepType: 'magistrale', batches: [], worksheetItems: [], labelWarnings: [], customLabelWarning: '', techOps: []
+      expiryDate: '', pharmaceuticalForm: 'Capsule', posology: '', recipeDate: '', usage: 'Orale', operatingProcedures: '', status: 'Bozza', prepType: 'magistrale', batches: [], worksheetItems: [], labelWarnings: [], customLabelWarning: '', techOps: [], uniformityCheck: null
     };
 
     if (initialData) {
@@ -602,6 +603,8 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
     // 'Pillole omeopatiche' // Tariffazione non implementata
   ];
   const usageOptions = ['Orale', 'Topico', 'Sublinguale', 'Buccale', 'Rettale', 'Inalatoria', 'Transdermica', 'Vaginale', 'Parenterale'];
+  
+  const UNIFORMITY_FORMS = ['Capsule', 'Cartine e cialdini', 'Suppositori e ovuli', 'Compresse e gomme da masticare medicate', 'Pillole, pastiglie e granulati (a unità)'];
 
   return (
     <>
@@ -1311,7 +1314,27 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
             <div className="space-y-6 animate-in fade-in">
               <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 pt-4"><FileText size={24} /> Personalizzazione Foglio di Lavorazione</h2>
               <div className="space-y-2"><label className="block text-sm font-bold text-slate-700 uppercase tracking-wide">Procedure operative ed eventuali integrazioni</label><textarea className="w-full border p-3 rounded-md outline-none h-40 resize-y focus:ring-2 ring-teal-500" value={details.operatingProcedures || ''} onChange={e => setDetails({...details, operatingProcedures: e.target.value})} placeholder="Es. Miscelare le polveri in progressione geometrica..."/></div>
-              <div className="space-y-2"><label className="block text-sm font-bold text-slate-700 uppercase tracking-wide">Fasi di lavorazione e controlli (per il PDF)</label><div className="grid grid-cols-2 gap-x-4 gap-y-2 p-4 border rounded-md bg-white">{worksheetItems.map((item, index) => (<label key={index} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={item.checked} onChange={() => handleWorksheetItemChange(index)} className="mt-0.5 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"/><span className="text-slate-700">{item.text}</span></label>))}</div></div>
+                            <div className="space-y-2">
+                  <label className="block text-sm font-bold text-slate-700 uppercase tracking-wide">Fasi di lavorazione e controlli (per il PDF)</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 border rounded-xl bg-white shadow-inner">
+                      {worksheetItems.map((item, index) => (
+                          <label key={index} className="flex items-center gap-3 text-sm cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors">
+                              <input type="checkbox" checked={item.checked} onChange={() => handleWorksheetItemChange(index)} className="h-5 w-5 rounded border-gray-300 text-teal-600 focus:ring-teal-500"/>
+                              <span className="text-slate-700">{item.text}</span>
+                          </label>
+                      ))}
+                  </div>
+              </div>
+              
+              {UNIFORMITY_FORMS.includes(details.pharmaceuticalForm) && (
+                  <UniformityCheck 
+                      totalQuantity={details.quantity} 
+                      unit={getPrepUnit(details.pharmaceuticalForm)} 
+                      ingredients={selectedIngredients} 
+                      savedData={details.uniformityCheck} 
+                      onUpdate={(data) => setDetails(prev => ({ ...prev, uniformityCheck: data }))} 
+                  />
+              )}
               <div className="space-y-2"><label className="block text-sm font-bold text-slate-700 uppercase tracking-wide">Frasi ed avvertenze da riportare in etichetta</label><div className="space-y-2 p-4 border rounded-md bg-white">{["Tenere fuori dalla portata dei bambini", "Tenere al riparo da luce e fonti di calore"].map((warning, i) => (<label key={i} className="flex items-start gap-2 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={(details.labelWarnings || []).includes(warning)} onChange={() => handleLabelWarningChange(warning)} className="mt-0.5 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"/><span className="text-slate-700">{warning}</span></label>))}{hasDopingIngredient && (<label className="flex items-start gap-2 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded"><input type="checkbox" checked={(details.labelWarnings || []).includes(dopingWarning)} onChange={() => handleLabelWarningChange(dopingWarning)} className="mt-0.5 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"/><span className="text-slate-700 font-bold text-red-600">{dopingWarning}</span></label>)}
                 <textarea 
                   className="w-full border p-2 rounded-md outline-none h-20 resize-y text-sm mt-2 focus:ring-2 ring-teal-500" 
@@ -1324,7 +1347,8 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                   <button onClick={() => setStep(isOfficinale ? 4 : 3)} className="text-slate-500 hover:text-slate-700 font-medium px-4 py-2 hover:bg-slate-100 rounded-lg transition-colors">Indietro</button>
                   <button 
                       onClick={() => setStep(isOfficinale ? 6 : 5)} 
-                      className="bg-teal-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-teal-700 shadow-md transition-all transform hover:-translate-y-0.5 flex items-center gap-2"
+                      disabled={UNIFORMITY_FORMS.includes(details.pharmaceuticalForm) && (!details.uniformityCheck?.isComplete || !details.uniformityCheck?.isCompliant)}
+                      className="bg-teal-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-md transition-all transform hover:-translate-y-0.5 flex items-center gap-2"
                   >
                       Avanti <ArrowRight size={18}/>
                   </button>

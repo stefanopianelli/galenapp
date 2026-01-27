@@ -319,6 +319,7 @@ function getAllData($pdo) {
             $preparations[$key]['worksheetItems'] = json_decode($prep['worksheetItems'] ?? '[]', true);
             $preparations[$key]['batches'] = json_decode($prep['batches'] ?? '[]', true);
             $preparations[$key]['pricingData'] = json_decode($prep['pricingData'] ?? '{}', true);
+            $preparations[$key]['uniformityCheck'] = json_decode($prep['uniformityCheck'] ?? 'null', true);
         }
     }
     
@@ -444,7 +445,7 @@ function savePreparation($pdo, $userData) {
 
     $pdo->beginTransaction();
     try {
-        $prepFields = ['prepNumber', 'name', 'pharmaceuticalForm', 'quantity', 'prepUnit', 'expiryDate', 'posology', 'date', 'patient', 'patientPhone', 'doctor', 'status', 'totalPrice', 'prepType', 'notes', 'usage', 'operatingProcedures', 'labelWarnings', 'customLabelWarning', 'techOps', 'worksheetItems', 'recipeDate', 'batches', 'pricingData'];
+        $prepFields = ['prepNumber', 'name', 'pharmaceuticalForm', 'quantity', 'prepUnit', 'expiryDate', 'posology', 'date', 'patient', 'patientPhone', 'doctor', 'status', 'totalPrice', 'prepType', 'notes', 'usage', 'operatingProcedures', 'labelWarnings', 'customLabelWarning', 'techOps', 'worksheetItems', 'recipeDate', 'batches', 'pricingData', 'uniformityCheck'];
         $prepParams = [];
         foreach ($prepFields as $field) {
             $value = $prepDetails[$field] ?? null;
