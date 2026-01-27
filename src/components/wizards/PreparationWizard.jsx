@@ -1119,13 +1119,25 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                             <FlaskConical size={18} className="text-slate-400"/>
                         </h3>
                         <div className="space-y-1 flex-1">
-                            {selectedIngredients.map((ing, i) => (
+                            {Object.values(selectedIngredients.reduce((acc, ing) => {
+                                const key = ing.name;
+                                if (!acc[key]) {
+                                    acc[key] = { 
+                                        ...ing, 
+                                        amountUsed: 0, 
+                                        totalCost: 0 
+                                    };
+                                }
+                                acc[key].amountUsed += parseFloat(ing.amountUsed);
+                                acc[key].totalCost += (ing.costPerGram ? parseFloat(ing.costPerGram) * parseFloat(ing.amountUsed) : 0);
+                                return acc;
+                            }, {})).map((ing, i) => (
                                 <div key={i} className="flex justify-between items-start gap-4 hover:bg-slate-50 p-1 rounded transition-colors">
                                     <span className="text-slate-600 text-sm leading-tight">
                                         {ing.name} <span className="text-[10px] text-slate-400">({Number(ing.amountUsed).toFixed(ing.isContainer ? 0 : 2)}{ing.unit})</span>
                                     </span>
                                     <span className="font-mono font-bold text-slate-700 whitespace-nowrap text-right shrink-0">
-                                        € {(ing.costPerGram * ing.amountUsed).toFixed(2)}
+                                        € {ing.totalCost.toFixed(2)}
                                     </span>
                                 </div>
                             ))}
