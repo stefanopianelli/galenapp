@@ -254,7 +254,7 @@ function getLogsPaginated($pdo) {
     $params = [];
 
     if (!empty($search)) {
-        $where[] = "(substance LIKE :search OR ni LIKE :search OR notes LIKE :search OR operator LIKE :search)";
+        $where[] = "substance LIKE :search";
         $params[':search'] = "%$search%";
     }
     if ($type !== 'all') {

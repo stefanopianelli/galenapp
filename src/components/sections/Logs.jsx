@@ -19,36 +19,44 @@ const Logs = ({ logs: initialLogs, preparations, handleShowPreparation, handleCl
   // Debounce search o apply on button? Facciamo fetch su effect di pagina e filtri immediati
   // Per evitare troppe chiamate, usiamo un effetto che ascolta le dipendenze
 
-  const fetchLogs = async () => {
+  const lastRequestTime = React.useRef(0);
+
+  const fetchLogs = async (search = searchTerm, filter = filterType, page = currentPage) => {
+      const requestTime = Date.now();
+      lastRequestTime.current = requestTime;
+      
       setLoading(true);
       try {
-          // Costruiamo query params
           const params = new URLSearchParams({
-              page: currentPage,
+              page: page,
               limit: 50,
-              type: filterType
+              type: filter
           });
-          if (searchTerm) params.append('search', searchTerm);
+          // Trim search e aggiungi solo se presente
+          const trimmedSearch = typeof search === 'string' ? search.trim() : '';
+          if (trimmedSearch) params.append('search', trimmedSearch);
 
           const res = await createApiRequest(`get_logs_paginated&${params.toString()}`, null, false, 'GET');
+          
+          if (requestTime < lastRequestTime.current) return;
+
           if (res && !res.error && res.data) {
               setLogs(res.data);
               setTotalPages(res.totalPages || 1);
-              setCurrentPage(res.page || 1);
           }
       } catch (e) {
           console.error("Errore fetch logs:", e);
       }
-      setLoading(false);
+      if (requestTime === lastRequestTime.current) setLoading(false);
   };
 
   // Caricamento iniziale e su cambio pagina/filtri
   useEffect(() => {
       const timer = setTimeout(() => {
-          fetchLogs();
-      }, 300); // Debounce di 300ms per la ricerca
+          fetchLogs(searchTerm, filterType, currentPage);
+      }, 300); 
       return () => clearTimeout(timer);
-  }, [currentPage, filterType, searchTerm]); // Aggiunto searchTerm alle dipendenze
+  }, [currentPage, filterType, searchTerm]);
 
   const renderNote = (note) => {
     if (!note) return '-';
