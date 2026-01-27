@@ -71,8 +71,18 @@ const UniformityCheck = ({ totalQuantity, unit, ingredients, onUpdate, savedData
                 <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                     <Scale className="text-indigo-600" size={24}/> Controllo Uniformità di Massa
                 </h3>
-                <div className={`px-3 py-1 rounded-full text-xs font-bold border ${isComplete ? (allCompliant ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-100 text-red-700 border-red-200') : 'bg-slate-200 text-slate-600 border-slate-300'}`}>
-                    {!isComplete ? 'IN CORSO...' : (allCompliant ? 'CONFORME' : 'NON CONFORME')}
+                <div className="flex items-center gap-3">
+                    {filledCount > 0 && (
+                        <button 
+                            onClick={() => { if(window.confirm('Svuotare tutte le pesate?')) setMeasurements(Array(sampleSize).fill('')); }}
+                            className="text-[10px] font-bold text-red-400 hover:text-red-600 uppercase tracking-wider transition-colors border border-red-100 px-2 py-1 rounded hover:bg-red-50"
+                        >
+                            Resetta
+                        </button>
+                    )}
+                    <div className={`px-3 py-1 rounded-full text-xs font-bold border ${isComplete ? (allCompliant ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-100 text-red-700 border-red-200') : 'bg-slate-200 text-slate-600 border-slate-300'}`}>
+                        {!isComplete ? 'IN CORSO...' : (allCompliant ? 'CONFORME' : 'NON CONFORME')}
+                    </div>
                 </div>
             </div>
 

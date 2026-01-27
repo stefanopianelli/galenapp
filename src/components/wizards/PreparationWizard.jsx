@@ -343,15 +343,45 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
 
   const addContainer = () => {
     if (!currentContainerId || !containerAmountNeeded) return;
-    const item = inventory.find(i => i.id === parseInt(currentContainerId));
+    const item = inventory.find(i => String(i.id) === String(currentContainerId));
+    
+    if (!item) return;
+
+    const qtyToAdd = parseFloat(containerAmountNeeded);
     const remaining = getRemainingQuantity(item);
-    if (parseFloat(containerAmountNeeded) > remaining) {
+    
+    // Per i contenitori, verifichiamo la disponibilità residua (che tiene conto di quanto già aggiunto in lista)
+    // Ma attenzione: getRemainingQuantity sottrae già amountUsed della lista corrente.
+    // Quindi se aggiorno, devo controllare se qtyToAdd > remaining.
+    
+    if (qtyToAdd > remaining) {
       alert(`Quantità insufficiente!`);
       return;
     }
-    setSelectedIngredients([...selectedIngredients, { ...item, amountUsed: parseFloat(containerAmountNeeded) }]);
+
+    const existingIndex = selectedIngredients.findIndex(ing => String(ing.id) === String(item.id));
+
+    if (existingIndex >= 0) {
+        // Merge
+        const newIngredients = [...selectedIngredients];
+        newIngredients[existingIndex] = {
+            ...newIngredients[existingIndex],
+            amountUsed: newIngredients[existingIndex].amountUsed + qtyToAdd
+        };
+        setSelectedIngredients(newIngredients);
+    } else {
+        // Nuovo
+        setSelectedIngredients([...selectedIngredients, { 
+            ...item, 
+            amountUsed: qtyToAdd,
+            isExcipient: false, // I contenitori non sono eccipienti
+            isContainer: true
+        }]);
+    }
+
     setCurrentContainerId('');
     setContainerAmountNeeded('');
+    setContainerSearchTerm('');
   };
   
   const removeIngredient = (idx) => {
@@ -694,7 +724,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                                   value={details.pharmaceuticalForm} 
                                   onChange={e => {
                                       const form = e.target.value;
-                                      setDetails({...details, pharmaceuticalForm: form});
+                                      setDetails({...details, pharmaceuticalForm: form, uniformityCheck: null});
                                       const newCtrls = getDefaultControls(form);
                                       setWorksheetItems(newCtrls.map(text => ({ text, checked: true })));
                                   }}

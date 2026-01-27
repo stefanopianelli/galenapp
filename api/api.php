@@ -254,8 +254,10 @@ function getLogsPaginated($pdo) {
     $params = [];
 
     if (!empty($search)) {
-        $where[] = "substance LIKE :search";
-        $params[':search'] = "%$search%";
+        $where[] = "(substance LIKE :s1 OR ni LIKE :s2 OR notes LIKE :s3)";
+        $params[':s1'] = "%$search%";
+        $params[':s2'] = "%$search%";
+        $params[':s3'] = "%$search%";
     }
     if ($type !== 'all') {
         $where[] = "`type` = :type";
@@ -339,12 +341,32 @@ function handleFileUpload($fileInputName) {
         exit;
     }
     $allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
+    $allowedMimeTypes = [
+        'application/pdf', 
+        'image/jpeg', 
+        'image/png'
+    ];
+    
     $fileName = $_FILES[$fileInputName]['name'];
+    $fileTmpPath = $_FILES[$fileInputName]['tmp_name'];
     $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+    
+    // 1. Controllo Estensione
     if (!in_array($fileExt, $allowedExtensions)) {
-        sendError(400, "Tipo file non consentito. Solo PDF e immagini.");
+        sendError(400, "Tipo file non consentito (estensione). Solo PDF e immagini.");
         exit;
     }
+
+    // 2. Controllo MIME Type Reale
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mimeType = finfo_file($finfo, $fileTmpPath);
+    finfo_close($finfo);
+
+    if (!in_array($mimeType, $allowedMimeTypes)) {
+        sendError(400, "Tipo file non consentito (MIME non valido: $mimeType).");
+        exit;
+    }
+
     $uploadDir = __DIR__ . '/uploads/';
     if (!is_dir($uploadDir)) {
         if (!mkdir($uploadDir, 0755, true)) {
