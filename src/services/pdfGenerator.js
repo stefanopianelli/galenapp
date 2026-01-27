@@ -422,6 +422,60 @@ const drawTechOpsAndPhases = (doc, prep, startY) => {
     return maxY + 10;
 };
 
+const drawUniformityTable = (doc, prep, startY) => {
+    if (!prep.uniformityCheck || !prep.uniformityCheck.enabled || !prep.uniformityCheck.measurements) return startY;
+
+    let y = startY;
+    if (y > 200) { doc.addPage(); y = 20; }
+    y = drawSectionHeader(doc, "Controllo Uniformità di Massa (NBP)", y);
+
+    const uc = prep.uniformityCheck;
+    
+    // Header Riassuntivo
+    doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]);
+    doc.text(`Campione: ${uc.sampleSize} unità`, 14, y);
+    doc.text(`Peso teorico netto: ${parseFloat(uc.targetWeight).toFixed(1)} mg`, 50, y);
+    doc.text(`Peso involucro: ${parseFloat(uc.tareWeight).toFixed(1)} mg`, 100, y);
+    
+    // Badge Esito
+    const isCompliant = uc.isCompliant;
+    doc.setDrawColor(isCompliant ? 46 : 220, isCompliant ? 125 : 38, isCompliant ? 50 : 38); // Green / Red border
+    doc.setFillColor(isCompliant ? 240 : 254, isCompliant ? 253 : 242, isCompliant ? 244 : 242); // Bg lighter
+    doc.roundedRect(140, y - 4, 50, 6, 1, 1, 'FD');
+    doc.setTextColor(isCompliant ? 21 : 185, isCompliant ? 128 : 28, isCompliant ? 61 : 28);
+    doc.setFont('helvetica', 'bold');
+    doc.text(isCompliant ? "ESITO: CONFORME" : "ESITO: NON CONFORME", 165, y, { align: 'center' });
+    
+    y += 4;
+
+    // Tabella Pesate
+    const body = uc.measurements.map((gross, i) => {
+        const g = parseFloat(gross) || 0;
+        const net = g - uc.tareWeight;
+        const dev = ((net - uc.targetWeight) / uc.targetWeight) * 100;
+        const ok = Math.abs(dev) <= 10; // 10% tolerance
+        return [
+            `#${i+1}`,
+            `${g.toFixed(1)} mg`,
+            `${net.toFixed(1)} mg`,
+            `${dev > 0 ? '+' : ''}${dev.toFixed(1)} %`,
+            ok ? 'SI' : 'NO'
+        ];
+    });
+
+    doc.autoTable({
+        startY: y,
+        head: [['N.', 'PESO LORDO', 'PESO NETTO', 'DEVIAZIONE', 'ESITO']],
+        body: body,
+        theme: 'grid',
+        headStyles: { fillColor: COLORS.background, textColor: COLORS.secondary, fontStyle: 'bold', lineColor: COLORS.secondary, lineWidth: 0.1 },
+        styles: { fontSize: 8, cellPadding: 1.5, halign: 'center', textColor: COLORS.text },
+        columnStyles: { 0: {cellWidth: 15}, 4: {cellWidth: 20, fontStyle: 'bold'} }
+    });
+
+    return doc.lastAutoTable.finalY + 10;
+};
+
 const drawCostsTable = (doc, ingredients, pricing, startY) => {
     let y = startY;
     if (y > 200) { doc.addPage(); y = 20; }
@@ -556,6 +610,8 @@ export const generateWorkSheetPDF = async (preparationData, pharmacySettings) =>
   currentY = drawLabelWarnings(doc, details, currentY);
   
   currentY = drawTechOpsAndPhases(doc, details, currentY);
+  
+  currentY = drawUniformityTable(doc, details, currentY);
   
   currentY = drawCostsTable(doc, ingredients, pricing, currentY);
   
