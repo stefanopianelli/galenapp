@@ -1,76 +1,154 @@
--- Popolamento del database GalenicoLab
--- Versione 1.6 - Dati di esempio con logica corretta per ingredienti e campi obbligatori
+-- DISABILITA CONTROLLI CHIAVE ESTERNA PER TRUNCATE
+SET FOREIGN_KEY_CHECKS = 0;
 
--- Svuotare le tabelle esistenti in ordine inverso
+-- SVUOTA TABELLE (Usa DELETE per evitare errori FK su alcuni hosting)
 DELETE FROM `logs`;
 DELETE FROM `preparation_ingredients`;
 DELETE FROM `preparations`;
 DELETE FROM `inventory`;
-DELETE FROM `users`;
 
--- Resettare l'auto-incremento
-ALTER TABLE `inventory` AUTO_INCREMENT = 1;
-ALTER TABLE `preparations` AUTO_INCREMENT = 1;
-ALTER TABLE `preparation_ingredients` AUTO_INCREMENT = 1;
+-- RESET AUTO_INCREMENT
 ALTER TABLE `logs` AUTO_INCREMENT = 1;
-ALTER TABLE `users` AUTO_INCREMENT = 1;
+ALTER TABLE `preparation_ingredients` AUTO_INCREMENT = 1;
+ALTER TABLE `preparations` AUTO_INCREMENT = 1;
+ALTER TABLE `inventory` AUTO_INCREMENT = 1;
 
--- UTENTI (Password per tutti: 'password')
-INSERT INTO `users` (`id`, `username`, `password_hash`, `role`) VALUES
-(1, 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin'),
-(2, 'farmacista', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'pharmacist'),
-(3, 'operatore', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'operator');
+-- RIABILITA CONTROLLI
+SET FOREIGN_KEY_CHECKS = 1;
 
--- INVENTARIO (15 sostanze, nessuna scaduta)
-INSERT INTO `inventory` (`id`, `name`, `ni`, `lot`, `expiry`, `quantity`, `unit`, `costPerGram`, `supplier`, `isExcipient`, `isContainer`, `isDoping`, `isNarcotic`, `securityData`) VALUES
-(1, 'Minoxidil Base', '24/S001', 'MX-2401', '2026-12-31', 480.00, 'g', 0.90, 'Farma-Chemical', 0, 0, 0, 0, '{"pictograms":["GHS07"]}'),
-(2, 'Idrocortisone Butirrato', '24/S002', 'HCB-2402', '2025-11-30', 99.00, 'g', 1.25, 'Pharma-Actives', 0, 0, 1, 0, '{"pictograms":["GHS08"]}'),
-(3, 'Sildenafil Citrato', '24/S003', 'SIL-2403', '2026-05-31', 198.00, 'g', 2.75, 'Pharma-Actives', 0, 0, 0, 0, '{"pictograms":["GHS07", "GHS08"]}'),
-(4, 'Acido Salicilico', '24/S004', 'AS-2401', '2027-01-31', 950.00, 'g', 0.10, 'Farma-Chemical', 0, 0, 0, 0, '{"pictograms":["GHS05", "GHS07"]}'),
-(5, 'Melatonina', '24/S005', 'MLT-2404', '2026-08-31', 250.00, 'g', 3.50, 'NaturePharma', 0, 0, 0, 0, '{"pictograms":[]}'),
-(6, 'Clotrimazolo', '24/S006', 'CLT-2312', '2025-12-31', 200.00, 'g', 1.10, 'Farma-Chemical', 0, 0, 0, 0, '{"pictograms":["GHS07"]}'),
-(7, 'Glicole Propilenico', '24/E001', 'GP-2401', '2025-10-31', 4800.00, 'ml', 0.04, 'Farma-Chemical', 1, 0, 0, 0, '{"pictograms":[]}'),
-(8, 'Alcool Etilico 96°', '24/E002', 'ALC-2402', '2027-03-31', 8500.00, 'ml', 0.02, 'Distillerie Nazionali', 1, 0, 0, 0, '{"pictograms":["GHS02"]}'),
-(9, 'Crema Base Lipo', '24/E003', 'CBL-2401', '2025-09-30', 1850.00, 'g', 0.05, 'Galenica Srl', 1, 0, 0, 0, '{"pictograms":[]}'),
-(10, 'Lattosio Monoidrato', '24/E004', 'LAC-2403', '2026-06-30', 4000.00, 'g', 0.01, 'Galenica Srl', 1, 0, 0, 0, '{"pictograms":[]}'),
-(11, 'Camomilla Fiori T.T.', '24/E005', 'CAM-2311', '2025-11-30', 500.00, 'g', 0.11, 'HerbalSana', 1, 0, 0, 0, '{"pictograms":[]}'),
-(12, 'Flacone vetro 100ml c/contagocce', '24/C001', 'FLV-24', '2029-01-01', 95, 'n.', 0.80, 'Pharma-Packaging', 0, 1, 0, 0, '{"pictograms":[]}'),
-(13, 'Vasetto unguento 50g', '24/C002', 'VAS-24', '2029-01-01', 198, 'n.', 0.45, 'Pharma-Packaging', 0, 1, 0, 0, '{"pictograms":[]}'),
-(14, 'Capsule Gelatina Dura Tipo 0', '24/C003', 'CAPS-0-24', '2028-01-01', 880, 'n.', 0.02, 'Capsul-It', 0, 1, 0, 0, '{"pictograms":[]}'),
-(15, 'Busta per tisana 100g', '24/C004', 'BUST-24', '2029-01-01', 300, 'n.', 0.15, 'Pharma-Packaging', 0, 1, 0, 0, '{"pictograms":[]}');
-
-
--- PREPARAZIONI (7 magistrali, 3 officinali, 2 in bozza)
-INSERT INTO `preparations` (`id`, `prepNumber`, `name`, `date`, `patient`, `doctor`, `recipeDate`, `prepType`, `pharmaceuticalForm`, `quantity`, `prepUnit`, `expiryDate`, `posology`, `status`, `totalPrice`, `patientPhone`, `usage`, `techOps`) VALUES
-(1, '24/P001', 'Minoxidil 5% Lozione', '2024-04-15', 'Mario Rossi', 'Dr. Bianchi', '2024-04-10', 'magistrale', 'Preparazioni liquide (soluzioni)', 100, 'ml', '2024-07-15', '1ml sul cuoio capelluto due volte al giorno.', 'Completata', 28.50, '3331234567', 'Topica', '["SOLUBILIZZAZIONE"]'),
-(2, '24/P002', 'Idrocortisone 1% Crema', '2024-04-14', 'Laura Verdi', 'Dr. Neri', '2024-04-14', 'magistrale', 'Preparazioni semisolide per applicazione cutanea e paste', 50, 'g', '2024-10-14', 'Applicare 1-2 volte al giorno.', 'Completata', 22.50, '3478901234', 'Topica', '["MISCELAZIONE"]'),
-(3, '24/P003', 'Sildenafil 100mg', '2024-04-12', 'Giovanni Gialli', 'Dr. Azzurri', '2024-04-01', 'magistrale', 'Capsule', 10, 'n.', '2024-10-12', 'Una capsula al bisogno.', 'Completata', 55.20, '3385566778', 'Orale', '["MISCELAZIONE", "RIEMPIMENTO", "DIVISIONE_IN_DOSI"]'),
-(4, '24/P004', 'Melatonina 5mg - Bozza', '2024-04-11', 'Paola Neri', 'Autoprescrizione', '2024-04-11', 'magistrale', 'Capsule', 60, 'n.', '2024-10-11', 'Una capsula la sera.', 'Bozza', 32.80, '3358877665', 'Orale', '[]'),
-(5, '24/P005', 'Acido Salicilico 5% Unguento', '2024-04-10', 'Franco Marroni', 'Dr. Rossi', '2024-04-09', 'magistrale', 'Preparazioni semisolide per applicazione cutanea e paste', 100, 'g', '2024-07-10', 'Applicare localmente.', 'Completata', 19.40, '', 'Topica', '[]'),
-(6, '24/P006', 'Cartine di Fermenti', '2024-04-08', 'Bambino Rossi', 'Dr. Pediatra', '2024-04-08', 'magistrale', 'Cartine e cialdini', 20, 'n.', '2024-06-08', 'Una al giorno.', 'Completata', 17.60, '3331234567', 'Orale', '[]'),
-(7, '24/P007', 'Clotrimazolo Ovuli', '2024-04-02', 'Giovanna Verdi', 'Dr. Ginecologo', '2024-04-01', 'magistrale', 'Suppositori e ovuli', 12, 'n.', '2024-07-02', 'Un ovulo la sera per 12 giorni.', 'Completata', 28.90, '3478901234', 'Vaginale', '["FUSIONE", "RIEMPIMENTO_STAMPI"]'),
-(8, '24/P008', 'Alcool Borico 3%', '2024-04-15', NULL, NULL, NULL, 'officinale', 'Preparazioni liquide (soluzioni)', 100, 'ml', '2025-04-15', 'Uso esterno.', 'Completata', 12.50, NULL, 'Topica', '[]'),
-(9, '24/P009', 'Tisana Rilassante - Bozza', '2024-04-12', NULL, NULL, NULL, 'officinale', 'Polveri composte e piante per tisane', 100, 'g', '2024-12-12', 'Un cucchiaio in acqua calda.', 'Bozza', 15.80, NULL, 'Orale', '["MISCELAZIONE"]'),
-(10, '24/P010', 'Eosina 1% Soluzione Acquosa', '2024-03-25', NULL, NULL, NULL, 'officinale', 'Preparazioni liquide (soluzioni)', 50, 'ml', '2024-09-25', 'Applicare sulla parte interessata.', 'Completata', 10.20, NULL, 'Topica', '[]');
-
--- INGREDIENTI DELLE PREPARAZIONI
-INSERT INTO `preparation_ingredients` (`preparationId`, `inventoryId`, `amountUsed`) VALUES
-(1, 1, 5.00), (1, 7, 20.00), (1, 8, 50.00), (1, 12, 1.00),
-(2, 2, 0.50), (2, 9, 49.50), (2, 13, 1.00),
-(3, 3, 1.00), (3, 10, 4.00), (3, 14, 10.00),
-(4, 5, 0.30), (4, 10, 20.00), (4, 14, 60.00),
-(5, 4, 5.00), (5, 9, 95.00), (5, 13, 2.00),
-(6, 10, 15.00),
-(7, 6, 1.20),
-(8, 4, 3.00), (8, 8, 97.00),
-(9, 11, 100.00), (9, 15, 1.00),
-(10, 8, 50.00);
+-- 1. POPOLAMENTO MAGAZZINO (INVENTORY)
+INSERT INTO `inventory` (`id`, `name`, `ni`, `lot`, `expiry`, `quantity`, `unit`, `costPerGram`, `isExcipient`, `isContainer`, `minStock`, `supplier`, `receptionDate`, `disposed`) VALUES
+(1, 'Minoxidil Base', 'PA001', 'L-MX2025', DATE_ADD(CURDATE(), INTERVAL 2 YEAR), 100.00, 'g', 0.85, 0, 0, 10, 'Farmalabor', CURDATE(), 0),
+(2, 'Progesterone Micronizzato', 'PA002', 'L-PRG99', DATE_ADD(CURDATE(), INTERVAL 18 MONTH), 50.00, 'g', 1.20, 0, 0, 5, 'Acef', CURDATE(), 0),
+(3, 'Ketoconazolo', 'PA003', 'L-KETO1', DATE_ADD(CURDATE(), INTERVAL 3 YEAR), 50.00, 'g', 0.60, 0, 0, 5, 'Farmalabor', CURDATE(), 0),
+(4, 'Acido Salicilico', 'PA004', 'L-SAL01', DATE_ADD(CURDATE(), INTERVAL 2 YEAR), 250.00, 'g', 0.15, 0, 0, 20, 'Acef', CURDATE(), 0),
+(5, 'Urea USP', 'PA005', 'L-UR55', DATE_ADD(CURDATE(), INTERVAL 1 YEAR), 1000.00, 'g', 0.05, 0, 0, 100, 'Farmalabor', CURDATE(), 0),
+(6, 'Idrocortisone Acetato', 'PA006', 'L-HYD01', DATE_ADD(CURDATE(), INTERVAL 2 YEAR), 25.00, 'g', 2.50, 0, 0, 2, 'Acef', CURDATE(), 0),
+(7, 'Mentolo Cristalli', 'PA007', 'L-MNT01', DATE_ADD(CURDATE(), INTERVAL 4 YEAR), 100.00, 'g', 0.30, 0, 0, 10, 'Farmalabor', CURDATE(), 0),
+(8, 'Omeprazolo', 'PA008', 'L-OMP01', DATE_ADD(CURDATE(), INTERVAL 1 YEAR), 50.00, 'g', 1.50, 0, 0, 5, 'Acef', CURDATE(), 0),
+(9, 'Lattosio Monoidrato', 'ECC01', 'L-LAT01', DATE_ADD(CURDATE(), INTERVAL 3 YEAR), 2000.00, 'g', 0.02, 1, 0, 500, 'Acef', CURDATE(), 0),
+(10, 'Vaselina Bianca Filante', 'ECC02', 'L-VAS01', DATE_ADD(CURDATE(), INTERVAL 5 YEAR), 5000.00, 'g', 0.01, 1, 0, 1000, 'Farmalabor', CURDATE(), 0),
+(11, 'Crema Base Idrofila', 'ECC03', 'L-CRB01', DATE_ADD(CURDATE(), INTERVAL 1 YEAR), 1000.00, 'g', 0.08, 1, 0, 200, 'Acef', CURDATE(), 0),
+(12, 'Alcool Etilico 96°', 'ECC04', 'L-ALC96', DATE_ADD(CURDATE(), INTERVAL 10 YEAR), 5000.00, 'ml', 0.03, 1, 0, 1000, 'Distillerie Locali', CURDATE(), 0),
+(13, 'Acqua Depurata', 'ECC05', 'L-H2O', DATE_ADD(CURDATE(), INTERVAL 6 MONTH), 10000.00, 'ml', 0.001, 1, 0, 2000, 'Produzione Interna', CURDATE(), 0),
+(14, 'Capsule Tipo 0 (Trasparenti)', 'CON01', 'L-CPS0', DATE_ADD(CURDATE(), INTERVAL 5 YEAR), 2000.00, 'n.', 0.02, 0, 1, 200, 'Capsugel', CURDATE(), 0),
+(15, 'Capsule Tipo 1 (Bianche)', 'CON02', 'L-CPS1', DATE_ADD(CURDATE(), INTERVAL 5 YEAR), 1000.00, 'n.', 0.02, 0, 1, 200, 'Capsugel', CURDATE(), 0),
+(16, 'Flacone Vetro Scuro 100ml', 'CON03', 'L-FL100', DATE_ADD(CURDATE(), INTERVAL 10 YEAR), 100.00, 'n.', 0.80, 0, 1, 20, 'Vetreria', CURDATE(), 0),
+(17, 'Flacone Contagocce 10ml', 'CON04', 'L-FL10', DATE_ADD(CURDATE(), INTERVAL 10 YEAR), 200.00, 'n.', 0.50, 0, 1, 20, 'Vetreria', CURDATE(), 0),
+(18, 'Barattolo Unguento 50g', 'CON05', 'L-BAR50', DATE_ADD(CURDATE(), INTERVAL 10 YEAR), 150.00, 'n.', 0.40, 0, 1, 30, 'Plastica Srl', CURDATE(), 0),
+(19, 'Cartine Farmaceutiche', 'CON06', 'L-CRT01', DATE_ADD(CURDATE(), INTERVAL 5 YEAR), 500.00, 'n.', 0.05, 0, 1, 100, 'Acef', CURDATE(), 0);
 
 
--- LOG
-INSERT INTO `logs` (`date`, `type`, `substance`, `ni`, `quantity`, `unit`, `notes`, `operator`, `preparationId`) VALUES
-('2024-04-15', 'SCARICO', 'Minoxidil Base', '24/S001', 5.00, 'g', 'Prep. #24/P001', 'Sistema', 1),
-('2024-04-14', 'SCARICO', 'Idrocortisone Butirrato', '24/S002', 0.50, 'g', 'Prep. #24/P002', 'Sistema', 2),
-('2024-04-12', 'SCARICO', 'Sildenafil Citrato', '24/S003', 1.00, 'g', 'Prep. #24/P003', 'Sistema', 3),
-('2024-04-02', 'CARICO', 'Sildenafil Citrato', '24/S003', 200.00, 'g', 'DDT 123', 'Sistema', NULL),
-('2024-03-25', 'CARICO', 'Minoxidil Base', '24/S001', 500.00, 'g', 'DDT 119', 'Sistema', NULL);
+-- 2. POPOLAMENTO PREPARAZIONI (PREPARATIONS)
+-- Schema completo senza 'details', con tutti i campi esplosi.
+
+-- P1: Capsule Minoxidil 2mg (Capsule) - Magistrale
+INSERT INTO `preparations` (`id`, `prepNumber`, `name`, `pharmaceuticalForm`, `quantity`, `prepUnit`, `expiryDate`, `date`, `status`, `prepType`, `patient`, `doctor`, `uniformityCheck`) 
+VALUES (1, '26/P001', 'Minoxidil 2mg Capsule', 'Capsule', '100', 'unità', DATE_ADD(CURDATE(), INTERVAL 6 MONTH), CURDATE(), 'Completata', 'magistrale', 'Mario Rossi', 'Dr. Bianchi',
+'{"enabled":true, "sampleSize":10, "targetWeight":300, "tareWeight":95, "measurements":[395,398,400,392,399,401,397,395,402,398], "isCompliant":true, "isComplete":true}'
+);
+
+-- P2: Crema Idrocortisone 1% (Semisolide Cutanee) - Magistrale
+INSERT INTO `preparations` (`id`, `prepNumber`, `name`, `pharmaceuticalForm`, `quantity`, `prepUnit`, `expiryDate`, `date`, `status`, `prepType`, `patient`, `doctor`) 
+VALUES (2, '26/P002', 'Crema Idrocortisone 1%', 'Preparazioni semisolide per applicazione cutanea e paste', '50', 'g', DATE_ADD(CURDATE(), INTERVAL 3 MONTH), CURDATE(), 'Completata', 'magistrale', 'Luigi Verdi', 'Dr. Neri');
+
+-- P3: Lozione Minoxidil 5% (Liquide) - Magistrale
+INSERT INTO `preparations` (`id`, `prepNumber`, `name`, `pharmaceuticalForm`, `quantity`, `prepUnit`, `expiryDate`, `date`, `status`, `prepType`, `patient`, `doctor`) 
+VALUES (3, '26/P003', 'Lozione Minoxidil 5%', 'Preparazioni liquide (soluzioni)', '100', 'ml', DATE_ADD(CURDATE(), INTERVAL 6 MONTH), CURDATE(), 'Completata', 'magistrale', 'Anna Gialli', 'Dr. Bianchi');
+
+-- P4: Cartine Acido Salicilico (Cartine) - Magistrale
+INSERT INTO `preparations` (`id`, `prepNumber`, `name`, `pharmaceuticalForm`, `quantity`, `prepUnit`, `expiryDate`, `date`, `status`, `prepType`, `patient`, `doctor`) 
+VALUES (4, '26/P004', 'Cartine Acido Salicilico 500mg', 'Cartine e cialdini', '20', 'unità', DATE_ADD(CURDATE(), INTERVAL 1 YEAR), CURDATE(), 'Bozza', 'magistrale', 'Giuseppe Blu', 'Dr. Rosa');
+
+-- P5: Ovuli Progesterone (Suppositori) - Magistrale
+INSERT INTO `preparations` (`id`, `prepNumber`, `name`, `pharmaceuticalForm`, `quantity`, `prepUnit`, `expiryDate`, `date`, `status`, `prepType`, `patient`, `doctor`) 
+VALUES (5, '26/P005', 'Ovuli Progesterone 200mg', 'Suppositori e ovuli', '12', 'unità', DATE_ADD(CURDATE(), INTERVAL 3 MONTH), CURDATE(), 'Bozza', 'magistrale', 'Maria Viola', 'Dr. Bianchi');
+
+-- P6: Collirio Atropina (Colliri) - Magistrale
+INSERT INTO `preparations` (`id`, `prepNumber`, `name`, `pharmaceuticalForm`, `quantity`, `prepUnit`, `expiryDate`, `date`, `status`, `prepType`, `patient`, `doctor`) 
+VALUES (6, '26/P006', 'Collirio Atropina 0.01%', 'Colliri sterili (soluzioni)', '10', 'ml', DATE_ADD(CURDATE(), INTERVAL 1 MONTH), CURDATE(), 'Bozza', 'magistrale', 'Bambino Rossi', 'Dr. Oculista');
+
+-- P7: Pasta all'Acqua (Paste) - Magistrale
+INSERT INTO `preparations` (`id`, `prepNumber`, `name`, `pharmaceuticalForm`, `quantity`, `prepUnit`, `expiryDate`, `date`, `status`, `prepType`, `patient`, `doctor`) 
+VALUES (7, '26/P007', 'Pasta all\'Ossido di Zinco', 'Preparazioni semisolide per applicazione cutanea e paste', '100', 'g', DATE_ADD(CURDATE(), INTERVAL 1 YEAR), CURDATE(), 'Completata', 'magistrale', 'Anonimo', 'Dr. Derma');
+
+-- P8: Emulsione Corpo (Emulsioni) - Magistrale
+INSERT INTO `preparations` (`id`, `prepNumber`, `name`, `pharmaceuticalForm`, `quantity`, `prepUnit`, `expiryDate`, `date`, `status`, `prepType`, `patient`, `doctor`) 
+VALUES (8, '26/P008', 'Emulsione Idratante Urea 10%', 'Emulsioni, sospensioni e miscele di olii', '200', 'g', DATE_ADD(CURDATE(), INTERVAL 6 MONTH), CURDATE(), 'Bozza', 'magistrale', 'Luisa Neri', 'Dr. Bianchi');
+
+-- P9: Estratto Idroalcolico (Estratti) - Magistrale
+INSERT INTO `preparations` (`id`, `prepNumber`, `name`, `pharmaceuticalForm`, `quantity`, `prepUnit`, `expiryDate`, `date`, `status`, `prepType`, `patient`, `doctor`) 
+VALUES (9, '26/P009', 'Tintura Mentolo 1%', 'Estratti liquidi e tinture', '50', 'ml', DATE_ADD(CURDATE(), INTERVAL 1 YEAR), CURDATE(), 'Completata', 'magistrale', 'Marco Polo', 'Dr. Verdi');
+
+-- P10: Polvere Composta (Tisane) - Magistrale
+INSERT INTO `preparations` (`id`, `prepNumber`, `name`, `pharmaceuticalForm`, `quantity`, `prepUnit`, `expiryDate`, `date`, `status`, `prepType`, `patient`, `doctor`) 
+VALUES (10, '26/P010', 'Polvere Composta Digestiva', 'Polveri composte e piante per tisane', '100', 'g', DATE_ADD(CURDATE(), INTERVAL 1 YEAR), CURDATE(), 'Bozza', 'magistrale', 'Sig.ra Rosa', 'Dr. Erbe');
+
+-- P11: Pillole Veterinarie (Pillole) - Magistrale
+INSERT INTO `preparations` (`id`, `prepNumber`, `name`, `pharmaceuticalForm`, `quantity`, `prepUnit`, `expiryDate`, `date`, `status`, `prepType`, `patient`, `doctor`) 
+VALUES (11, '26/P011', 'Pillole Ketoconazolo Vet', 'Pillole, pastiglie e granulati (a unità)', '30', 'unità', DATE_ADD(CURDATE(), INTERVAL 1 YEAR), CURDATE(), 'Completata', 'magistrale', 'Fido (Cane)', 'Dr. Vet');
+
+
+-- 3. LINK INGREDIENTI (PREPARATION_INGREDIENTS)
+
+-- P1: Capsule Minoxidil (1: Minoxidil, 9: Lattosio, 14: Capsule 0)
+INSERT INTO `preparation_ingredients` (`preparationId`, `inventoryId`, `amountUsed`, `isExcipient`, `stockDeduction`) VALUES
+(1, 1, 0.20, 0, 0.20), -- Minoxidil
+(1, 9, 29.80, 1, 30.00), -- Lattosio
+(1, 14, 100, 0, NULL); -- Capsule 0
+
+-- P2: Crema Idro (6: Idro, 11: Crema Base, 18: Barattolo)
+INSERT INTO `preparation_ingredients` (`preparationId`, `inventoryId`, `amountUsed`, `isExcipient`, `stockDeduction`) VALUES
+(2, 6, 0.50, 0, 0.50), -- Idrocortisone
+(2, 11, 49.50, 1, 50.00), -- Crema Base
+(2, 18, 1, 0, NULL); -- Barattolo
+
+-- P3: Lozione (1: Minox, 12: Alcool, 13: Acqua, 16: Flacone 100)
+INSERT INTO `preparation_ingredients` (`preparationId`, `inventoryId`, `amountUsed`, `isExcipient`, `stockDeduction`) VALUES
+(3, 1, 5.00, 0, 5.00), -- Minoxidil
+(3, 12, 70.00, 1, 70.00), -- Alcool
+(3, 13, 25.00, 1, 25.00), -- Acqua
+(3, 16, 1, 0, NULL); -- Flacone
+
+-- P4: Cartine (4: Salicilico, 9: Lattosio, 19: Cartine)
+INSERT INTO `preparation_ingredients` (`preparationId`, `inventoryId`, `amountUsed`, `isExcipient`, `stockDeduction`) VALUES
+(4, 4, 10.00, 0, 10.00), -- Salicilico
+(4, 9, 10.00, 1, 10.00), -- Lattosio
+(4, 19, 20, 0, NULL); -- Cartine
+
+-- P5: Ovuli (2: Progesterone, 10: Vaselina/Burro Cacao sim, 10: Vaselina usata come base)
+INSERT INTO `preparation_ingredients` (`preparationId`, `inventoryId`, `amountUsed`, `isExcipient`, `stockDeduction`) VALUES
+(5, 2, 2.40, 0, 2.40), -- Progesterone (200mg * 12)
+(5, 10, 20.00, 1, 20.00); -- Base
+
+-- P6: Collirio (13: Acqua, 17: Flacone 10)
+INSERT INTO `preparation_ingredients` (`preparationId`, `inventoryId`, `amountUsed`, `isExcipient`, `stockDeduction`) VALUES
+(6, 13, 10.00, 1, 10.00), -- Acqua
+(6, 17, 1, 0, NULL); -- Flacone 10
+
+-- P7: Pasta (10: Vaselina, 4: Salicilico usata come polvere inerte sim, 18: Barattolo)
+INSERT INTO `preparation_ingredients` (`preparationId`, `inventoryId`, `amountUsed`, `isExcipient`, `stockDeduction`) VALUES
+(7, 10, 50.00, 1, 50.00),
+(7, 4, 50.00, 0, 50.00),
+(7, 18, 2, 0, NULL); -- 2 Barattoli da 50
+
+-- P8: Emulsione (5: Urea, 11: Crema Base, 18: Barattolo)
+INSERT INTO `preparation_ingredients` (`preparationId`, `inventoryId`, `amountUsed`, `isExcipient`, `stockDeduction`) VALUES
+(8, 5, 20.00, 0, 20.00),
+(8, 11, 180.00, 1, 180.00);
+
+-- P9: Tintura (7: Mentolo, 12: Alcool)
+INSERT INTO `preparation_ingredients` (`preparationId`, `inventoryId`, `amountUsed`, `isExcipient`, `stockDeduction`) VALUES
+(9, 7, 0.50, 0, 0.50),
+(9, 12, 49.50, 1, 50.00);
+
+-- P10: Polvere (4: Salicilico, 5: Urea, 9: Lattosio)
+INSERT INTO `preparation_ingredients` (`preparationId`, `inventoryId`, `amountUsed`, `isExcipient`, `stockDeduction`) VALUES
+(10, 4, 20.00, 0, 20.00),
+(10, 5, 20.00, 0, 20.00),
+(10, 9, 60.00, 1, 60.00);
+
+-- P11: Pillole Vet (3: Keto, 9: Lattosio)
+INSERT INTO `preparation_ingredients` (`preparationId`, `inventoryId`, `amountUsed`, `isExcipient`, `stockDeduction`) VALUES
+(11, 3, 3.00, 0, 3.00),
+(11, 9, 10.00, 1, 10.00);
