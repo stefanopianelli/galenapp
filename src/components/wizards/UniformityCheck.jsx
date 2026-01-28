@@ -8,7 +8,9 @@ const UniformityCheck = ({ totalQuantity, unit, ingredients, onUpdate, savedData
 
     // 2. Calcolo Peso Teorico Netto (Totale Grammi Sostanze / Numero Unità) * 1000 per mg
     const totalWeightGrams = ingredients.reduce((sum, ing) => {
-        if (ing.isContainer) return sum;
+        // Escludi contenitori e tutto ciò che è misurato in numero (es. capsule vuote)
+        if (ing.isContainer || ing.unit === 'n.' || ing.unit === 'unità') return sum;
+        
         // Usa la pesata reale (stockDeduction) se c'è, altrimenti teorica
         const qty = ing.stockDeduction && ing.stockDeduction > 0 ? parseFloat(ing.stockDeduction) : parseFloat(ing.amountUsed);
         return sum + qty;
