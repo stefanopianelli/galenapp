@@ -122,8 +122,8 @@ const UniformityCheck = ({ totalQuantity, unit, ingredients, onUpdate, savedData
                                 <input
                                     type="number"
                                     className={`w-full pt-6 pb-2 px-3 text-right font-mono text-sm border rounded-lg outline-none focus:ring-2 transition-all ${
-                                        !res ? 'border-slate-200 focus:ring-indigo-500' :
-                                        (res.isCompliant ? 'border-green-300 bg-green-50 focus:ring-green-500 text-green-800' : 'border-red-300 bg-red-50 focus:ring-red-500 text-red-800')
+                                        !res ? 'border-indigo-100 bg-white text-slate-800 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm' :
+                                        (res.isCompliant ? 'border-green-300 bg-green-50 focus:ring-green-500 text-green-900 font-bold' : 'border-red-300 bg-red-50 focus:ring-red-500 text-red-900 font-bold')
                                     }`}
                                     placeholder="0"
                                     value={val}
