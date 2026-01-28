@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Plus, Filter, User, Truck, Stethoscope, Pencil, Trash2, X, Phone, Mail, MapPin } from 'lucide-react';
+import { Search, Plus, Filter, User, Truck, Stethoscope, Pencil, Trash2, X, Phone, Mail, MapPin, History, BarChart } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import { useApi } from '../../hooks/useApi';
+import { formatDate } from '../../utils/dateUtils';
 
 const ContactRow = ({ contact, onEdit, onDelete, canEdit }) => {
     const TypeIcon = {
@@ -13,13 +14,13 @@ const ContactRow = ({ contact, onEdit, onDelete, canEdit }) => {
 
     return (
         <tr className="border-b border-slate-50 hover:bg-slate-50 transition-colors text-sm">
-            <td className="px-4 py-3">
+            <td className="px-4 py-3 cursor-pointer" onClick={() => onEdit(contact)}>
                 <div className="flex items-center gap-3">
                     <div className={`p-2 rounded-full ${contact.type === 'supplier' ? 'bg-amber-100 text-amber-600' : contact.type === 'doctor' ? 'bg-blue-100 text-blue-600' : 'bg-teal-100 text-teal-600'}`}>
                         <TypeIcon size={16} />
                     </div>
                     <div>
-                        <div className="font-bold text-slate-700">{contact.name}</div>
+                        <div className="font-bold text-slate-700 hover:text-blue-600 transition-colors">{contact.name}</div>
                         {contact.taxId && <div className="text-[10px] text-slate-400 font-mono">{contact.taxId}</div>}
                     </div>
                 </div>
@@ -49,9 +50,10 @@ const ContactRow = ({ contact, onEdit, onDelete, canEdit }) => {
     );
 };
 
-const ContactModal = ({ isOpen, onClose, contact, onSave }) => {
+const ContactModal = ({ isOpen, onClose, contact, onSave, preparations }) => {
     const defaultData = { type: 'customer', name: '', taxId: '', email: '', phone: '', address: '', city: '', zip: '', province: '', notes: '' };
     const [formData, setFormData] = useState(defaultData);
+    const [activeTab, setActiveTab] = useState('info');
     const [taxIdError, setTaxIdError] = useState('');
     const [zipError, setZipError] = useState('');
 
@@ -60,8 +62,25 @@ const ContactModal = ({ isOpen, onClose, contact, onSave }) => {
             setFormData(contact || defaultData);
             setTaxIdError('');
             setZipError('');
+            setActiveTab('info');
         }
     }, [contact, isOpen]);
+
+    const contactHistory = useMemo(() => {
+        if (!contact || !preparations) return [];
+        const name = contact.name.toLowerCase();
+        return preparations.filter(p => {
+            if (contact.type === 'customer') return (p.patient || '').toLowerCase() === name;
+            if (contact.type === 'doctor') return (p.doctor || '').toLowerCase() === name;
+            return false; // Fornitori non tracciati in preparations
+        }).sort((a, b) => new Date(b.date) - new Date(a.date));
+    }, [contact, preparations]);
+
+    const stats = useMemo(() => {
+        const total = contactHistory.length;
+        const value = contactHistory.reduce((acc, p) => acc + parseFloat(p.totalPrice || 0), 0);
+        return { total, value };
+    }, [contactHistory]);
 
     const validateZip = (val) => {
         if (!val) { setZipError(''); return true; }
@@ -76,24 +95,15 @@ const ContactModal = ({ isOpen, onClose, contact, onSave }) => {
     const validateTaxId = (val) => {
         if (!val) { setTaxIdError(''); return true; }
         const cleanVal = val.toUpperCase().trim();
-        
-        // Validazione P.IVA (Fornitori)
         if (formData.type === 'supplier') {
             if (!/^[0-9]{11}$/.test(cleanVal)) {
                 setTaxIdError('P.IVA non valida (11 cifre)');
                 return false;
             }
-        } 
-        // Validazione CF (Persone Fisiche)
-        else {
-            // Regex base + Omocodia
+        } else {
             const cfRegex = /^[A-Z]{6}[0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]$/;
             if (!cfRegex.test(cleanVal)) {
-                // Controllo se è una P.IVA inserita per errore o Medico con P.IVA
-                if (/^[0-9]{11}$/.test(cleanVal)) {
-                    setTaxIdError('Formato P.IVA rilevato (atteso CF)');
-                    return true; // Accetta warning
-                }
+                if (/^[0-9]{11}$/.test(cleanVal)) { setTaxIdError('Formato P.IVA rilevato (atteso CF)'); return true; }
                 setTaxIdError('Codice Fiscale non valido');
                 return false;
             }
@@ -106,101 +116,147 @@ const ContactModal = ({ isOpen, onClose, contact, onSave }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        validateTaxId(formData.taxId); // Check finale ma non bloccante se si vuole forzare
+        validateTaxId(formData.taxId);
         onSave(formData);
     };
 
     return (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-in fade-in">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden">
-                <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                    <h3 className="font-bold text-lg text-slate-800">{formData.id ? 'Modifica Contatto' : 'Nuovo Contatto'}</h3>
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
+                    <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
+                        {formData.id ? formData.name : 'Nuovo Contatto'}
+                        {formData.id && (
+                            <div className="flex bg-slate-200 rounded-lg p-1 ml-4">
+                                <button onClick={() => setActiveTab('info')} className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${activeTab === 'info' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Dati</button>
+                                <button onClick={() => setActiveTab('history')} className={`px-3 py-1 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${activeTab === 'history' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`} disabled={!contact?.id}>
+                                    <History size={12}/> Storico
+                                </button>
+                            </div>
+                        )}
+                    </h3>
                     <button onClick={onClose}><X className="text-slate-400 hover:text-slate-600" /></button>
                 </div>
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="col-span-2">
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nome / Ragione Sociale *</label>
-                            <input required type="text" className="w-full border p-2 rounded-lg outline-none focus:ring-2 ring-blue-500" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tipo</label>
-                            <select className="w-full border p-2 rounded-lg outline-none focus:ring-2 ring-blue-500 bg-white" value={formData.type} onChange={e => { setFormData({...formData, type: e.target.value}); setTaxIdError(''); }}>
-                                <option value="customer">Cliente / Paziente</option>
-                                <option value="doctor">Medico</option>
-                                <option value="supplier">Fornitore</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Codice Fiscale / P.IVA</label>
-                            <input 
-                                type="text" 
-                                className={`w-full border p-2 rounded-lg outline-none focus:ring-2 font-mono uppercase ${taxIdError ? 'border-red-300 ring-red-200 bg-red-50' : 'ring-blue-500'}`} 
-                                value={formData.taxId || ''} 
-                                onChange={e => { setFormData({...formData, taxId: e.target.value.toUpperCase()}); setTaxIdError(''); }} 
-                                onBlur={(e) => validateTaxId(e.target.value)}
-                            />
-                            {taxIdError && <p className="text-xs text-red-600 mt-1 font-bold">{taxIdError}</p>}
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Telefono</label>
-                            <input type="text" className="w-full border p-2 rounded-lg outline-none focus:ring-2 ring-blue-500" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} />
-                        </div>
-                    </div>
+                
+                <div className="overflow-y-auto p-6 flex-1">
+                    {activeTab === 'info' ? (
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="col-span-2">
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nome / Ragione Sociale *</label>
+                                    <input required type="text" className="w-full border p-2 rounded-lg outline-none focus:ring-2 ring-blue-500" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tipo</label>
+                                    <select className="w-full border p-2 rounded-lg outline-none focus:ring-2 ring-blue-500 bg-white" value={formData.type} onChange={e => { setFormData({...formData, type: e.target.value}); setTaxIdError(''); }}>
+                                        <option value="customer">Cliente / Paziente</option>
+                                        <option value="doctor">Medico</option>
+                                        <option value="supplier">Fornitore</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Codice Fiscale / P.IVA</label>
+                                    <input type="text" className={`w-full border p-2 rounded-lg outline-none focus:ring-2 font-mono uppercase ${taxIdError ? 'border-red-300 ring-red-200 bg-red-50' : 'ring-blue-500'}`} value={formData.taxId || ''} onChange={e => { setFormData({...formData, taxId: e.target.value.toUpperCase()}); setTaxIdError(''); }} onBlur={(e) => validateTaxId(e.target.value)}/>
+                                    {taxIdError && <p className="text-xs text-red-600 mt-1 font-bold">{taxIdError}</p>}
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Telefono</label>
+                                    <input type="text" className="w-full border p-2 rounded-lg outline-none focus:ring-2 ring-blue-500" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                                </div>
+                            </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
-                            <input type="email" className="w-full border p-2 rounded-lg outline-none focus:ring-2 ring-blue-500" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Indirizzo</label>
-                            <input type="text" className="w-full border p-2 rounded-lg outline-none focus:ring-2 ring-blue-500" value={formData.address || ''} onChange={e => setFormData({...formData, address: e.target.value})} />
-                        </div>
-                    </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
+                                    <input type="email" className="w-full border p-2 rounded-lg outline-none focus:ring-2 ring-blue-500" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Indirizzo</label>
+                                    <input type="text" className="w-full border p-2 rounded-lg outline-none focus:ring-2 ring-blue-500" value={formData.address || ''} onChange={e => setFormData({...formData, address: e.target.value})} />
+                                </div>
+                            </div>
 
-                    <div className="grid grid-cols-6 gap-4">
-                        <div className="col-span-2">
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Città</label>
-                            <input type="text" className="w-full border p-2 rounded-lg outline-none focus:ring-2 ring-blue-500" value={formData.city || ''} onChange={e => setFormData({...formData, city: e.target.value})} />
-                        </div>
-                        <div className="col-span-2">
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">CAP</label>
-                            <input 
-                                type="text" 
-                                className={`w-full border p-2 rounded-lg outline-none focus:ring-2 font-mono ${zipError ? 'border-red-300 ring-red-200 bg-red-50' : 'ring-blue-500'}`} 
-                                value={formData.zip || ''} 
-                                onChange={e => { setFormData({...formData, zip: e.target.value}); setZipError(''); }} 
-                                onBlur={(e) => validateZip(e.target.value)}
-                                maxLength={5}
-                            />
-                            {zipError && <p className="text-xs text-red-600 mt-1 font-bold">{zipError}</p>}
-                        </div>
-                        <div className="col-span-2">
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Prov.</label>
-                            <input type="text" className="w-full border p-2 rounded-lg outline-none focus:ring-2 ring-blue-500 uppercase font-bold" maxLength={2} value={formData.province || ''} onChange={e => setFormData({...formData, province: e.target.value.toUpperCase()})} />
-                        </div>
-                    </div>
+                            <div className="grid grid-cols-6 gap-4">
+                                <div className="col-span-2">
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Città</label>
+                                    <input type="text" className="w-full border p-2 rounded-lg outline-none focus:ring-2 ring-blue-500" value={formData.city || ''} onChange={e => setFormData({...formData, city: e.target.value})} />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">CAP</label>
+                                    <input type="text" className={`w-full border p-2 rounded-lg outline-none focus:ring-2 font-mono ${zipError ? 'border-red-300 ring-red-200 bg-red-50' : 'ring-blue-500'}`} value={formData.zip || ''} onChange={e => { setFormData({...formData, zip: e.target.value.toUpperCase()}); setZipError(''); }} onBlur={(e) => validateZip(e.target.value)} maxLength={5}/>
+                                    {zipError && <p className="text-xs text-red-600 mt-1 font-bold">{zipError}</p>}
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Prov.</label>
+                                    <input type="text" className="w-full border p-2 rounded-lg outline-none focus:ring-2 ring-blue-500 uppercase font-bold" maxLength={2} value={formData.province || ''} onChange={e => setFormData({...formData, province: e.target.value.toUpperCase()})} />
+                                </div>
+                            </div>
 
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Note</label>
-                        <textarea className="w-full border p-2 rounded-lg outline-none focus:ring-2 ring-blue-500 h-20 resize-none" value={formData.notes || ''} onChange={e => setFormData({...formData, notes: e.target.value})} />
-                    </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Note</label>
+                                <textarea className="w-full border p-2 rounded-lg outline-none focus:ring-2 ring-blue-500 h-20 resize-none" value={formData.notes || ''} onChange={e => setFormData({...formData, notes: e.target.value})} />
+                            </div>
 
-                    <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
-                        <button type="button" onClick={onClose} className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">Annulla</button>
-                        <button type="submit" className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-md">Salva</button>
-                    </div>
-                </form>
+                            <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+                                <button type="button" onClick={onClose} className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">Annulla</button>
+                                <button type="submit" className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-md">Salva</button>
+                            </div>
+                        </form>
+                    ) : (
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                    <div className="text-blue-600 text-xs font-bold uppercase mb-1">Preparazioni Totali</div>
+                                    <div className="text-2xl font-bold text-slate-800">{stats.total}</div>
+                                </div>
+                                <div className="bg-teal-50 p-4 rounded-xl border border-teal-100">
+                                    <div className="text-teal-600 text-xs font-bold uppercase mb-1">Valore Totale</div>
+                                    <div className="text-2xl font-bold text-slate-800">€ {stats.value.toFixed(2)}</div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2"><History size={18} className="text-slate-400"/> Storico Recente</h4>
+                                {contactHistory.length > 0 ? (
+                                    <div className="border rounded-lg overflow-hidden">
+                                        <table className="w-full text-sm text-left">
+                                            <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
+                                                <tr>
+                                                    <th className="px-4 py-2">Data</th>
+                                                    <th className="px-4 py-2">Preparazione</th>
+                                                    <th className="px-4 py-2 text-right">Prezzo</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {contactHistory.map(p => (
+                                                    <tr key={p.id} className="hover:bg-slate-50">
+                                                        <td className="px-4 py-2 whitespace-nowrap">{formatDate(p.date)}</td>
+                                                        <td className="px-4 py-2 font-medium text-slate-700">
+                                                            <div className="truncate max-w-[200px]" title={p.name}>{p.name}</div>
+                                                            <div className="text-[10px] text-slate-400">{p.prepNumber}</div>
+                                                        </td>
+                                                        <td className="px-4 py-2 text-right font-mono">€ {parseFloat(p.totalPrice || 0).toFixed(2)}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <p className="text-slate-400 italic text-center py-4">Nessuna preparazione trovata per questo contatto.</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
 };
 
-const Contacts = ({ canEdit }) => {
+const Contacts = ({ canEdit, preparations }) => {
     const [contacts, setContacts] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -299,6 +355,7 @@ const Contacts = ({ canEdit }) => {
                 onClose={() => setIsModalOpen(false)} 
                 contact={editingContact} 
                 onSave={handleSave} 
+                preparations={preparations}
             />
         </div>
     );
