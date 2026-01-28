@@ -50,7 +50,7 @@ const ContactRow = ({ contact, onEdit, onDelete, canEdit }) => {
     );
 };
 
-const ContactModal = ({ isOpen, onClose, contact, onSave, preparations }) => {
+const ContactModal = ({ isOpen, onClose, contact, onSave, preparations, handleShowPreparation }) => {
     const defaultData = { type: 'customer', name: '', taxId: '', email: '', phone: '', address: '', city: '', zip: '', province: '', notes: '' };
     const [formData, setFormData] = useState(defaultData);
     const [activeTab, setActiveTab] = useState('info');
@@ -232,7 +232,12 @@ const ContactModal = ({ isOpen, onClose, contact, onSave, preparations }) => {
                                             </thead>
                                             <tbody className="divide-y divide-slate-100">
                                                 {contactHistory.map(p => (
-                                                    <tr key={p.id} className="hover:bg-slate-50">
+                                                    <tr 
+                                                        key={p.id} 
+                                                        className="hover:bg-slate-50 cursor-pointer transition-colors"
+                                                        onClick={() => { handleShowPreparation(p.id); onClose(); }}
+                                                        title="Vai alla preparazione"
+                                                    >
                                                         <td className="px-4 py-2 whitespace-nowrap">{formatDate(p.date)}</td>
                                                         <td className="px-4 py-2 font-medium text-slate-700">
                                                             <div className="truncate max-w-[200px]" title={p.name}>{p.name}</div>
@@ -256,7 +261,7 @@ const ContactModal = ({ isOpen, onClose, contact, onSave, preparations }) => {
     );
 };
 
-const Contacts = ({ canEdit, preparations }) => {
+const Contacts = ({ canEdit, preparations, handleShowPreparation }) => {
     const [contacts, setContacts] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -356,6 +361,7 @@ const Contacts = ({ canEdit, preparations }) => {
                 contact={editingContact} 
                 onSave={handleSave} 
                 preparations={preparations}
+                handleShowPreparation={handleShowPreparation}
             />
         </div>
     );

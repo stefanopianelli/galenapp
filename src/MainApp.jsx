@@ -647,7 +647,7 @@ export default function MainApp() {
       case 'reporting':
         return <Reporting preparations={preparations} inventory={inventory} />;
       case 'contacts':
-        return <Contacts canEdit={canEdit} preparations={preparations} />;
+        return <Contacts canEdit={canEdit} preparations={preparations} handleShowPreparation={handleShowPreparation} />;
       case 'settings':
         return <SettingsComponent settings={pharmacySettings} setSettings={handleSaveSettings} isAdmin={isAdmin} />;
       case 'user_management':
