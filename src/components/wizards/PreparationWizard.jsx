@@ -1084,10 +1084,10 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                     <button onClick={() => setStep(1)} className="text-slate-500 hover:text-slate-700 font-medium px-4 py-2 hover:bg-slate-100 rounded-lg transition-colors">Indietro</button>
                     <button 
                         disabled={selectedIngredients.length === 0 || (details.status !== 'Completata' && selectedIngredients.some(ing => { const item = inventory.find(i => String(i.id) === String(ing.id)); const ded = (ing.stockDeduction > 0) ? ing.stockDeduction : ing.amountUsed; return item && ded > parseFloat(item.quantity); }))} 
-                        onClick={() => setStep(3)} 
+                        onClick={() => setStep(isOfficinale ? 4 : 3)} 
                         className="bg-teal-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-md transition-all transform hover:-translate-y-0.5 flex items-center gap-2"
                     >
-                        Calcola Prezzo <ArrowRight size={18}/>
+                        {isOfficinale ? "Avanti" : "Calcola Prezzo"} <ArrowRight size={18}/>
                     </button>
                 </div>
             </div>
@@ -1321,7 +1321,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                 {selectedIngredients.filter(ing => ing.isContainer && !ing.isExcipient).length === 0 && (<p className="text-center text-slate-400 italic py-12">Nessun contenitore primario selezionato.<br/>Definisci almeno un contenitore come 'Primario (Lotto)' nello Step 2.</p>)}
               </div>
               <div className="pt-6 flex justify-between border-t border-slate-100 mt-8">
-                  <button onClick={() => setStep(3)} className="text-slate-500 hover:text-slate-700 font-medium px-4 py-2 hover:bg-slate-100 rounded-lg transition-colors">Indietro</button>
+                  <button onClick={() => setStep(2)} className="text-slate-500 hover:text-slate-700 font-medium px-4 py-2 hover:bg-slate-100 rounded-lg transition-colors">Indietro</button>
                   <button 
                       disabled={Math.abs(calculateBatchBalance()) >= 0.01} 
                       onClick={() => setStep(5)} 
