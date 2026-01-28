@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Plus, X, Filter, Package, Archive, Pencil, Trash2, ArrowUp, ArrowDown, FlaskConical, Box, Eye, ChevronRight, ChevronDown } from 'lucide-react';
+import { Search, Plus, X, Filter, Package, Archive, Pencil, Trash2, ArrowUp, ArrowDown, FlaskConical, Box, Eye, ChevronRight, ChevronDown, Copy } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import { formatDate } from '../../utils/dateUtils';
@@ -23,7 +23,7 @@ const SortableHeader = ({ label, columnKey, sortConfig, requestSort, className =
   </th>
 );
 
-const InventoryRow = ({ item, isChild = false, handleOpenViewModal, handleOpenEditModal, handleDispose, canEdit }) => {
+const InventoryRow = ({ item, isChild = false, handleOpenViewModal, handleOpenEditModal, handleDuplicateInventory, handleDispose, canEdit }) => {
     const days = (new Date(item.expiry) - new Date()) / (1000 * 60 * 60 * 24);
     const isExpiring = days > 0 && days <= 30;
     const rowClass = isChild ? "bg-slate-50/50 hover:bg-slate-100" : (isExpiring ? "bg-yellow-50" : "hover:bg-slate-50");
@@ -52,6 +52,7 @@ const InventoryRow = ({ item, isChild = false, handleOpenViewModal, handleOpenEd
             {canEdit ? (
               <>
                 <button onClick={() => handleOpenEditModal(item)} className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Modifica"><Pencil size={14} /></button>
+                <button onClick={() => handleDuplicateInventory(item)} className="p-1 text-teal-600 hover:bg-teal-50 rounded transition-colors" title="Duplica"><Copy size={14} /></button>
                 <button onClick={() => handleDispose(item.id)} className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Smaltisci"><Trash2 size={14} /></button>
               </>
             ) : (
@@ -93,7 +94,7 @@ const groupData = (items) => {
   return orderedGroups;
 };
 
-const InventoryTable = ({ data, type, sortConfig, requestSort, handleOpenViewModal, handleOpenEditModal, handleDispose, canEdit }) => {
+const InventoryTable = ({ data, type, sortConfig, requestSort, handleOpenViewModal, handleOpenEditModal, handleDuplicateInventory, handleDispose, canEdit }) => {
   const groups = groupData(data);
   const [expandedGroups, setExpandedGroups] = useState({});
 
@@ -127,6 +128,7 @@ const InventoryTable = ({ data, type, sortConfig, requestSort, handleOpenViewMod
                         item={group.items[0]} 
                         handleOpenViewModal={handleOpenViewModal}
                         handleOpenEditModal={handleOpenEditModal}
+                        handleDuplicateInventory={handleDuplicateInventory}
                         handleDispose={handleDispose}
                         canEdit={canEdit}
                     />
@@ -172,6 +174,7 @@ const InventoryTable = ({ data, type, sortConfig, requestSort, handleOpenViewMod
                             isChild={true} 
                             handleOpenViewModal={handleOpenViewModal}
                             handleOpenEditModal={handleOpenEditModal}
+                            handleDuplicateInventory={handleDuplicateInventory}
                             handleDispose={handleDispose}
                             canEdit={canEdit}
                           />
@@ -201,6 +204,7 @@ const Inventory = ({
   handleOpenAddModal,
   handleOpenEditModal,
   handleOpenViewModal,
+  handleDuplicateInventory,
   handleDispose,
   sortConfig,
   requestSort,
@@ -283,6 +287,7 @@ const Inventory = ({
             requestSort={requestSort}
             handleOpenViewModal={handleOpenViewModal}
             handleOpenEditModal={handleOpenEditModal}
+            handleDuplicateInventory={handleDuplicateInventory}
             handleDispose={handleDispose}
             canEdit={canEdit}
         />
@@ -297,6 +302,7 @@ const Inventory = ({
             requestSort={requestSort}
             handleOpenViewModal={handleOpenViewModal}
             handleOpenEditModal={handleOpenEditModal}
+            handleDuplicateInventory={handleDuplicateInventory}
             handleDispose={handleDispose}
             canEdit={canEdit}
         />

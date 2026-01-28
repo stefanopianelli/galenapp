@@ -583,6 +583,29 @@ export default function MainApp() {
   };
   const startNewPreparation = (type) => { setEditingPrep({ prepType: type }); setIsPrepTypeModalOpen(false); setActiveTab('preparation'); };
   
+  const handleDuplicateInventory = (item) => {
+    const duplicatedData = {
+        ...item,
+        id: null, // Nuovo record
+        ni: getNextNi(inventory, item.isContainer), // Auto-genera NI successivo
+        lot: '',
+        expiry: '',
+        quantity: '',
+        totalCost: '',
+        costPerGram: '',
+        supplier: '', // Reset fornitore (potrebbe cambiare)
+        receptionDate: new Date().toISOString().split('T')[0], // Data odierna
+        ddtNumber: '',
+        ddtDate: '',
+        firstUseDate: null,
+        endUseDate: null,
+        disposed: false,
+        // Mantieni: name, supplier, purity, minStock, flags, securityData
+    };
+    setNewSubstance(duplicatedData);
+    setIsAddModalOpen(true);
+  };
+
   if (loadingData) return <div className="flex h-screen items-center justify-center bg-slate-50 text-slate-500 gap-2"><Loader2 className="animate-spin" /> Caricamento...</div>;
   
   const renderContent = () => {
@@ -590,7 +613,7 @@ export default function MainApp() {
       case 'dashboard':
         return <Dashboard stats={stats} logs={logs} inventory={inventory} preparations={preparations} setActiveTab={handleTabChange} setInventoryFilter={setInventoryFilter} setPreparationLogFilter={setPreparationLogFilter} handleShowPreparation={handleShowPreparation} handleShowSubstanceInInventory={handleShowSubstanceInInventory} onNewPreparation={startNewPreparation} onOpenAddModal={handleOpenAddModal} />;
       case 'inventory':
-        return <Inventory inventoryFilter={inventoryFilter} setInventoryFilter={setInventoryFilter} searchTerm={searchTerm} setSearchTerm={setSearchTerm} sortedActiveInventory={sortedActiveInventory} sortedDisposedInventory={sortedDisposedInventory} handleOpenAddModal={handleOpenAddModal} handleOpenEditModal={handleOpenEditModal} handleOpenViewModal={handleOpenViewModal} handleDispose={handleDispose} sortConfig={sortConfig} requestSort={requestSort} activeSubstanceFilter={inventoryFilterSubstance} clearSubstanceFilter={() => setInventoryFilterSubstance(null)} canEdit={canEdit} />;
+        return <Inventory inventoryFilter={inventoryFilter} setInventoryFilter={setInventoryFilter} searchTerm={searchTerm} setSearchTerm={setSearchTerm} sortedActiveInventory={sortedActiveInventory} sortedDisposedInventory={sortedDisposedInventory} handleOpenAddModal={handleOpenAddModal} handleOpenEditModal={handleOpenEditModal} handleOpenViewModal={handleOpenViewModal} handleDuplicateInventory={handleDuplicateInventory} handleDispose={handleDispose} sortConfig={sortConfig} requestSort={requestSort} activeSubstanceFilter={inventoryFilterSubstance} clearSubstanceFilter={() => setInventoryFilterSubstance(null)} canEdit={canEdit} />;
       case 'preparations_log':
         return <PreparationsLog preparations={filteredPreparations} handleJumpToStep={handleJumpToStep} handleDuplicatePreparation={handleDuplicatePreparation} handleDeletePreparation={handleDeletePreparation} activeFilter={preparationLogFilter} clearFilter={() => setPreparationLogFilter(null)} searchTerm={prepSearchTerm} setSearchTerm={setPrepSearchTerm} sortConfig={prepSortConfig} requestSort={requestPrepSort} prepTypeFilter={prepTypeFilter} setPrepTypeFilter={setPrepTypeFilter} canEdit={canEdit} pharmacySettings={pharmacySettings} onPrintLabel={handleOpenPrintModal} isAdmin={isAdmin} />;
       case 'preparation':
