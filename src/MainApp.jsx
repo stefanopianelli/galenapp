@@ -86,6 +86,7 @@ export default function MainApp() {
   const handleScanSuccess = (prepId) => {
       setPreparationLogFilter(parseInt(prepId));
       handleTabChange('preparations_log');
+      setIsScannerOpen(false);
   };
 
   const handleOpenPrintModal = (prep) => {
