@@ -52,17 +52,61 @@ const ContactRow = ({ contact, onEdit, onDelete, canEdit }) => {
 const ContactModal = ({ isOpen, onClose, contact, onSave }) => {
     const defaultData = { type: 'customer', name: '', taxId: '', email: '', phone: '', address: '', city: '', zip: '', province: '', notes: '' };
     const [formData, setFormData] = useState(defaultData);
+    const [taxIdError, setTaxIdError] = useState('');
+    const [zipError, setZipError] = useState('');
 
     React.useEffect(() => {
         if (isOpen) {
             setFormData(contact || defaultData);
+            setTaxIdError('');
+            setZipError('');
         }
     }, [contact, isOpen]);
+
+    const validateZip = (val) => {
+        if (!val) { setZipError(''); return true; }
+        if (!/^\d{5}$/.test(val)) {
+            setZipError('CAP non valido (5 cifre)');
+            return false;
+        }
+        setZipError('');
+        return true;
+    };
+
+    const validateTaxId = (val) => {
+        if (!val) { setTaxIdError(''); return true; }
+        const cleanVal = val.toUpperCase().trim();
+        
+        // Validazione P.IVA (Fornitori)
+        if (formData.type === 'supplier') {
+            if (!/^[0-9]{11}$/.test(cleanVal)) {
+                setTaxIdError('P.IVA non valida (11 cifre)');
+                return false;
+            }
+        } 
+        // Validazione CF (Persone Fisiche)
+        else {
+            // Regex base + Omocodia
+            const cfRegex = /^[A-Z]{6}[0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]$/;
+            if (!cfRegex.test(cleanVal)) {
+                // Controllo se è una P.IVA inserita per errore o Medico con P.IVA
+                if (/^[0-9]{11}$/.test(cleanVal)) {
+                    setTaxIdError('Formato P.IVA rilevato (atteso CF)');
+                    return true; // Accetta warning
+                }
+                setTaxIdError('Codice Fiscale non valido');
+                return false;
+            }
+        }
+        setTaxIdError('');
+        return true;
+    };
 
     if (!isOpen) return null;
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        validateTaxId(formData.taxId); // Check finale ma non bloccante se si vuole forzare
         onSave(formData);
     };
 
@@ -81,7 +125,7 @@ const ContactModal = ({ isOpen, onClose, contact, onSave }) => {
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tipo</label>
-                            <select className="w-full border p-2 rounded-lg outline-none focus:ring-2 ring-blue-500 bg-white" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})}>
+                            <select className="w-full border p-2 rounded-lg outline-none focus:ring-2 ring-blue-500 bg-white" value={formData.type} onChange={e => { setFormData({...formData, type: e.target.value}); setTaxIdError(''); }}>
                                 <option value="customer">Cliente / Paziente</option>
                                 <option value="doctor">Medico</option>
                                 <option value="supplier">Fornitore</option>
@@ -92,7 +136,14 @@ const ContactModal = ({ isOpen, onClose, contact, onSave }) => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Codice Fiscale / P.IVA</label>
-                            <input type="text" className="w-full border p-2 rounded-lg outline-none focus:ring-2 ring-blue-500 font-mono" value={formData.taxId || ''} onChange={e => setFormData({...formData, taxId: e.target.value})} />
+                            <input 
+                                type="text" 
+                                className={`w-full border p-2 rounded-lg outline-none focus:ring-2 font-mono uppercase ${taxIdError ? 'border-red-300 ring-red-200 bg-red-50' : 'ring-blue-500'}`} 
+                                value={formData.taxId || ''} 
+                                onChange={e => { setFormData({...formData, taxId: e.target.value.toUpperCase()}); setTaxIdError(''); }} 
+                                onBlur={(e) => validateTaxId(e.target.value)}
+                            />
+                            {taxIdError && <p className="text-xs text-red-600 mt-1 font-bold">{taxIdError}</p>}
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Telefono</label>
@@ -118,11 +169,19 @@ const ContactModal = ({ isOpen, onClose, contact, onSave }) => {
                         </div>
                         <div className="col-span-2">
                             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">CAP</label>
-                            <input type="text" className="w-full border p-2 rounded-lg outline-none focus:ring-2 ring-blue-500" value={formData.zip || ''} onChange={e => setFormData({...formData, zip: e.target.value})} />
+                            <input 
+                                type="text" 
+                                className={`w-full border p-2 rounded-lg outline-none focus:ring-2 font-mono ${zipError ? 'border-red-300 ring-red-200 bg-red-50' : 'ring-blue-500'}`} 
+                                value={formData.zip || ''} 
+                                onChange={e => { setFormData({...formData, zip: e.target.value}); setZipError(''); }} 
+                                onBlur={(e) => validateZip(e.target.value)}
+                                maxLength={5}
+                            />
+                            {zipError && <p className="text-xs text-red-600 mt-1 font-bold">{zipError}</p>}
                         </div>
                         <div className="col-span-2">
                             <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Prov.</label>
-                            <input type="text" className="w-full border p-2 rounded-lg outline-none focus:ring-2 ring-blue-500 uppercase" maxLength={2} value={formData.province || ''} onChange={e => setFormData({...formData, province: e.target.value})} />
+                            <input type="text" className="w-full border p-2 rounded-lg outline-none focus:ring-2 ring-blue-500 uppercase font-bold" maxLength={2} value={formData.province || ''} onChange={e => setFormData({...formData, province: e.target.value.toUpperCase()})} />
                         </div>
                     </div>
 
@@ -194,12 +253,12 @@ const Contacts = ({ canEdit }) => {
                         <Search className="absolute left-3 top-2.5 text-slate-400 h-4 w-4" />
                         <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Cerca contatto..." className="pl-9 pr-4 py-2 border border-slate-300 rounded-md text-sm w-full focus:ring-2 focus:ring-blue-500 outline-none" />
                     </div>
-                    <select value={filterType} onChange={e => setFilterType(e.target.value)} className="border border-slate-300 rounded-md py-2 px-3 text-sm bg-white outline-none focus:ring-2 ring-blue-500">
-                        <option value="all">Tutti i tipi</option>
-                        <option value="customer">Clienti</option>
-                        <option value="supplier">Fornitori</option>
-                        <option value="doctor">Medici</option>
-                    </select>
+                    <div className="flex bg-slate-100 p-1 rounded-lg gap-1 overflow-x-auto">
+                        <button onClick={() => setFilterType('all')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap ${filterType === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Tutti</button>
+                        <button onClick={() => setFilterType('customer')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${filterType === 'customer' ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><User size={14}/> Clienti</button>
+                        <button onClick={() => setFilterType('supplier')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${filterType === 'supplier' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><Truck size={14}/> Fornitori</button>
+                        <button onClick={() => setFilterType('doctor')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${filterType === 'doctor' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><Stethoscope size={14}/> Medici</button>
+                    </div>
                 </div>
                 {canEdit && (
                     <button onClick={() => { setEditingContact(null); setIsModalOpen(true); }} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 transition-colors">
