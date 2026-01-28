@@ -294,14 +294,18 @@ const drawCompositionTable = (doc, ingredients, prep, isOfficinale, startY) => {
         doc.text("DETTAGLIO LOTTIZZAZIONE", 14, y);
         y += 2;
         const batchesBody = prep.batches.map(batch => {
-            const container = ingredients.find(ing => ing.id === batch.containerId);
-            return [container ? container.name : `ID: ${batch.containerId}`, Number(container ? container.amountUsed : 0).toFixed(0), `${batch.productQuantity} ${prep.prepUnit}`, `€ ${parseFloat(batch.unitPrice || 0).toFixed(2)}` ];
+            const container = ingredients.find(ing => String(ing.id) === String(batch.containerId));
+            return [
+                container ? container.name : `ID: ${batch.containerId}`, 
+                Number(container ? container.amountUsed : 0).toFixed(0), 
+                `${batch.productQuantity} ${prep.prepUnit}`
+            ];
         });
         doc.autoTable({
-            startY: y, head: [['CONTENITORE', 'N. CONFEZIONI', 'Q.TÀ / CONF.', 'PREZZO UNITARIO']], body: batchesBody, theme: 'grid',
+            startY: y, head: [['CONTENITORE', 'N. CONFEZIONI', 'Q.TÀ / CONF.']], body: batchesBody, theme: 'grid',
             headStyles: { fillColor: COLORS.background, textColor: COLORS.secondary, fontStyle: 'bold', lineColor: COLORS.secondary, lineWidth: 0.1 },
             styles: { fontSize: 9, cellPadding: 2, textColor: COLORS.text, lineColor: COLORS.border },
-            columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 30, halign: 'center' }, 2: { cellWidth: 30, halign: 'center' }, 3: { cellWidth: 'auto', halign: 'right' } }
+            columnStyles: { 0: { cellWidth: 100 }, 1: { cellWidth: 40, halign: 'center' }, 2: { cellWidth: 40, halign: 'center' } }
         });
         y = doc.lastAutoTable.finalY + 5;
     }
@@ -476,6 +480,44 @@ const drawUniformityTable = (doc, prep, startY) => {
     return doc.lastAutoTable.finalY + 10;
 };
 
+const drawOfficinaleBatches = (doc, prep, ingredients, startY) => {
+    let y = startY;
+    if (y > 200) { doc.addPage(); y = 20; }
+    y = drawSectionHeader(doc, "Riepilogo Lotti e Produzione", y);
+
+    if (!prep.batches || !Array.isArray(prep.batches) || prep.batches.length === 0) {
+        doc.setFontSize(10); doc.setTextColor(COLORS.text[0], COLORS.text[1], COLORS.text[2]);
+        doc.text("Nessun lotto definito.", 14, y);
+        return y + 10;
+    }
+
+    const body = prep.batches.map(batch => {
+        const container = ingredients.find(ing => String(ing.id) === String(batch.containerId));
+        return [
+            container ? container.name : "Sconosciuto",
+            `${batch.productQuantity} ${prep.prepUnit || ''}`,
+            container ? parseFloat(container.amountUsed).toFixed(0) : '-',
+            batch.minsan || '-',
+            `€ ${parseFloat(batch.unitPrice || 0).toFixed(2)}`
+        ];
+    });
+
+    doc.autoTable({
+        startY: y,
+        head: [['CONTENITORE PRIMARIO', 'FORMATO', 'PEZZI', 'MINSAN', 'PREZZO VENDITA UNIT.']],
+        body: body,
+        theme: 'grid',
+        headStyles: { fillColor: COLORS.background, textColor: COLORS.primary, fontStyle: 'bold', lineColor: COLORS.primary, lineWidth: 0.1 },
+        styles: { fontSize: 9, cellPadding: 2, textColor: COLORS.text, lineColor: COLORS.border, halign: 'center' },
+        columnStyles: { 
+            0: { cellWidth: 70, halign: 'left' }, 
+            4: { cellWidth: 40, fontStyle: 'bold', halign: 'right' } 
+        }
+    });
+
+    return doc.lastAutoTable.finalY + 10;
+};
+
 const drawCostsTable = (doc, ingredients, pricing, startY) => {
     let y = startY;
     if (y > 200) { doc.addPage(); y = 20; }
@@ -541,28 +583,30 @@ const drawCostsTable = (doc, ingredients, pricing, startY) => {
     return y + 5;
 };
 
-const drawFooterAndSignatures = (doc, pricing, startY) => {
+const drawFooterAndSignatures = (doc, pricing, startY, isOfficinale) => {
     let y = startY;
     if (y > 240) { doc.addPage(); y = 20; }
     
-    // Box Prezzo Finale
-    doc.setFillColor(COLORS.background[0], COLORS.background[1], COLORS.background[2]);
-    doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-    doc.roundedRect(130, y, 66, 20, 2, 2, 'FD');
-    doc.setFontSize(10); doc.setTextColor(COLORS.textLight[0], COLORS.textLight[1], COLORS.textLight[2]);
-    doc.text("PREZZO FINALE (IVA incl.)", 163, y + 6, { align: 'center' });
-    doc.setFontSize(14); doc.setFont('helvetica', 'bold'); doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-    doc.text(`€ ${pricing.final.toFixed(2)}`, 163, y + 15, { align: 'center' });
+    // Box Prezzo Finale (Solo Magistrali)
+    if (!isOfficinale) {
+        doc.setFillColor(COLORS.background[0], COLORS.background[1], COLORS.background[2]);
+        doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+        doc.roundedRect(130, y, 66, 20, 2, 2, 'FD');
+        doc.setFontSize(10); doc.setTextColor(COLORS.textLight[0], COLORS.textLight[1], COLORS.textLight[2]);
+        doc.text("PREZZO FINALE (IVA incl.)", 163, y + 6, { align: 'center' });
+        doc.setFontSize(14); doc.setFont('helvetica', 'bold'); doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+        doc.text(`€ ${pricing.final.toFixed(2)}`, 163, y + 15, { align: 'center' });
+    }
     
     // Firme in basso
     const footerHeight = 60; 
     const pageHeight = 297;
     let signStartY = pageHeight - footerHeight - 20; 
 
-    // Se non c'è spazio dopo il prezzo, vai a nuova pagina
+    // Se non c'è spazio dopo il prezzo (o tabella), vai a nuova pagina
     if (y + 25 > signStartY) {
         doc.addPage();
-        signStartY = pageHeight - footerHeight - 20; // Ricalcola per sicurezza (o usa margine alto)
+        signStartY = pageHeight - footerHeight - 20; 
     }
 
     let signY = signStartY;
@@ -614,9 +658,13 @@ export const generateWorkSheetPDF = async (preparationData, pharmacySettings) =>
   
   currentY = drawUniformityTable(doc, details, currentY);
   
-  currentY = drawCostsTable(doc, ingredients, pricing, currentY);
+  if (isOfficinale) {
+      currentY = drawOfficinaleBatches(doc, details, ingredients, currentY);
+  } else {
+      currentY = drawCostsTable(doc, ingredients, pricing, currentY);
+  }
   
-  drawFooterAndSignatures(doc, pricing, currentY);
+  drawFooterAndSignatures(doc, pricing, currentY, isOfficinale);
 
   // 3. Salvataggio
   doc.save(`FL_${details.prepNumber.replace(/["\/|]/g, '-')}_${details.name.replace(/\s+/g, '_')}.pdf`);
