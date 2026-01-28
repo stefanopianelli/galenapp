@@ -476,6 +476,7 @@ export default function MainApp() {
     return `${currentYear}/${typeChar}${(maxProg + 1).toString().padStart(3, '0')}`;
   };
   const handleOpenAddModal = (type = 'substance') => {
+    setIsReadOnlyMode(false);
     setEditingSubstance(null); const isContainer = type === 'container';
     setNewSubstance({
       name: '', ni: getNextNi(isContainer), lot: '', expiry: '', quantity: '', unit: isContainer ? 'n.' : 'g', costPerGram: '', totalCost: '', supplier: '', purity: '',
@@ -484,9 +485,9 @@ export default function MainApp() {
     });
     setIsReadOnlyMode(false); setIsAddModalOpen(true);
   };
-    const handleOpenEditModal = (item) => {
-      setEditingSubstance(item);
-      const currentStockValue = (parseFloat(item.quantity) * parseFloat(item.costPerGram || 0)).toFixed(2);
+      const handleOpenEditModal = (item) => {
+        setIsReadOnlyMode(false);
+        setEditingSubstance(item);      const currentStockValue = (parseFloat(item.quantity) * parseFloat(item.costPerGram || 0)).toFixed(2);
       setNewSubstance({ 
         ...item, 
         quantity: item.quantity.toString(), 
@@ -596,6 +597,7 @@ export default function MainApp() {
   const startNewPreparation = (type) => { setEditingPrep({ prepType: type }); setIsPrepTypeModalOpen(false); setActiveTab('preparation'); };
   
   const handleDuplicateInventory = (item) => {
+    setIsReadOnlyMode(false);
     const duplicatedData = {
         ...item,
         id: null, // Nuovo record

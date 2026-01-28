@@ -182,7 +182,7 @@ const SubstanceModal = ({
                       value={substanceData.ddtDate} onChange={e => setSubstanceData({ ...substanceData, ddtDate: e.target.value })} disabled={isReadOnly} />
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-4">
                   {substanceData.id && (
                     <div className="flex-1">
                         <label className="block text-sm font-medium text-slate-700 mb-1 text-xs sm:text-sm">Q.tà Iniziale</label>
@@ -197,7 +197,7 @@ const SubstanceModal = ({
                     <input required type="number" min="0" step={isContainer || substanceData.unit === 'n.' ? "1" : "0.01"} className="w-full border p-2 rounded outline-none font-bold text-teal-700 disabled:bg-slate-50 disabled:text-slate-500 font-mono"
                       value={substanceData.quantity} onChange={e => handlePositiveChange('quantity', e.target.value)} disabled={isReadOnly} />
                   </div>
-                  <div className="w-20">
+                  <div className="w-24">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Unità</label>
                     <select className="w-full border p-2 rounded outline-none disabled:bg-slate-50 disabled:text-slate-500"
                       value={substanceData.unit} onChange={e => setSubstanceData({ ...substanceData, unit: e.target.value })} disabled={isReadOnly || isContainer}>
@@ -214,13 +214,13 @@ const SubstanceModal = ({
                       )}
                     </select>
                   </div>
-                  <div className="w-28">
+                </div>
+                <div className="flex gap-4">
+                  <div className="w-32">
                     <label className="block text-sm font-medium text-slate-700 mb-1 text-xs sm:text-sm">Scorta Min.</label>
                     <input type="number" min="0" step={isContainer || substanceData.unit === 'n.' ? "1" : "0.01"} className="w-full border p-2 rounded outline-none disabled:bg-slate-50 disabled:text-slate-500"
                       value={substanceData.minStock || ''} onChange={e => handlePositiveChange('minStock', e.target.value)} placeholder="Es. 10" disabled={isReadOnly} />
                   </div>
-                </div>
-                <div className="flex gap-2">
                   <div className="flex-1">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Costo Totale (€)</label>
                     <input type="number" min="0" step="0.01" className="w-full border p-2 rounded outline-none disabled:bg-slate-50 disabled:text-slate-500"
