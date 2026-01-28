@@ -1,0 +1,12 @@
+FORME FARMACEUTICHE DA IMPLEMENTARE (TARIFFAZIONE)
+==================================================
+
+Le seguenti forme farmaceutiche sono state rimosse o commentate nel codice perché la loro logica di tariffazione (Tabella dei Medicinali) non è ancora stata implementata nel sistema.
+
+1. Soluzioni e sospensioni sterili
+2. Emulsioni sterili
+3. Triturazioni e diluizioni omeopatiche
+4. Pillole omeopatiche
+
+Nota:
+- Le forme omeopatiche richiedono logiche di diluizione specifiche non presenti nel tariffService.js.
