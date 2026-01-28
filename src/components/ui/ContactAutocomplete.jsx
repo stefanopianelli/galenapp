@@ -96,11 +96,22 @@ const ContactAutocomplete = ({
                         filteredContacts.map(contact => (
                             <div
                                 key={contact.id}
-                                className="px-4 py-2 hover:bg-slate-50 cursor-pointer text-sm text-slate-700 flex justify-between items-center"
+                                className="px-4 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-0 flex justify-between items-center"
                                 onClick={() => handleSelect(contact)}
                             >
-                                <span>{contact.name}</span>
-                                {contact.city && <span className="text-xs text-slate-400">{contact.city}</span>}
+                                <div className="flex flex-col min-w-0">
+                                    <span className="text-sm font-bold text-slate-700 truncate">{contact.name}</span>
+                                    {contact.taxId && (
+                                        <span className="text-[10px] font-mono text-slate-400 uppercase tracking-tight">
+                                            {contact.taxId}
+                                        </span>
+                                    )}
+                                </div>
+                                {contact.city && (
+                                    <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded ml-4 whitespace-nowrap">
+                                        {contact.city}
+                                    </span>
+                                )}
                             </div>
                         ))
                     ) : (
