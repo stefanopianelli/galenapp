@@ -16,6 +16,7 @@ import {
   FileText,
   QrCode,
   BarChart2,
+  BookUser,
 } from 'lucide-react';
 
 const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true';
@@ -30,6 +31,7 @@ import Inventory from './components/sections/Inventory';
 import PreparationsLog from './components/sections/PreparationsLog';
 import Logs from './components/sections/Logs';
 import Reporting from './components/sections/Reporting';
+import Contacts from './components/sections/Contacts';
 import AIAssistant from './components/sections/AIAssistant';
 import AuditLog from './components/sections/AuditLog';
 import PreparationWizard from './components/wizards/PreparationWizard';
@@ -636,6 +638,8 @@ export default function MainApp() {
         return <Logs logs={logs} preparations={preparations} handleShowPreparation={handleShowPreparation} handleClearLogs={handleClearLogs} handleDeleteLog={handleDeleteLog} canEdit={canEdit} isAdmin={isAdmin} />;
       case 'reporting':
         return <Reporting preparations={preparations} inventory={inventory} />;
+      case 'contacts':
+        return <Contacts canEdit={canEdit} />;
       case 'settings':
         return <SettingsComponent settings={pharmacySettings} setSettings={handleSaveSettings} isAdmin={isAdmin} />;
       case 'user_management':
@@ -659,6 +663,7 @@ export default function MainApp() {
           {canEdit && <SidebarItem icon={<Pill size={20} />} label={editingPrep ? "Modifica Prep." : "Nuova Prep. (+)"} active={activeTab === 'preparation'} onClick={handleNewPreparation} />}
           <SidebarItem icon={<LayoutList size={20} />} label="Registro Preparazioni" active={activeTab === 'preparations_log'} onClick={() => handleTabChange('preparations_log')} />
           <SidebarItem icon={<History size={20} />} label="Registro Movimenti" active={activeTab === 'logs'} onClick={() => handleTabChange('logs')} />
+          {canEdit && <SidebarItem icon={<BookUser size={20} />} label="Anagrafiche" active={activeTab === 'contacts'} onClick={() => handleTabChange('contacts')} />}
           {canEdit && <SidebarItem icon={<BarChart2 size={20} />} label="Analisi & Report" active={activeTab === 'reporting'} onClick={() => handleTabChange('reporting')} />}
                     <div className="pt-4 mt-4 border-t border-slate-700">
                                   {canEdit && <SidebarItem icon={<Sparkles size={20} className="text-purple-400" />} label="Assistente IA" active={activeTab === 'ai-assistant'} onClick={() => handleTabChange('ai-assistant')} />}

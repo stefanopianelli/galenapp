@@ -144,6 +144,18 @@ try {
             if ($method === 'GET' || $method === 'POST') getAllData($pdo);
             else sendError(405, 'Metodo non consentito.');
             break;
+        case 'get_contacts':
+            if ($method === 'GET') getContacts($pdo);
+            else sendError(405, 'Metodo non consentito.');
+            break;
+        case 'save_contact':
+            if ($method === 'POST') saveContact($pdo, $userData);
+            else sendError(405, 'Metodo non consentito.');
+            break;
+        case 'delete_contact':
+            if ($method === 'POST') deleteContact($pdo, $userData);
+            else sendError(405, 'Metodo non consentito.');
+            break;
         case 'add_or_update_inventory':
             if ($method === 'POST') addOrUpdateInventory($pdo, $userData);
             else sendError(405, 'Metodo non consentito.');
@@ -849,5 +861,65 @@ function login($pdo) {
 function sendError($statusCode, $message) {
     http_response_code($statusCode);
     echo json_encode(['error' => $message]);
+}
+function getContacts($pdo) {
+    try {
+        $stmt = $pdo->query("SELECT * FROM contacts ORDER BY name ASC");
+        echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
+    } catch (Exception $e) {
+        sendError(500, "Errore recupero contatti: " . $e->getMessage());
+    }
+}
+
+function saveContact($pdo, $userData) {
+    $userId = $userData['user_id']; $username = $userData['username']; $role = $userData['role'];
+    $data = json_decode(file_get_contents('php://input'), true);
+    
+    $id = $data['id'] ?? null;
+    $type = $data['type'] ?? 'customer';
+    $name = trim($data['name'] ?? '');
+    
+    if (empty($name)) { sendError(400, 'Nome obbligatorio.'); return; }
+
+    $fields = ['type', 'name', 'taxId', 'email', 'phone', 'address', 'city', 'zip', 'province', 'notes'];
+    $params = [];
+    foreach ($fields as $f) $params[":$f"] = $data[$f] ?? null;
+
+    try {
+        if ($id) {
+            $setClause = implode(', ', array_map(fn($f) => "`$f` = :$f", $fields));
+            $stmt = $pdo->prepare("UPDATE contacts SET $setClause WHERE id = :id");
+            $params[':id'] = $id;
+            $stmt->execute($params);
+            logAudit($pdo, $userId, $username, $role, 'UPDATE_CONTACT', $id, "Modificato contatto: $name");
+        } else {
+            $cols = implode(', ', array_map(fn($f) => "`$f`", $fields));
+            $vals = implode(', ', array_map(fn($f) => ":$f", $fields));
+            $stmt = $pdo->prepare("INSERT INTO contacts ($cols) VALUES ($vals)");
+            $stmt->execute($params);
+            $id = $pdo->lastInsertId();
+            logAudit($pdo, $userId, $username, $role, 'CREATE_CONTACT', $id, "Creato contatto: $name");
+        }
+        echo json_encode(['success' => true, 'id' => $id]);
+    } catch (Exception $e) {
+        sendError(500, "Errore salvataggio contatto: " . $e->getMessage());
+    }
+}
+
+function deleteContact($pdo, $userData) {
+    $userId = $userData['user_id']; $username = $userData['username']; $role = $userData['role'];
+    $data = json_decode(file_get_contents('php://input'), true);
+    $id = $data['id'] ?? null;
+    
+    if (!$id) { sendError(400, 'ID mancante.'); return; }
+
+    try {
+        $stmt = $pdo->prepare("DELETE FROM contacts WHERE id = ?");
+        $stmt->execute([$id]);
+        logAudit($pdo, $userId, $username, $role, 'DELETE_CONTACT', $id, "Eliminato contatto ID: $id");
+        echo json_encode(['success' => true]);
+    } catch (Exception $e) {
+        sendError(500, "Errore eliminazione contatto: " . $e->getMessage());
+    }
 }
 ?>
