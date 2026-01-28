@@ -320,8 +320,13 @@ const Inventory = ({
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {sortedDisposedInventory.map(item => (
-                  <tr key={item.id} className="text-slate-500 hover:bg-white transition-colors">
-                    <td className="px-3 py-1.5 font-bold truncate max-w-[150px]" title={item.name}>{item.name}</td>
+                  <tr 
+                    key={item.id} 
+                    className="text-slate-500 hover:bg-white transition-colors cursor-pointer"
+                    onClick={() => handleOpenViewModal(item)}
+                    title="Clicca per dettagli"
+                  >
+                    <td className="px-3 py-1.5 font-bold truncate max-w-[150px]">{item.name}</td>
                     <td className="px-3 py-1.5 font-mono opacity-75">{item.ni}</td>
                     <td className="px-3 py-1.5">{formatDate(item.expiry)}</td>
                     <td className="px-3 py-1.5 truncate max-w-[100px]" title={item.supplier}>{item.supplier}</td>
