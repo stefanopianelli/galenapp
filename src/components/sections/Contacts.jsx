@@ -50,7 +50,14 @@ const ContactRow = ({ contact, onEdit, onDelete, canEdit }) => {
 };
 
 const ContactModal = ({ isOpen, onClose, contact, onSave }) => {
-    const [formData, setFormData] = useState(contact || { type: 'customer', name: '', taxId: '', email: '', phone: '', address: '', city: '', zip: '', province: '', notes: '' });
+    const defaultData = { type: 'customer', name: '', taxId: '', email: '', phone: '', address: '', city: '', zip: '', province: '', notes: '' };
+    const [formData, setFormData] = useState(defaultData);
+
+    React.useEffect(() => {
+        if (isOpen) {
+            setFormData(contact || defaultData);
+        }
+    }, [contact, isOpen]);
 
     if (!isOpen) return null;
 

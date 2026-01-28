@@ -249,7 +249,7 @@ function logAudit($pdo, $userId, $username, $role, $action, $entityId = null, $d
         $ip = $_SERVER['REMOTE_ADDR'] ?? null;
         $stmt = $pdo->prepare("INSERT INTO audit_logs (user_id, username, role, action, entity_id, details, ip_address) VALUES (?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([$userId, $username, $role, $action, $entityId, $details, $ip]);
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         error_log("Audit Log Failed: " . $e->getMessage());
     }
 }
@@ -296,7 +296,7 @@ function getLogsPaginated($pdo) {
             'limit' => $limit,
             'totalPages' => ceil($total / $limit)
         ]);
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         sendError(500, "Errore recupero log: " . $e->getMessage());
     }
 }
@@ -470,7 +470,7 @@ function disposeInventory($pdo, $userData) {
         }
         $pdo->commit();
         echo json_encode(['success' => true, 'id' => $id]);
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         $pdo->rollBack();
         sendError(500, "Errore smaltimento: " . $e->getMessage());
     }
@@ -592,7 +592,7 @@ function savePreparation($pdo, $userData) {
 
         $pdo->commit();
         echo json_encode(['success' => true, 'id' => $newPrepId]);
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         $pdo->rollBack();
         sendError(500, "Errore salvataggio preparazione: " . $e->getMessage());
     }
@@ -640,7 +640,7 @@ function deletePreparation($pdo, $userData) {
 
         $pdo->commit();
         echo json_encode(['success' => true, 'id' => $prepId]);
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         $pdo->rollBack();
         sendError(500, "Errore eliminazione preparazione: " . $e->getMessage());
     }
@@ -666,7 +666,7 @@ function clearLogs($pdo, $userData) {
         }
         $pdo->commit();
         echo json_encode(['success' => true]);
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         $pdo->rollBack();
         sendError(500, "Errore cancellazione log: " . $e->getMessage());
     }
@@ -682,7 +682,7 @@ function deleteLog($pdo, $userData) {
         $stmt->execute([$id]);
         logAudit($pdo, $userId, $username, $role, 'DELETE_LOG', $id, "Eliminato singolo log");
         echo json_encode(['success' => true]);
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         sendError(500, "Errore eliminazione log: " . $e->getMessage());
     }
 }
@@ -774,7 +774,7 @@ function getSettings($pdo) {
         $settings = [];
         foreach ($rows as $row) { $settings[$row['settingKey']] = $row['settingValue']; }
         echo json_encode($settings);
-    } catch (Exception $e) { sendError(500, "Errore recupero impostazioni: " . $e->getMessage()); }
+    } catch (Throwable $e) { sendError(500, "Errore recupero impostazioni: " . $e->getMessage()); }
 }
 
 function saveSettings($pdo, $userData) {
@@ -803,7 +803,7 @@ function saveSettings($pdo, $userData) {
         logAudit($pdo, $userId, $username, $role, 'UPDATE_SETTINGS', null, "Modifica impostazioni farmacia");
         $pdo->commit();
         echo json_encode(['success' => true, 'data' => $data]);
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         $pdo->rollBack();
         sendError(500, "Errore salvataggio impostazioni: " . $e->getMessage());
     }
@@ -835,7 +835,7 @@ function getAuditLogs($pdo) {
             'limit' => $limit,
             'totalPages' => ceil($total / $limit)
         ]);
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         sendError(500, "Errore recupero audit: " . $e->getMessage());
     }
 }
@@ -866,7 +866,7 @@ function getContacts($pdo) {
     try {
         $stmt = $pdo->query("SELECT * FROM contacts ORDER BY name ASC");
         echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         sendError(500, "Errore recupero contatti: " . $e->getMessage());
     }
 }
@@ -901,7 +901,7 @@ function saveContact($pdo, $userData) {
             logAudit($pdo, $userId, $username, $role, 'CREATE_CONTACT', $id, "Creato contatto: $name");
         }
         echo json_encode(['success' => true, 'id' => $id]);
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         sendError(500, "Errore salvataggio contatto: " . $e->getMessage());
     }
 }
@@ -918,7 +918,7 @@ function deleteContact($pdo, $userData) {
         $stmt->execute([$id]);
         logAudit($pdo, $userId, $username, $role, 'DELETE_CONTACT', $id, "Eliminato contatto ID: $id");
         echo json_encode(['success' => true]);
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         sendError(500, "Errore eliminazione contatto: " . $e->getMessage());
     }
 }
