@@ -390,8 +390,15 @@ function handleFileUpload($fileInputName) {
 function addOrUpdateInventory($pdo, $userData) {
     $userId = $userData['user_id']; $username = $userData['username']; $role = $userData['role'];
     $data = $_POST;
-    $fields = ['name', 'ni', 'lot', 'expiry', 'quantity', 'unit', 'totalCost', 'costPerGram', 'supplier', 'purity', 'receptionDate', 'ddtNumber', 'ddtDate', 'firstUseDate', 'minStock', 'isExcipient', 'isContainer', 'isDoping', 'isNarcotic', 'securityData'];
+    $fields = ['name', 'ni', 'lot', 'expiry', 'quantity', 'initialQuantity', 'unit', 'totalCost', 'costPerGram', 'supplier', 'purity', 'receptionDate', 'ddtNumber', 'ddtDate', 'firstUseDate', 'minStock', 'isExcipient', 'isContainer', 'isDoping', 'isNarcotic', 'securityData'];
     $params = [];
+    
+    // Per nuovi record, se initialQuantity non è passato, usa la quantità corrente
+    $isUpdate = isset($data['id']) && !empty($data['id']);
+    if (!$isUpdate && (!isset($data['initialQuantity']) || empty($data['initialQuantity']))) {
+        $data['initialQuantity'] = $data['quantity'] ?? 0;
+    }
+
     foreach ($fields as $field) {
         $value = $data[$field] ?? null;
         if ($value === 'null' || $value === '') $value = null;

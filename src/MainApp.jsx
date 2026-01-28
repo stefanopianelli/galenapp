@@ -345,11 +345,23 @@ export default function MainApp() {
   const handleShowPreparation = (prepId) => { setPreparationLogFilter(prepId); handleTabChange('preparations_log'); setIsAddModalOpen(false); };
   const handleShowSubstanceInInventory = (substanceId) => { setInventoryFilterSubstance(substanceId); handleTabChange('inventory'); setIsAddModalOpen(false); };
   useEffect(() => {
-    if (newSubstance.totalCost && newSubstance.quantity && parseFloat(newSubstance.quantity) > 0) {
-      const calculatedCost = (parseFloat(newSubstance.totalCost) / parseFloat(newSubstance.quantity)).toFixed(4);
-      setNewSubstance(prev => ({ ...prev, costPerGram: calculatedCost }));
+    // Calcolo Costo Unitario
+    // Se ID esiste (modifica) e initialQuantity manca (legacy), NON ricalcolare per evitare di usare la giacenza residua.
+    if (newSubstance.id && (!newSubstance.initialQuantity || parseFloat(newSubstance.initialQuantity) <= 0)) {
+        return; 
     }
-  }, [newSubstance.totalCost, newSubstance.quantity]);
+
+    const qtyDenominator = (newSubstance.id && parseFloat(newSubstance.initialQuantity) > 0) 
+        ? parseFloat(newSubstance.initialQuantity) 
+        : parseFloat(newSubstance.quantity);
+
+    if (newSubstance.totalCost && qtyDenominator > 0) {
+      const calculatedCost = (parseFloat(newSubstance.totalCost) / qtyDenominator).toFixed(4);
+      if (calculatedCost !== newSubstance.costPerGram) {
+          setNewSubstance(prev => ({ ...prev, costPerGram: calculatedCost }));
+      }
+    }
+  }, [newSubstance.totalCost, newSubstance.quantity, newSubstance.initialQuantity, newSubstance.id]);
 
   const getStats = () => {
     if (!inventory) return { expiringSoon: 0, expired: 0, lowStock: 0, totalItems: 0 };

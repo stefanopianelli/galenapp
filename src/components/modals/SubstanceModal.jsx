@@ -183,9 +183,18 @@ const SubstanceModal = ({
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <div className="flex-1 min-w-[150px]">
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Quantità</label>
-                    <input required type="number" min={isContainer ? "1" : "0.01"} step={isContainer ? "1" : "0.01"} className="w-full border p-2 rounded outline-none font-bold text-teal-700 disabled:bg-slate-50 disabled:text-slate-500"
+                  {substanceData.id && (
+                    <div className="flex-1">
+                        <label className="block text-sm font-medium text-slate-700 mb-1 text-xs sm:text-sm">Q.tà Iniziale</label>
+                        <input type="number" className="w-full border p-2 rounded outline-none bg-slate-50 text-slate-500 font-mono"
+                        value={substanceData.initialQuantity || ''} readOnly disabled />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1 text-xs sm:text-sm">
+                        {substanceData.id ? "Giacenza Attuale" : "Quantità da Caricare"}
+                    </label>
+                    <input required type="number" min="0" step={isContainer || substanceData.unit === 'n.' ? "1" : "0.01"} className="w-full border p-2 rounded outline-none font-bold text-teal-700 disabled:bg-slate-50 disabled:text-slate-500 font-mono"
                       value={substanceData.quantity} onChange={e => handlePositiveChange('quantity', e.target.value)} disabled={isReadOnly} />
                   </div>
                   <div className="w-20">
