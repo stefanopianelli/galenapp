@@ -594,7 +594,8 @@ export const generateWorkSheetPDF = async (preparationData, pharmacySettings) =>
 
   let qrDataUrl = null;
   try {
-      const qrData = JSON.stringify({ type: 'prep', id: details.id });
+      // Formato Semplificato "PREP-{id}" per compatibilità lettori barcode USB (evita caratteri speciali JSON)
+      const qrData = `PREP-${details.id}`;
       qrDataUrl = await QRCode.toDataURL(qrData, { margin: 1 });
   } catch (e) { console.error("QR Error", e); }
 

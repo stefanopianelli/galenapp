@@ -41,8 +41,8 @@ const InventoryRow = ({ item, isChild = false, handleOpenViewModal, handleOpenEd
         <td className="px-3 py-2 whitespace-nowrap font-mono text-[10px] text-slate-500">{item.ni}</td>
         <td className="px-3 py-2 whitespace-nowrap">{formatDate(item.expiry)}</td>
         <td className="px-3 py-2 whitespace-nowrap text-slate-400 truncate max-w-[100px]" title={item.supplier}>{item.supplier}</td>
-        <td className="px-3 py-2 text-right font-mono font-bold whitespace-nowrap text-slate-700">{Number(item.quantity).toFixed(item.isContainer ? 0 : 2)} {item.unit}</td>
-        <td className="px-3 py-2 text-right font-mono whitespace-nowrap text-slate-500">{item.costPerGram ? `€ ${Number(item.costPerGram).toFixed(2)}` : '-'}</td>
+        <td className="px-4 py-2 text-right font-mono font-bold whitespace-nowrap text-slate-700">{Number(item.quantity).toFixed(item.isContainer ? 0 : 2)} {item.unit}</td>
+        <td className="px-4 py-2 text-right font-mono whitespace-nowrap text-slate-500">{item.costPerGram ? `€ ${Number(item.costPerGram).toFixed(2)}` : '-'}</td>
         <td className="px-3 py-2 text-center whitespace-nowrap text-slate-400">{item.usageCount}</td>
         <td className="px-3 py-2 text-center whitespace-nowrap scale-90">
           {parseFloat(item.quantity) === 0 ? <Badge type="neutral">Terminata</Badge> : new Date(item.expiry) < new Date() ? <Badge type="danger">Scaduto</Badge> : days <= 30 ? <Badge type="warning">In Scadenza</Badge> : parseFloat(item.quantity) <= (parseFloat(item.minStock) || (item.isContainer ? 10 : 5)) ? <Badge type="warning">Scarso</Badge> : <Badge type="success">OK</Badge>}
@@ -112,8 +112,8 @@ const InventoryTable = ({ data, type, sortConfig, requestSort, handleOpenViewMod
             <SortableHeader label="N.I." columnKey="ni" sortConfig={sortConfig} requestSort={requestSort} />
             <SortableHeader label="Scadenza" columnKey="expiry" sortConfig={sortConfig} requestSort={requestSort} />
             <SortableHeader label="Fornitore" columnKey="supplier" sortConfig={sortConfig} requestSort={requestSort} />
-            <SortableHeader label="Giacenza" columnKey="quantity" className="text-right" sortConfig={sortConfig} requestSort={requestSort} />
-            <SortableHeader label={type === 'container' ? "Costo Unit." : "€/g"} columnKey="costPerGram" className="text-right" sortConfig={sortConfig} requestSort={requestSort} />
+            <SortableHeader label="Giacenza" columnKey="quantity" className="text-right px-4" sortConfig={sortConfig} requestSort={requestSort} />
+            <SortableHeader label={type === 'container' ? "Costo Unit." : "€/g"} columnKey="costPerGram" className="text-right px-4" sortConfig={sortConfig} requestSort={requestSort} />
             <SortableHeader label="Utilizzi" columnKey="usageCount" className="text-center" sortConfig={sortConfig} requestSort={requestSort} />
             <SortableHeader label="Stato" columnKey="status" className="text-center" sortConfig={sortConfig} requestSort={requestSort} />
             <th className="px-6 py-4 text-center">Azioni</th>

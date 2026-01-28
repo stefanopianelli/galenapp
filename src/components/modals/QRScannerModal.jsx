@@ -8,6 +8,12 @@ const QRScannerModal = ({ isOpen, onClose, onScanSuccess }) => {
   const [debugKeys, setDebugKeys] = useState(''); // DEBUG
   const scannerRef = useRef(null);
 
+  const handleDetectedId = (id) => {
+      onClose();
+      // Ritarda la navigazione per permettere al modale di chiudersi visivamente
+      setTimeout(() => onScanSuccess(id), 100);
+  };
+
   // Gestione Lettore Barcode USB (Emulazione Tastiera)
   useEffect(() => {
       if (!isOpen) return;
@@ -20,32 +26,35 @@ const QRScannerModal = ({ isOpen, onClose, onScanSuccess }) => {
           const gap = currentTime - lastKeyTime;
           lastKeyTime = currentTime;
 
-          // Timeout allentato a 200ms per lettori lenti o wireless
           if (gap > 200) { 
               buffer = ''; 
           }
 
           if (e.key === 'Enter') {
-              setDebugKeys(prev => prev + " [ENTER]");
-              if (buffer.length > 5) {
-                  try {
-                      // Tentativo di parsing
-                      const data = JSON.parse(buffer);
-                      if (data && data.type === 'prep' && data.id) {
-                          onScanSuccess(data.id);
-                          onClose();
-                      } else {
-                          setError("Codice letto ma formato non valido: " + buffer);
+              if (buffer.length > 3) {
+                  const cleanBuffer = buffer.trim();
+                  
+                  // 1. Tentativo Regex Robusto
+                  const prepMatch = cleanBuffer.match(/^PREP.?(\d+)$/i);
+                  
+                  if (prepMatch && prepMatch[1]) {
+                      handleDetectedId(prepMatch[1]);
+                  } else {
+                      // 2. Tentativo JSON (Legacy)
+                      try {
+                          const data = JSON.parse(cleanBuffer);
+                          if (data && data.type === 'prep' && data.id) {
+                              handleDetectedId(data.id);
+                          }
+                      } catch (err) {
+                          setError("Formato non riconosciuto: " + cleanBuffer);
                       }
-                  } catch (err) {
-                      setError("Errore lettura QR: " + buffer);
                   }
               }
               buffer = '';
           } else {
               if (e.key.length === 1) {
                   buffer += e.key;
-                  // Aggiorno UI per debug (mostra ultimi 50 caratteri)
                   setDebugKeys(prev => (prev + e.key).slice(-50));
               }
           }
@@ -58,10 +67,8 @@ const QRScannerModal = ({ isOpen, onClose, onScanSuccess }) => {
   useEffect(() => {
     if (!isOpen) return;
 
-    // Piccola attesa per assicurare che il DOM sia pronto
     const timer = setTimeout(() => {
         try {
-            // Pulisci eventuale istanza precedente
             const element = document.getElementById('reader');
             if (!element) return;
             element.innerHTML = '';
@@ -69,25 +76,35 @@ const QRScannerModal = ({ isOpen, onClose, onScanSuccess }) => {
             const scanner = new Html5QrcodeScanner(
                 "reader",
                 { fps: 10, qrbox: { width: 250, height: 250 } },
-                /* verbose= */ false
+                false
             );
 
             scanner.render((decodedText) => {
+                // Prova Regex
+                const prepMatch = decodedText.match(/^PREP.?(\d+)$/i);
+                if (prepMatch && prepMatch[1]) {
+                    scanner.clear().then(() => {
+                        handleDetectedId(prepMatch[1]);
+                    }).catch(e => {
+                        handleDetectedId(prepMatch[1]);
+                    });
+                    return;
+                }
+
+                // Prova JSON
                 try {
                     const data = JSON.parse(decodedText);
                     if (data && data.type === 'prep' && data.id) {
-                        scanner.clear();
-                        onScanSuccess(data.id);
-                        onClose();
-                    } else {
-                        setError("QR Code non valido per GalenicoLab.");
+                        scanner.clear().then(() => {
+                            handleDetectedId(data.id);
+                        }).catch(e => {
+                            handleDetectedId(data.id);
+                        });
                     }
                 } catch (e) {
-                    setError("Formato QR non riconosciuto.");
+                    // Ignora errori durante scansione continua
                 }
-            }, (errorMessage) => {
-                // Ignoriamo gli errori di scansione "frame vuoto" che sono normali
-            });
+            }, (errorMessage) => {});
 
             scannerRef.current = scanner;
         } catch (e) {
