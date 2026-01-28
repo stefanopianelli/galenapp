@@ -10,8 +10,9 @@ import TechOpsModal, { TechOpsList } from '../modals/TechOpsModal';
 import { getDefaultControls } from '../../constants/qualityControls';
 import { formatDate } from '../../utils/dateUtils';
 import UniformityCheck from './UniformityCheck';
+import ContactAutocomplete from '../ui/ContactAutocomplete';
 
-function PreparationWizard({ inventory, preparations, onComplete, initialData, pharmacySettings, initialStep, canEdit, isAdmin }) {
+function PreparationWizard({ inventory, preparations, onComplete, initialData, pharmacySettings, initialStep, canEdit, isAdmin, contacts, refreshContacts }) {
   const prepType = initialData?.prepType || 'magistrale';
   const isOfficinale = prepType === 'officinale';
   const totalSteps = isOfficinale ? 6 : 5;
@@ -747,7 +748,16 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Paziente *</label>
-                                <input className="w-full border p-3 rounded-lg outline-none focus:ring-2 ring-blue-500" value={details.patient} onChange={e => setDetails({...details, patient: e.target.value})} />
+                                <ContactAutocomplete 
+                                    value={details.patient} 
+                                    onChange={(val) => setDetails({ ...details, patient: val })} 
+                                    onSelect={(c) => setDetails(prev => ({ ...prev, patientPhone: c.phone || prev.patientPhone }))}
+                                    contacts={contacts} 
+                                    refreshContacts={refreshContacts}
+                                    type="customer" 
+                                    placeholder="Nome Cognome" 
+                                    className="w-full border p-3 rounded-lg outline-none focus:ring-2 ring-blue-500"
+                                />
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Telefono (Opzionale)</label>
@@ -755,7 +765,15 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Medico Prescrittore *</label>
-                                <input className="w-full border p-3 rounded-lg outline-none focus:ring-2 ring-blue-500" value={details.doctor} onChange={e => setDetails({...details, doctor: e.target.value})} />
+                                <ContactAutocomplete 
+                                    value={details.doctor} 
+                                    onChange={(val) => setDetails({ ...details, doctor: val })} 
+                                    contacts={contacts} 
+                                    refreshContacts={refreshContacts}
+                                    type="doctor" 
+                                    placeholder="Dr. Nome Cognome" 
+                                    className="w-full border p-3 rounded-lg outline-none focus:ring-2 ring-blue-500"
+                                />
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Data Ricetta *</label>

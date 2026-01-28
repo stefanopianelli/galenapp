@@ -75,6 +75,7 @@ export default function MainApp() {
   const [editingPrep, setEditingPrep] = useState(null);
   const [initialWizardStep, setInitialWizardStep] = useState(1);
   const [isOnline, setIsOnline] = useState(false);
+  const [contacts, setContacts] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -123,6 +124,11 @@ export default function MainApp() {
   // --- HELPER CHIAMATE API ---
   const { createApiRequest } = useApi();
 
+  const fetchContacts = useCallback(async () => {
+      const contactsRes = await createApiRequest('get_contacts', null, false, 'GET');
+      if (contactsRes && Array.isArray(contactsRes)) setContacts(contactsRes);
+  }, [createApiRequest]);
+
   const loadData = useCallback(async () => {
     setLoadingData(true);
     if (USE_MOCK_DATA || !AUTH_ENABLED) {
@@ -147,6 +153,8 @@ export default function MainApp() {
         setLogs(data.logs || []);
         setIsOnline(true);
       }
+
+      await fetchContacts();
 
       // Carica Settings
       const settingsData = await createApiRequest('get_settings', null, false, 'GET');
@@ -629,11 +637,11 @@ export default function MainApp() {
       case 'dashboard':
         return <Dashboard stats={stats} logs={logs} inventory={inventory} preparations={preparations} setActiveTab={handleTabChange} setInventoryFilter={setInventoryFilter} setPreparationLogFilter={setPreparationLogFilter} handleShowPreparation={handleShowPreparation} handleShowSubstanceInInventory={handleShowSubstanceInInventory} onNewPreparation={startNewPreparation} onOpenAddModal={handleOpenAddModal} />;
       case 'inventory':
-        return <Inventory inventoryFilter={inventoryFilter} setInventoryFilter={setInventoryFilter} searchTerm={searchTerm} setSearchTerm={setSearchTerm} sortedActiveInventory={sortedActiveInventory} sortedDisposedInventory={sortedDisposedInventory} handleOpenAddModal={handleOpenAddModal} handleOpenEditModal={handleOpenEditModal} handleOpenViewModal={handleOpenViewModal} handleDuplicateInventory={handleDuplicateInventory} handleDispose={handleDispose} sortConfig={sortConfig} requestSort={requestSort} activeSubstanceFilter={inventoryFilterSubstance} clearSubstanceFilter={() => setInventoryFilterSubstance(null)} canEdit={canEdit} />;
+        return <Inventory inventoryFilter={inventoryFilter} setInventoryFilter={setInventoryFilter} searchTerm={searchTerm} setSearchTerm={setSearchTerm} sortedActiveInventory={sortedActiveInventory} sortedDisposedInventory={sortedDisposedInventory} handleOpenAddModal={handleOpenAddModal} handleOpenEditModal={handleOpenEditModal} handleOpenViewModal={handleOpenViewModal} handleDuplicateInventory={handleDuplicateInventory} handleDispose={handleDispose} sortConfig={sortConfig} requestSort={requestSort} activeSubstanceFilter={inventoryFilterSubstance} clearSubstanceFilter={() => setInventoryFilterSubstance(null)} canEdit={canEdit} contacts={contacts} refreshContacts={fetchContacts} />;
       case 'preparations_log':
         return <PreparationsLog preparations={filteredPreparations} handleJumpToStep={handleJumpToStep} handleDuplicatePreparation={handleDuplicatePreparation} handleDeletePreparation={handleDeletePreparation} activeFilter={preparationLogFilter} clearFilter={() => setPreparationLogFilter(null)} searchTerm={prepSearchTerm} setSearchTerm={setPrepSearchTerm} sortConfig={prepSortConfig} requestSort={requestPrepSort} prepTypeFilter={prepTypeFilter} setPrepTypeFilter={setPrepTypeFilter} canEdit={canEdit} pharmacySettings={pharmacySettings} onPrintLabel={handleOpenPrintModal} isAdmin={isAdmin} />;
       case 'preparation':
-        return <PreparationWizard inventory={inventory} preparations={preparations} onComplete={handleSavePreparation} initialData={editingPrep} pharmacySettings={pharmacySettings} initialStep={initialWizardStep} canEdit={canEdit} onPrintLabel={handleOpenPrintModal} isAdmin={isAdmin} />;
+        return <PreparationWizard inventory={inventory} preparations={preparations} onComplete={handleSavePreparation} initialData={editingPrep} pharmacySettings={pharmacySettings} initialStep={initialWizardStep} canEdit={canEdit} onPrintLabel={handleOpenPrintModal} isAdmin={isAdmin} contacts={contacts} refreshContacts={fetchContacts} />;
       case 'logs':
         return <Logs logs={logs} preparations={preparations} handleShowPreparation={handleShowPreparation} handleClearLogs={handleClearLogs} handleDeleteLog={handleDeleteLog} canEdit={canEdit} isAdmin={isAdmin} />;
       case 'reporting':
@@ -704,7 +712,7 @@ export default function MainApp() {
         </header>
         <div className="p-6 max-w-7xl mx-auto">{renderContent()}</div>
       </main>
-      <SubstanceModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} isReadOnly={isReadOnlyMode} editingSubstance={editingSubstance} substanceData={newSubstance} setSubstanceData={setNewSubstance} onSubmit={handleAddOrUpdateSubstance} getNextNi={getNextNi} preparations={preparations} inventory={inventory} onShowPreparation={handleShowPreparation} handleSdsUpload={handleSdsUpload} handleRemoveSds={handleRemoveSds} handleTechnicalSheetUpload={handleTechnicalSheetUpload} handleRemoveTechnicalSheet={handleRemoveTechnicalSheet} handleDownloadPdf={handleDownloadPdf} />
+      <SubstanceModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} isReadOnly={isReadOnlyMode} editingSubstance={editingSubstance} substanceData={newSubstance} setSubstanceData={setNewSubstance} onSubmit={handleAddOrUpdateSubstance} getNextNi={getNextNi} preparations={preparations} inventory={inventory} contacts={contacts} refreshContacts={fetchContacts} onShowPreparation={handleShowPreparation} handleSdsUpload={handleSdsUpload} handleRemoveSds={handleRemoveSds} handleTechnicalSheetUpload={handleTechnicalSheetUpload} handleRemoveTechnicalSheet={handleRemoveTechnicalSheet} handleDownloadPdf={handleDownloadPdf} />
       <PrepTypeSelectionModal isOpen={isPrepTypeModalOpen} onClose={() => setIsPrepTypeModalOpen(false)} onSelectType={startNewPreparation} />
       <QRScannerModal isOpen={isScannerOpen} onClose={() => setIsScannerOpen(false)} onScanSuccess={handleScanSuccess} />
       <PrintLabelModal isOpen={isPrintModalOpen} onClose={() => setIsPrintModalOpen(false)} onConfirm={handleConfirmPrint} />

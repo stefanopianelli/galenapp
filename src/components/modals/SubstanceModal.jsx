@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Package, Biohazard, FileUp, FileText, Trash2, FileDown, History, Pencil, Check, Box, Search } from 'lucide-react';
 import { GHS_PICTOGRAMS } from '../../constants/ghsPictograms';
 import { formatDate } from '../../utils/dateUtils';
+import ContactAutocomplete from '../ui/ContactAutocomplete';
 
 const SubstanceModal = ({
   isOpen,
@@ -19,6 +20,8 @@ const SubstanceModal = ({
   handleDownloadPdf,
   preparations,
   inventory,
+  contacts,
+  refreshContacts,
   onShowPreparation,
 }) => {
   const [activeModalTab, setActiveModalTab] = useState('general');
@@ -157,18 +160,16 @@ const SubstanceModal = ({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Fornitore</label>
-                  <input required className="w-full border p-2 rounded outline-none disabled:bg-slate-50 disabled:text-slate-500"
-                    value={substanceData.supplier} 
-                    onChange={e => setSubstanceData({ ...substanceData, supplier: e.target.value })} 
-                    disabled={isReadOnly} 
-                    placeholder="Es. Farmalabor"
-                    list="supplier-names-list"
+                  <ContactAutocomplete 
+                      value={substanceData.supplier} 
+                      onChange={(val) => setSubstanceData({ ...substanceData, supplier: val })} 
+                      contacts={contacts} 
+                      refreshContacts={refreshContacts}
+                      type="supplier" 
+                      placeholder="Es. Farmalabor" 
+                      disabled={isReadOnly}
+                      className="w-full border p-2 rounded outline-none disabled:bg-slate-50 disabled:text-slate-500"
                   />
-                  <datalist id="supplier-names-list">
-                    {uniqueSuppliers.map((supplier, index) => (
-                      <option key={index} value={supplier} />
-                    ))}
-                  </datalist>
                 </div>
                 <div className="flex gap-2">
                   <div className="flex-1">
