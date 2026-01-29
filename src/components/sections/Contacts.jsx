@@ -50,7 +50,7 @@ const ContactRow = ({ contact, onEdit, onDelete, canEdit }) => {
     );
 };
 
-const ContactModal = ({ isOpen, onClose, contact, onSave, preparations, handleShowPreparation }) => {
+const ContactModal = ({ isOpen, onClose, contact, onSave, preparations, inventory, handleShowPreparation }) => {
     const defaultData = { type: 'customer', name: '', taxId: '', email: '', phone: '', address: '', city: '', zip: '', province: '', notes: '' };
     const [formData, setFormData] = useState(defaultData);
     const [activeTab, setActiveTab] = useState('info');
@@ -67,20 +67,32 @@ const ContactModal = ({ isOpen, onClose, contact, onSave, preparations, handleSh
     }, [contact, isOpen]);
 
     const contactHistory = useMemo(() => {
-        if (!contact || !preparations) return [];
+        if (!contact || !preparations || contact.type === 'supplier') return [];
         const name = contact.name.toLowerCase();
         return preparations.filter(p => {
             if (contact.type === 'customer') return (p.patient || '').toLowerCase() === name;
             if (contact.type === 'doctor') return (p.doctor || '').toLowerCase() === name;
-            return false; // Fornitori non tracciati in preparations
+            return false;
         }).sort((a, b) => new Date(b.date) - new Date(a.date));
     }, [contact, preparations]);
 
+    const supplierHistory = useMemo(() => {
+        if (!contact || !inventory || contact.type !== 'supplier') return [];
+        const name = contact.name.toLowerCase();
+        return inventory.filter(i => (i.supplier || '').toLowerCase() === name).sort((a, b) => new Date(b.receptionDate || b.id) - new Date(a.receptionDate || a.id));
+    }, [contact, inventory]);
+
     const stats = useMemo(() => {
-        const total = contactHistory.length;
-        const value = contactHistory.reduce((acc, p) => acc + parseFloat(p.totalPrice || 0), 0);
-        return { total, value };
-    }, [contactHistory]);
+        if (contact?.type === 'supplier') {
+            const total = supplierHistory.length;
+            const stockValue = supplierHistory.reduce((acc, i) => acc + (parseFloat(i.quantity) * parseFloat(i.costPerGram || 0)), 0);
+            return { total, value: stockValue };
+        } else {
+            const total = contactHistory.length;
+            const value = contactHistory.reduce((acc, p) => acc + parseFloat(p.totalPrice || 0), 0);
+            return { total, value };
+        }
+    }, [contactHistory, supplierHistory, contact]);
 
     const validateZip = (val) => {
         if (!val) { setZipError(''); return true; }
@@ -130,7 +142,8 @@ const ContactModal = ({ isOpen, onClose, contact, onSave, preparations, handleSh
                             <div className="flex bg-slate-200 rounded-lg p-1 ml-4">
                                 <button onClick={() => setActiveTab('info')} className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${activeTab === 'info' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Dati</button>
                                 <button onClick={() => setActiveTab('history')} className={`px-3 py-1 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${activeTab === 'history' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`} disabled={!contact?.id}>
-                                    <History size={12}/> Storico
+                                    {contact?.type === 'supplier' ? <Truck size={12}/> : <History size={12}/>} 
+                                    {contact?.type === 'supplier' ? 'Forniture' : 'Storico'}
                                 </button>
                             </div>
                         )}
@@ -209,48 +222,83 @@ const ContactModal = ({ isOpen, onClose, contact, onSave, preparations, handleSh
                         <div className="space-y-6">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                                    <div className="text-blue-600 text-xs font-bold uppercase mb-1">Preparazioni Totali</div>
+                                    <div className="text-blue-600 text-xs font-bold uppercase mb-1">
+                                        {contact.type === 'supplier' ? 'Articoli in Magazzino' : 'Preparazioni Totali'}
+                                    </div>
                                     <div className="text-2xl font-bold text-slate-800">{stats.total}</div>
                                 </div>
                                 <div className="bg-teal-50 p-4 rounded-xl border border-teal-100">
-                                    <div className="text-teal-600 text-xs font-bold uppercase mb-1">Valore Totale</div>
+                                    <div className="text-teal-600 text-xs font-bold uppercase mb-1">
+                                        {contact.type === 'supplier' ? 'Valore Giacenza' : 'Valore Totale'}
+                                    </div>
                                     <div className="text-2xl font-bold text-slate-800">€ {stats.value.toFixed(2)}</div>
                                 </div>
                             </div>
                             
                             <div>
-                                <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2"><History size={18} className="text-slate-400"/> Storico Recente</h4>
-                                {contactHistory.length > 0 ? (
-                                    <div className="border rounded-lg overflow-hidden">
-                                        <table className="w-full text-sm text-left">
-                                            <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
-                                                <tr>
-                                                    <th className="px-4 py-2">Data</th>
-                                                    <th className="px-4 py-2">Preparazione</th>
-                                                    <th className="px-4 py-2 text-right">Prezzo</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-slate-100">
-                                                {contactHistory.map(p => (
-                                                    <tr 
-                                                        key={p.id} 
-                                                        className="hover:bg-slate-50 cursor-pointer transition-colors"
-                                                        onClick={() => { handleShowPreparation(p.id); onClose(); }}
-                                                        title="Vai alla preparazione"
-                                                    >
-                                                        <td className="px-4 py-2 whitespace-nowrap">{formatDate(p.date)}</td>
-                                                        <td className="px-4 py-2 font-medium text-slate-700">
-                                                            <div className="truncate max-w-[200px]" title={p.name}>{p.name}</div>
-                                                            <div className="text-[10px] text-slate-400">{p.prepNumber}</div>
-                                                        </td>
-                                                        <td className="px-4 py-2 text-right font-mono">€ {parseFloat(p.totalPrice || 0).toFixed(2)}</td>
+                                <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                                    {contact.type === 'supplier' ? <Truck size={18} className="text-slate-400"/> : <History size={18} className="text-slate-400"/>} 
+                                    {contact.type === 'supplier' ? 'Forniture Attive' : 'Storico Recente'}
+                                </h4>
+                                
+                                {contact.type === 'supplier' ? (
+                                    supplierHistory.length > 0 ? (
+                                        <div className="border rounded-lg overflow-hidden">
+                                            <table className="w-full text-sm text-left">
+                                                <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
+                                                    <tr>
+                                                        <th className="px-4 py-2">Sostanza</th>
+                                                        <th className="px-4 py-2">Lotto</th>
+                                                        <th className="px-4 py-2 text-right">Giacenza</th>
+                                                        <th className="px-4 py-2 text-right">Valore</th>
                                                     </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100">
+                                                    {supplierHistory.map(item => (
+                                                        <tr key={item.id} className="hover:bg-slate-50">
+                                                            <td className="px-4 py-2 font-medium text-slate-700 truncate max-w-[150px]" title={item.name}>{item.name}</td>
+                                                            <td className="px-4 py-2 text-xs text-slate-500">{item.lot}</td>
+                                                            <td className="px-4 py-2 text-right font-mono text-xs">{parseFloat(item.quantity).toFixed(2)} {item.unit}</td>
+                                                            <td className="px-4 py-2 text-right font-mono text-xs">€ {(item.quantity * (item.costPerGram || 0)).toFixed(2)}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ) : <p className="text-slate-400 italic text-center py-4">Nessuna fornitura attiva trovata in magazzino.</p>
                                 ) : (
-                                    <p className="text-slate-400 italic text-center py-4">Nessuna preparazione trovata per questo contatto.</p>
+                                    contactHistory.length > 0 ? (
+                                        <div className="border rounded-lg overflow-hidden">
+                                            <table className="w-full text-sm text-left">
+                                                <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
+                                                    <tr>
+                                                        <th className="px-4 py-2">Data</th>
+                                                        <th className="px-4 py-2">Preparazione</th>
+                                                        <th className="px-4 py-2 text-right">Prezzo</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100">
+                                                    {contactHistory.map(p => (
+                                                        <tr 
+                                                            key={p.id} 
+                                                            className="hover:bg-slate-50 cursor-pointer transition-colors"
+                                                            onClick={() => { handleShowPreparation(p.id); onClose(); }}
+                                                            title="Vai alla preparazione"
+                                                        >
+                                                            <td className="px-4 py-2 whitespace-nowrap">{formatDate(p.date)}</td>
+                                                            <td className="px-4 py-2 font-medium text-slate-700">
+                                                                <div className="truncate max-w-[200px]" title={p.name}>{p.name}</div>
+                                                                <div className="text-[10px] text-slate-400 font-mono">{p.prepNumber}</div>
+                                                            </td>
+                                                            <td className="px-4 py-2 text-right font-mono">€ {parseFloat(p.totalPrice || 0).toFixed(2)}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ) : (
+                                        <p className="text-slate-400 italic text-center py-4">Nessuna preparazione trovata per questo contatto.</p>
+                                    )
                                 )}
                             </div>
                         </div>
@@ -261,7 +309,7 @@ const ContactModal = ({ isOpen, onClose, contact, onSave, preparations, handleSh
     );
 };
 
-const Contacts = ({ canEdit, preparations, handleShowPreparation }) => {
+const Contacts = ({ canEdit, preparations, inventory, handleShowPreparation }) => {
     const [contacts, setContacts] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -361,6 +409,7 @@ const Contacts = ({ canEdit, preparations, handleShowPreparation }) => {
                 contact={editingContact} 
                 onSave={handleSave} 
                 preparations={preparations}
+                inventory={inventory}
                 handleShowPreparation={handleShowPreparation}
             />
         </div>
