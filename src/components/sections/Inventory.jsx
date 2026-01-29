@@ -104,7 +104,7 @@ const InventoryTable = ({ data, type, sortConfig, requestSort, handleOpenViewMod
 
   return (
   <Card>
-    <div className="overflow-auto" style={{ maxHeight: '60vh' }}>
+    <div className="overflow-auto">
       <table className="w-full text-left text-sm">
         <thead className="sticky top-0 z-10 bg-slate-50 text-slate-600 border-b border-slate-200">
           <tr>
@@ -339,7 +339,7 @@ const Inventory = ({
         {activeTab === 'archived' && (
             <div className="animate-in fade-in slide-in-from-left-4 duration-300">
                 <Card className="border-slate-100 bg-slate-50/30">
-                <div className="overflow-auto" style={{ maxHeight: '60vh' }}>
+                <div className="overflow-auto">
                     <table className="w-full text-left text-xs opacity-80">
                     <thead className="sticky top-0 z-10 bg-slate-100 text-slate-500 border-b border-slate-200">
                         <tr>
