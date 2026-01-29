@@ -19,12 +19,6 @@ import {
   BookUser,
 } from 'lucide-react';
 
-const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true';
-let MOCK_INVENTORY, MOCK_PREPARATIONS, MOCK_LOGS;
-if (USE_MOCK_DATA) {
-  ({ MOCK_INVENTORY, MOCK_PREPARATIONS, MOCK_LOGS } = await import('./constants/mockData.js'));
-}
-
 import SidebarItem from './components/ui/SidebarItem';
 import Dashboard from './components/sections/Dashboard';
 import Inventory from './components/sections/Inventory';
@@ -131,15 +125,6 @@ export default function MainApp() {
 
   const loadData = useCallback(async () => {
     setLoadingData(true);
-    if (USE_MOCK_DATA || !AUTH_ENABLED) {
-      setInventory(MOCK_INVENTORY);
-      setPreparations(MOCK_PREPARATIONS);
-      setLogs(MOCK_LOGS);
-      setIsOnline(false);
-      setLoadingData(false);
-      return;
-    }
-
     try {
       // Usa l'helper specificando GET e cache busting
       const data = await createApiRequest('get_all_data', null, false, 'GET');
@@ -168,131 +153,47 @@ export default function MainApp() {
     } finally {
       setLoadingData(false);
     }
-  }, [createApiRequest, AUTH_ENABLED]);
+  }, [createApiRequest, fetchContacts]);
 
   const saveInventoryData = useCallback(async (itemToSave) => {
-    if (USE_MOCK_DATA || !AUTH_ENABLED) {
-      const updatedInventory = itemToSave.id 
-        ? inventory.map(item => String(item.id) === String(itemToSave.id) ? { ...item, ...itemToSave } : item)
-        : [...inventory, { ...itemToSave, id: Date.now() }];
-      setInventory(updatedInventory);
-      return { success: true, id: itemToSave.id || Date.now() };
-    }
-    return { success: true };
-  }, [inventory, AUTH_ENABLED]);
+    // Note: This function is currently unused in the UI directly as SubstanceModal handles save internally via handleAddOrUpdateSubstance.
+    // Keeping it for future use or consistency if refactored.
+    return { success: true }; 
+  }, []);
 
   const disposeInventoryData = useCallback(async (id) => {
-    if (USE_MOCK_DATA || !AUTH_ENABLED) {
-      setInventory(inventory.map(item => item.id === id ? { ...item, disposed: true, endUseDate: new Date().toISOString().split('T')[0] } : item));
-      return { success: true, id };
-    } else {
       return await createApiRequest('dispose_inventory', { id });
-    }
-  }, [inventory, createApiRequest, AUTH_ENABLED]);
+  }, [createApiRequest]);
 
   const savePreparationData = useCallback(async (itemsUsed, prepDetails, isDraft) => {
-    if (USE_MOCK_DATA || !AUTH_ENABLED) {
-      const isNewPrep = !prepDetails.id;
-      const finalStatus = isDraft ? 'Bozza' : 'Completata';
-      let updatedInventory = [...inventory];
-      let updatedLogs = [...logs];
-      let updatedPreparations = [...preparations];
-      if (isNewPrep) {
-          const newPrep = { ...prepDetails, id: Date.now(), date: new Date().toISOString().split('T')[0], status: finalStatus, ingredients: itemsUsed };
-          if (!isDraft) {
-              itemsUsed.forEach(used => {
-                  const invIndex = updatedInventory.findIndex(i => i.id === used.id);
-                  if (invIndex > -1) updatedInventory[invIndex] = { ...updatedInventory[invIndex], quantity: updatedInventory[invIndex].quantity - used.amountUsed };
-                  updatedLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'SCARICO', substance: used.name, ni: used.ni, quantity: used.amountUsed, unit: used.unit, notes: `Nuova Prep. #${newPrep.prepNumber}` });
-              });
-          }
-          updatedPreparations.unshift(newPrep);
-      } else {
-          const oldPrep = preparations.find(p => p.id === prepDetails.id);
-          const wasDraft = oldPrep?.status === 'Bozza';
-          if (!isDraft && wasDraft) {
-              itemsUsed.forEach(used => {
-                  const invIndex = updatedInventory.findIndex(i => i.id === used.id);
-                  if (invIndex > -1) updatedInventory[invIndex] = { ...updatedInventory[invIndex], quantity: updatedInventory[invIndex].quantity - used.amountUsed };
-                  updatedLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'SCARICO', substance: used.name, ni: used.ni, quantity: used.amountUsed, unit: used.unit, notes: `Complet. Prep. #${prepDetails.prepNumber}` });
-              });
-          } else if (!isDraft && !wasDraft) {
-              const oldIngredients = oldPrep.ingredients || [];
-              itemsUsed.forEach(newIng => {
-                  const oldIng = oldIngredients.find(o => o.id === newIng.id);
-                  const invIndex = updatedInventory.findIndex(i => i.id === newIng.id);
-                  if (invIndex === -1) return;
-                  const diff = newIng.amountUsed - (oldIng ? oldIng.amountUsed : 0);
-                  if (diff > 0) {
-                      updatedInventory[invIndex] = { ...updatedInventory[invIndex], quantity: updatedInventory[invIndex].quantity - diff };
-                      updatedLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'SCARICO', substance: newIng.name, ni: newIng.ni, quantity: diff, unit: newIng.unit, notes: `Modifica Prep. #${prepDetails.prepNumber}` });
-                  } else if (diff < 0) {
-                      updatedInventory[invIndex] = { ...updatedInventory[invIndex], quantity: updatedInventory[invIndex].quantity + Math.abs(diff) };
-                      updatedLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'ANNULLAMENTO', substance: newIng.name, ni: newIng.ni, quantity: Math.abs(diff), unit: newIng.unit, notes: `Modifica Prep. #${prepDetails.prepNumber}` });
-                  }
-              });
-              oldIngredients.forEach(oldIng => {
-                  if (!itemsUsed.some(n => n.id === oldIng.id)) {
-                      const invIndex = updatedInventory.findIndex(i => i.id === oldIng.id);
-                      if (invIndex > -1) {
-                          updatedInventory[invIndex] = { ...updatedInventory[invIndex], quantity: updatedInventory[invIndex].quantity + oldIng.amountUsed };
-                          updatedLogs.unshift({ id: Math.random(), date: new Date().toISOString().split('T')[0], type: 'ANNULLAMENTO', substance: oldIng.name, ni: oldIng.ni, quantity: oldIng.amountUsed, unit: oldIng.unit, notes: `Modifica Prep. #${prepDetails.prepNumber}` });
-                      }
-                  }
-              });
-          }
-          const prepIndex = updatedPreparations.findIndex(p => p.id === prepDetails.id);
-          if (prepIndex > -1) updatedPreparations[prepIndex] = { ...updatedPreparations[prepIndex], ...prepDetails, ingredients: itemsUsed, status: finalStatus };
-      }
-      setInventory(updatedInventory); setLogs(updatedLogs); setPreparations(updatedPreparations);
-      return { success: true, id: prepDetails.id || Date.now() };
-    } else {
       return await createApiRequest('save_preparation', { prepDetails, itemsUsed, isDraft });
-    }
-  }, [createApiRequest, AUTH_ENABLED, inventory, preparations, logs]);
+  }, [createApiRequest]);
 
   const deletePreparationData = useCallback(async (id) => {
-    if (USE_MOCK_DATA || !AUTH_ENABLED) {
-      setPreparations(preparations.filter(p => p.id !== id));
-      return { success: true, id };
-    } else {
       return await createApiRequest('delete_preparation', { id });
-    }
-  }, [preparations, createApiRequest, AUTH_ENABLED]);
+  }, [createApiRequest]);
 
   const handleClearLogs = async (options) => {
     if (!isAdmin) { alert("Solo l'amministratore può svuotare i log."); return; }
-    if (USE_MOCK_DATA || !AUTH_ENABLED) {
-      if (options.mode === 'all') setLogs([]);
-      else if (options.mode === 'range') {
-        const start = new Date(options.startDate); const end = new Date(options.endDate);
-        setLogs(logs.filter(log => { const logDate = new Date(log.date); return logDate < start || logDate > end; }));
-      }
-    } else {
-      try {
-        const result = await createApiRequest('clear_logs', options);
-        if (result.error) throw new Error(result.error);
-        await loadData();
-      } catch (error) {
-        console.error("Errore pulizia log:", error);
-        alert("Errore durante la pulizia dei log.");
-      }
+    try {
+      const result = await createApiRequest('clear_logs', options);
+      if (result.error) throw new Error(result.error);
+      await loadData();
+    } catch (error) {
+      console.error("Errore pulizia log:", error);
+      alert("Errore durante la pulizia dei log.");
     }
   };
 
   const handleDeleteLog = async (id) => {
       if (!isAdmin) { alert("Solo l'amministratore può eliminare i log."); return; }
-      if (USE_MOCK_DATA || !AUTH_ENABLED) {
-          setLogs(logs.filter(log => log.id !== id));
-      } else {
-          try {
-              const result = await createApiRequest('delete_log', { id });
-              if (result.error) throw new Error(result.error);
-              await loadData();
-          } catch (error) {
-              console.error("Errore eliminazione log:", error);
-              alert("Errore durante l'eliminazione del log.");
-          }
+      try {
+          const result = await createApiRequest('delete_log', { id });
+          if (result.error) throw new Error(result.error);
+          await loadData();
+      } catch (error) {
+          console.error("Errore eliminazione log:", error);
+          alert("Errore durante l'eliminazione del log.");
       }
   };
 
@@ -310,19 +211,15 @@ export default function MainApp() {
 
       setPharmacySettings(prev => ({ ...prev, ...settingsObj }));
       
-      if (USE_MOCK_DATA || !AUTH_ENABLED) {
-          localStorage.setItem('galenico_settings', JSON.stringify(settingsObj));
-      } else {
-          try {
-              const result = await createApiRequest('save_settings', newSettings, isMultipart);
-              if (result.error) throw new Error(result.error);
-              if (result.data) {
-                  setPharmacySettings(prev => ({ ...prev, ...result.data }));
-              }
-          } catch (e) {
-              console.error("Errore salvataggio settings:", e);
-              alert("Errore durante il salvataggio delle impostazioni.");
+      try {
+          const result = await createApiRequest('save_settings', newSettings, isMultipart);
+          if (result.error) throw new Error(result.error);
+          if (result.data) {
+              setPharmacySettings(prev => ({ ...prev, ...result.data }));
           }
+      } catch (e) {
+          console.error("Errore salvataggio settings:", e);
+          alert("Errore durante il salvataggio delle impostazioni.");
       }
   };
 
@@ -537,13 +434,9 @@ export default function MainApp() {
     if (newSubstance.sdsFile instanceof File) formData.append('sdsFile', newSubstance.sdsFile);
     if (newSubstance.technicalSheetFile instanceof File) formData.append('technicalSheetFile', newSubstance.technicalSheetFile);
     try {
-      if (USE_MOCK_DATA || !AUTH_ENABLED) {
-        // Mock logic here if needed
-      } else {
-        const result = await createApiRequest('add_or_update_inventory', formData, true);
-        if (result.error) throw new Error(result.error);
-        await loadData();
-      }
+      const result = await createApiRequest('add_or_update_inventory', formData, true);
+      if (result.error) throw new Error(result.error);
+      await loadData();
       setIsAddModalOpen(false);
     } catch(error) {
       console.error("Errore salvataggio sostanza:", error); alert("Errore durante il salvataggio della sostanza.");
@@ -554,7 +447,7 @@ export default function MainApp() {
         if (!window.confirm(`Confermi di voler smaltire l'elemento?`)) return;      try {
         const result = await disposeInventoryData(itemId);
         if (result.error) throw new Error(result.error);
-        if (!USE_MOCK_DATA && AUTH_ENABLED) await loadData();
+        if (AUTH_ENABLED) await loadData();
       } catch (error) {
         console.error("Errore smaltimento:", error);
         alert("Errore durante lo smaltimento.");
@@ -573,7 +466,7 @@ export default function MainApp() {
           if (!window.confirm(`Eliminare la preparazione?`)) return;      try {
         const result = await deletePreparationData(prepId);
         if (result.error) throw new Error(result.error);
-        if (!USE_MOCK_DATA && AUTH_ENABLED) await loadData();
+        if (AUTH_ENABLED) await loadData();
       } catch (error) {
         console.error("Errore eliminazione preparazione:", error);
         alert("Errore durante l'eliminazione della preparazione.");
@@ -584,7 +477,7 @@ export default function MainApp() {
         try {        const result = await savePreparationData(itemsUsed, prepDetails, isDraft);
         if (result.error) throw new Error(result.error);
         setEditingPrep(null); setActiveTab('preparations_log');
-        if (!USE_MOCK_DATA && AUTH_ENABLED) await loadData();
+        if (AUTH_ENABLED) await loadData();
       } catch (error) {
         console.error("Errore salvataggio preparazione:", error);
         alert("Errore durante il salvataggio della preparazione.");

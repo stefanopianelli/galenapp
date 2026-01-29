@@ -56,6 +56,8 @@ const ContactModal = ({ isOpen, onClose, contact, onSave, preparations, inventor
     const [activeTab, setActiveTab] = useState('info');
     const [taxIdError, setTaxIdError] = useState('');
     const [zipError, setZipError] = useState('');
+    const [supplierPage, setSupplierPage] = useState(1);
+    const ITEMS_PER_PAGE = 20;
 
     React.useEffect(() => {
         if (isOpen) {
@@ -63,6 +65,7 @@ const ContactModal = ({ isOpen, onClose, contact, onSave, preparations, inventor
             setTaxIdError('');
             setZipError('');
             setActiveTab('info');
+            setSupplierPage(1);
         }
     }, [contact, isOpen]);
 
@@ -81,6 +84,13 @@ const ContactModal = ({ isOpen, onClose, contact, onSave, preparations, inventor
         const name = contact.name.toLowerCase();
         return inventory.filter(i => (i.supplier || '').toLowerCase() === name).sort((a, b) => new Date(b.receptionDate || b.id) - new Date(a.receptionDate || a.id));
     }, [contact, inventory]);
+
+    const paginatedSupplierHistory = useMemo(() => {
+        const start = (supplierPage - 1) * ITEMS_PER_PAGE;
+        return supplierHistory.slice(start, start + ITEMS_PER_PAGE);
+    }, [supplierHistory, supplierPage]);
+
+    const totalSupplierPages = Math.ceil(supplierHistory.length / ITEMS_PER_PAGE);
 
     const stats = useMemo(() => {
         if (contact?.type === 'supplier') {
@@ -243,27 +253,51 @@ const ContactModal = ({ isOpen, onClose, contact, onSave, preparations, inventor
                                 
                                 {contact.type === 'supplier' ? (
                                     supplierHistory.length > 0 ? (
-                                        <div className="border rounded-lg overflow-hidden">
-                                            <table className="w-full text-sm text-left">
-                                                <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
-                                                    <tr>
-                                                        <th className="px-4 py-2">Sostanza</th>
-                                                        <th className="px-4 py-2">Lotto</th>
-                                                        <th className="px-4 py-2 text-right">Giacenza</th>
-                                                        <th className="px-4 py-2 text-right">Valore</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-slate-100">
-                                                    {supplierHistory.map(item => (
-                                                        <tr key={item.id} className="hover:bg-slate-50">
-                                                            <td className="px-4 py-2 font-medium text-slate-700 truncate max-w-[150px]" title={item.name}>{item.name}</td>
-                                                            <td className="px-4 py-2 text-xs text-slate-500">{item.lot}</td>
-                                                            <td className="px-4 py-2 text-right font-mono text-xs">{parseFloat(item.quantity).toFixed(2)} {item.unit}</td>
-                                                            <td className="px-4 py-2 text-right font-mono text-xs">€ {(item.quantity * (item.costPerGram || 0)).toFixed(2)}</td>
+                                        <div className="space-y-4">
+                                            <div className="border rounded-lg overflow-hidden">
+                                                <table className="w-full text-sm text-left">
+                                                    <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
+                                                        <tr>
+                                                            <th className="px-4 py-2">Sostanza</th>
+                                                            <th className="px-4 py-2">Lotto</th>
+                                                            <th className="px-4 py-2 text-right">Giacenza</th>
+                                                            <th className="px-4 py-2 text-right">Valore</th>
                                                         </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-100">
+                                                        {paginatedSupplierHistory.map(item => (
+                                                            <tr key={item.id} className="hover:bg-slate-50">
+                                                                <td className="px-4 py-2 font-medium text-slate-700 truncate max-w-[150px]" title={item.name}>{item.name}</td>
+                                                                <td className="px-4 py-2 text-xs text-slate-500">{item.lot}</td>
+                                                                <td className="px-4 py-2 text-right font-mono text-xs">{parseFloat(item.quantity).toFixed(2)} {item.unit}</td>
+                                                                <td className="px-4 py-2 text-right font-mono text-xs">€ {(item.quantity * (item.costPerGram || 0)).toFixed(2)}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            
+                                            {totalSupplierPages > 1 && (
+                                                <div className="flex justify-between items-center bg-slate-50 p-2 rounded-lg border border-slate-100">
+                                                    <span className="text-xs text-slate-500">Pagina <b>{supplierPage}</b> di <b>{totalSupplierPages}</b> ({supplierHistory.length} articoli)</span>
+                                                    <div className="flex gap-1">
+                                                        <button 
+                                                            onClick={() => setSupplierPage(p => Math.max(1, p - 1))}
+                                                            disabled={supplierPage === 1}
+                                                            className="px-3 py-1 bg-white border border-slate-200 rounded text-xs font-bold hover:bg-slate-50 disabled:opacity-30 transition-colors"
+                                                        >
+                                                            Indietro
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => setSupplierPage(p => Math.min(totalSupplierPages, p + 1))}
+                                                            disabled={supplierPage === totalSupplierPages}
+                                                            className="px-3 py-1 bg-white border border-slate-200 rounded text-xs font-bold hover:bg-slate-50 disabled:opacity-30 transition-colors"
+                                                        >
+                                                            Avanti
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     ) : <p className="text-slate-400 italic text-center py-4">Nessuna fornitura attiva trovata in magazzino.</p>
                                 ) : (

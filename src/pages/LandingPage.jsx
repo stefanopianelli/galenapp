@@ -5,8 +5,9 @@ import screen0 from '../assets/screen0.png';
 import screen1 from '../assets/screen1.png';
 import screen2 from '../assets/screen2.png';
 import screen3 from '../assets/screen3.png';
+import screen4 from '../assets/screen4.png';
 
-const slides = [screen0, screen1, screen2, screen3];
+const slides = [screen0, screen1, screen2, screen3, screen4];
 
 const FeatureCard = ({ icon: Icon, title, description }) => (
   <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-all duration-300 hover:-translate-y-1">
