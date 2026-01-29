@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Scale, AlertTriangle, CheckCircle, XCircle, Info } from 'lucide-react';
+import { useConfirmation } from '../../context/ConfirmationContext';
 
 const UniformityCheck = ({ totalQuantity, unit, ingredients, onUpdate, savedData }) => {
+    const confirm = useConfirmation();
     // 1. Calcolo Campione (10% del totale, arrotondato per eccesso, minimo 5 se possibile, ma seguiamo 10% strict)
     const totalUnits = parseInt(totalQuantity) || 0;
     const sampleSize = Math.max(1, Math.ceil(totalUnits * 0.1));
@@ -76,7 +78,13 @@ const UniformityCheck = ({ totalQuantity, unit, ingredients, onUpdate, savedData
                 <div className="flex items-center gap-3">
                     {filledCount > 0 && (
                         <button 
-                            onClick={() => { if(window.confirm('Svuotare tutte le pesate?')) setMeasurements(Array(sampleSize).fill('')); }}
+                            onClick={() => confirm({
+                                title: "Reset Pesate",
+                                message: "Vuoi svuotare tutte le pesate inserite?",
+                                isDangerous: true,
+                                confirmText: "Svuota",
+                                onConfirm: () => setMeasurements(Array(sampleSize).fill(''))
+                            })}
                             className="text-[10px] font-bold text-red-400 hover:text-red-600 uppercase tracking-wider transition-colors border border-red-100 px-2 py-1 rounded hover:bg-red-50"
                         >
                             Resetta

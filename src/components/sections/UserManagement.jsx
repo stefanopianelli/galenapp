@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { UserPlus, Edit2, Trash2, Shield, User, Key, X, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useConfirmation } from '../../context/ConfirmationContext';
 import { useApi } from '../../hooks/useApi';
 
 const UserManagement = () => {
@@ -11,6 +12,7 @@ const UserManagement = () => {
   const [editingUser, setEditingUser] = useState(null);
   const { user: currentUser } = useAuth();
   const { createApiRequest } = useApi();
+  const confirm = useConfirmation();
 
   const [formData, setFormData] = useState({
     username: '',
@@ -80,19 +82,26 @@ const UserManagement = () => {
         alert("Non puoi eliminare il tuo stesso utente!");
         return;
     }
-    if (!window.confirm("Sei sicuro di voler eliminare questo utente?")) return;
-
-    try {
-      const result = await createApiRequest('delete_user', { id });
-      if (result.success) {
-        fetchUsers();
-      } else {
-        alert(result.error || "Impossibile eliminare l'utente.");
+    
+    confirm({
+      title: "Elimina Utente",
+      message: "Sei sicuro di voler eliminare definitivamente questo utente?",
+      isDangerous: true,
+      confirmText: "Elimina",
+      onConfirm: async () => {
+        try {
+          const result = await createApiRequest('delete_user', { id });
+          if (result.success) {
+            fetchUsers();
+          } else {
+            alert(result.error || "Impossibile eliminare l'utente.");
+          }
+        } catch (error) {
+          console.error("Errore eliminazione utente:", error);
+          alert("Errore durante l'eliminazione.");
+        }
       }
-    } catch (error) {
-      console.error("Errore eliminazione utente:", error);
-      alert("Errore durante l'eliminazione.");
-    }
+    });
   };
 
   if (loading && users.length === 0) {

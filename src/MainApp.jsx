@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from './context/AuthContext';
+import { useConfirmation } from './context/ConfirmationContext';
 import {
   Beaker,
   ClipboardList,
@@ -40,6 +41,7 @@ import { generateLabelPDF } from './services/labelGenerator';
 
 export default function MainApp() {
   const { logout, AUTH_ENABLED, user } = useAuth();
+  const confirm = useConfirmation();
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem('activeTab') || 'dashboard');
 
   const canEdit = useMemo(() => {
@@ -243,9 +245,18 @@ export default function MainApp() {
   }, [activeTab, AUTH_ENABLED, user]);
 
   const handleTabChange = (tab) => {
-    if (activeTab === 'preparation' && window.confirm('Sei sicuro di voler uscire? Le modifiche non salvate andranno perse.')) {
-      setEditingPrep(null); setActiveTab(tab);
-    } else if (activeTab !== 'preparation') {
+    if (activeTab === 'preparation') {
+      confirm({
+        title: "Modifiche non salvate",
+        message: "Sei sicuro di voler uscire? Le modifiche non salvate alla preparazione andranno perse.",
+        isDangerous: true,
+        confirmText: "Esci senza salvare",
+        onConfirm: () => {
+          setEditingPrep(null);
+          setActiveTab(tab);
+        }
+      });
+    } else {
       setActiveTab(tab);
     }
   };
@@ -413,8 +424,26 @@ export default function MainApp() {
   };
   const handleSdsUpload = (e) => { const file = e.target.files[0]; if (!file) return; setNewSubstance(prev => ({ ...prev, sdsFile: file })); };
   const handleTechnicalSheetUpload = (e) => { const file = e.target.files[0]; if (!file) return; setNewSubstance(prev => ({ ...prev, technicalSheetFile: file })); };
-  const handleRemoveSds = () => { if (window.confirm("Rimuovere la Scheda di Sicurezza?")) setNewSubstance(prev => ({ ...prev, sdsFile: null })); };
-  const handleRemoveTechnicalSheet = () => { if (window.confirm("Rimuovere la Scheda Tecnica?")) setNewSubstance(prev => ({ ...prev, technicalSheetFile: null })); };
+  
+  const handleRemoveSds = () => {
+    confirm({
+      title: "Rimuovi SDS",
+      message: "Sei sicuro di voler rimuovere la Scheda di Sicurezza allegata?",
+      isDangerous: true,
+      confirmText: "Rimuovi",
+      onConfirm: () => setNewSubstance(prev => ({ ...prev, sdsFile: null }))
+    });
+  };
+
+  const handleRemoveTechnicalSheet = () => {
+    confirm({
+      title: "Rimuovi Scheda Tecnica",
+      message: "Sei sicuro di voler rimuovere la Scheda Tecnica allegata?",
+      isDangerous: true,
+      confirmText: "Rimuovi",
+      onConfirm: () => setNewSubstance(prev => ({ ...prev, technicalSheetFile: null }))
+    });
+  };
   const handleDownloadPdf = (e, file) => {
     e.preventDefault(); if (!file) return;
     if (file instanceof File) {
@@ -444,14 +473,23 @@ export default function MainApp() {
   };
       const handleDispose = async (itemId) => {
         if (!canEdit) { alert("Permesso negato"); return; }
-        if (!window.confirm(`Confermi di voler smaltire l'elemento?`)) return;      try {
-        const result = await disposeInventoryData(itemId);
-        if (result.error) throw new Error(result.error);
-        if (AUTH_ENABLED) await loadData();
-      } catch (error) {
-        console.error("Errore smaltimento:", error);
-        alert("Errore durante lo smaltimento.");
-      }
+        
+        confirm({
+          title: "Smaltimento Sostanza",
+          message: "Confermi di voler smaltire questo elemento? L'operazione segnerà la sostanza come terminata.",
+          isDangerous: true,
+          confirmText: "Smaltisci",
+          onConfirm: async () => {
+            try {
+              const result = await disposeInventoryData(itemId);
+              if (result.error) throw new Error(result.error);
+              if (AUTH_ENABLED) await loadData();
+            } catch (error) {
+              console.error("Errore smaltimento:", error);
+              alert("Errore durante lo smaltimento.");
+            }
+          }
+        });
     };
         const handleDeletePreparation = async (prepId) => {
           if (!canEdit) { alert("Permesso negato"); return; }
@@ -463,14 +501,22 @@ export default function MainApp() {
               return;
           }
       
-          if (!window.confirm(`Eliminare la preparazione?`)) return;      try {
-        const result = await deletePreparationData(prepId);
-        if (result.error) throw new Error(result.error);
-        if (AUTH_ENABLED) await loadData();
-      } catch (error) {
-        console.error("Errore eliminazione preparazione:", error);
-        alert("Errore durante l'eliminazione della preparazione.");
-      }
+          confirm({
+            title: "Elimina Preparazione",
+            message: "Sei sicuro di voler eliminare definitivamente questa preparazione?",
+            isDangerous: true,
+            confirmText: "Elimina",
+            onConfirm: async () => {
+              try {
+                const result = await deletePreparationData(prepId);
+                if (result.error) throw new Error(result.error);
+                if (AUTH_ENABLED) await loadData();
+              } catch (error) {
+                console.error("Errore eliminazione preparazione:", error);
+                alert("Errore durante l'eliminazione della preparazione.");
+              }
+            }
+          });
     };
       const handleSavePreparation = async (itemsUsed, prepDetails, isDraft = false) => {
         if (!canEdit) { alert("Permesso negato"); return; }
@@ -491,10 +537,22 @@ export default function MainApp() {
     setEditingPrep(duplicatedData); setInitialWizardStep(1); setActiveTab('preparation');
   };
   const handleNewPreparation = () => {
-    if (activeTab === 'preparation' && window.confirm('Sei sicuro di voler iniziare una nuova preparazione? Le modifiche non salvate andranno perse.')) {
-      setEditingPrep(null); setInitialWizardStep(1); setIsPrepTypeModalOpen(true);
+    const startNew = () => {
+      setEditingPrep(null); 
+      setInitialWizardStep(1); 
+      setIsPrepTypeModalOpen(true);
+    };
+
+    if (activeTab === 'preparation') {
+      confirm({
+        title: "Nuova Preparazione",
+        message: "Sei sicuro di voler iniziare una nuova preparazione? Le modifiche non salvate a quella attuale andranno perse.",
+        isDangerous: true,
+        confirmText: "Continua",
+        onConfirm: startNew
+      });
     } else if (activeTab !== 'preparation') {
-      setEditingPrep(null); setInitialWizardStep(1); setIsPrepTypeModalOpen(true);
+      startNew();
     }
   };
   const startNewPreparation = (type) => { setEditingPrep({ prepType: type }); setIsPrepTypeModalOpen(false); setActiveTab('preparation'); };

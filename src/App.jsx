@@ -1,12 +1,15 @@
 // src/App.jsx
 import React from 'react';
 import { AuthProvider } from './context/AuthContext';
+import { ConfirmationProvider } from './context/ConfirmationContext';
 import AppRouter from './AppRouter';
 
 function App() {
   return (
     <AuthProvider>
-      <AppRouter />
+      <ConfirmationProvider>
+        <AppRouter />
+      </ConfirmationProvider>
     </AuthProvider>
   );
 }

@@ -4,6 +4,7 @@ import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import { useApi } from '../../hooks/useApi';
 import { formatDate } from '../../utils/dateUtils';
+import { useConfirmation } from '../../context/ConfirmationContext';
 
 const ContactRow = ({ contact, onEdit, onDelete, canEdit }) => {
     const TypeIcon = {
@@ -351,6 +352,7 @@ const Contacts = ({ canEdit, preparations, inventory, handleShowPreparation }) =
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingContact, setEditingContact] = useState(null);
     const { createApiRequest } = useApi();
+    const confirm = useConfirmation();
 
     const fetchContacts = async () => {
         setLoading(true);
@@ -374,9 +376,16 @@ const Contacts = ({ canEdit, preparations, inventory, handleShowPreparation }) =
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm("Eliminare contatto?")) return;
-        const res = await createApiRequest('delete_contact', { id });
-        if (res && res.success) fetchContacts();
+        confirm({
+            title: "Elimina Contatto",
+            message: "Sei sicuro di voler eliminare questo contatto?",
+            isDangerous: true,
+            confirmText: "Elimina",
+            onConfirm: async () => {
+                const res = await createApiRequest('delete_contact', { id });
+                if (res && res.success) fetchContacts();
+            }
+        });
     };
 
     const filteredContacts = useMemo(() => {

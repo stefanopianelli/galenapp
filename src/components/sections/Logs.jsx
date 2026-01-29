@@ -4,6 +4,7 @@ import Badge from '../ui/Badge';
 import { Trash2, Calendar, AlertTriangle, X, Search, RefreshCw } from 'lucide-react';
 import { formatDate } from '../../utils/dateUtils';
 import { useApi } from '../../hooks/useApi';
+import { useConfirmation } from '../../context/ConfirmationContext';
 
 const Logs = ({ logs: initialLogs, preparations, handleShowPreparation, handleClearLogs, handleDeleteLog, canEdit, isAdmin }) => {
   const [logs, setLogs] = useState([]);
@@ -11,6 +12,8 @@ const Logs = ({ logs: initialLogs, preparations, handleShowPreparation, handleCl
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const { createApiRequest } = useApi();
+  const confirm = useConfirmation();
+
 
   // Filtri Server-Side
   const [searchTerm, setSearchTerm] = useState('');
@@ -76,10 +79,16 @@ const Logs = ({ logs: initialLogs, preparations, handleShowPreparation, handleCl
   };
 
   const handleConfirmDelete = async (id) => {
-      if (window.confirm("Sei sicuro di voler eliminare questa riga di log? Questa azione non ripristina la giacenza, elimina solo la traccia.")) {
-          await handleDeleteLog(id);
-          fetchLogs(); // Ricarica dopo eliminazione
+    confirm({
+      title: "Elimina Log",
+      message: "Sei sicuro di voler eliminare questa riga di log? Questa azione non ripristina la giacenza, elimina solo la traccia.",
+      isDangerous: true,
+      confirmText: "Elimina",
+      onConfirm: async () => {
+        await handleDeleteLog(id);
+        fetchLogs();
       }
+    });
   };
 
   // Wrapper per handleClearLogs che poi ricarica
@@ -94,24 +103,29 @@ const Logs = ({ logs: initialLogs, preparations, handleShowPreparation, handleCl
 
   const handleClearByDate = async () => {
     if (!startDate || !endDate) return alert("Date mancanti");
-    if (window.confirm(`Cancellare log dal ${startDate} al ${endDate}?`)) {
-        // Logica clear custom? handleClearLogs usa parametri?
-        // handleClearLogs in MainApp chiama API clear_logs.
-        // Qui dovremmo chiamare direttamente l'API se handleClearLogs non supporta parametri o modificarla.
-        // handleClearLogs in MainApp supporta options!
-        // Ma handleClearLogs (prop) è vincolata?
-        // In MainApp: const handleClearLogs = async (options) => ...
-        // Quindi possiamo passare options.
+    confirm({
+      title: "Cancella Periodo",
+      message: `Cancellare log dal ${startDate} al ${endDate}?`,
+      isDangerous: true,
+      confirmText: "Cancella",
+      onConfirm: async () => {
         await handleClearLogs({ mode: 'range', startDate, endDate });
         fetchLogs();
-    }
+      }
+    });
   };
 
   const handleClearAll = async () => {
-      if (window.confirm("Cancellare TUTTO?")) {
-          await handleClearLogs({ mode: 'all' });
-          fetchLogs();
+    confirm({
+      title: "Cancellazione Totale",
+      message: "Sei sicuro di voler cancellare TUTTI i log? Questa operazione è irreversibile.",
+      isDangerous: true,
+      confirmText: "CANCELLA TUTTO",
+      onConfirm: async () => {
+        await handleClearLogs({ mode: 'all' });
+        fetchLogs();
       }
+    });
   };
 
   return (
