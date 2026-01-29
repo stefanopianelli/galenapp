@@ -199,13 +199,13 @@ const Logs = ({ logs: initialLogs, preparations, handleShowPreparation, handleCl
           <table className="w-full text-left text-sm">
             <thead className="sticky top-0 z-10 bg-slate-50 text-slate-600 border-b border-slate-200">
               <tr>
-                <th className="px-6 py-3 font-semibold whitespace-nowrap">Data</th>
-                <th className="px-6 py-3 font-semibold whitespace-nowrap">Tipo</th>
-                <th className="px-6 py-3 font-semibold whitespace-nowrap">Sostanza</th>
-                <th className="px-6 py-3 font-semibold whitespace-nowrap">N.I.</th>
-                <th className="px-6 py-3 font-semibold text-right whitespace-nowrap">Quantità</th>
-                <th className="px-6 py-3 font-semibold whitespace-nowrap">Note</th>
-                <th className="px-6 py-3 font-semibold text-center whitespace-nowrap">Azioni</th>
+                <th className="px-6 py-1.5 font-semibold whitespace-nowrap">Data</th>
+                <th className="px-6 py-1.5 font-semibold whitespace-nowrap">Tipo</th>
+                <th className="px-6 py-1.5 font-semibold whitespace-nowrap">Sostanza</th>
+                <th className="px-6 py-1.5 font-semibold whitespace-nowrap">N.I.</th>
+                <th className="px-6 py-1.5 font-semibold text-right whitespace-nowrap">Quantità</th>
+                <th className="px-6 py-1.5 font-semibold whitespace-nowrap">Note</th>
+                <th className="px-6 py-1.5 font-semibold text-center whitespace-nowrap">Azioni</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -214,17 +214,17 @@ const Logs = ({ logs: initialLogs, preparations, handleShowPreparation, handleCl
               ) : logs.length > 0 ? (
                 logs.map(log => (
                   <tr key={log.id}>
-                    <td className="px-6 py-3 whitespace-nowrap text-slate-700">{formatDate(log.date)}</td>
-                    <td className="px-6 py-3 whitespace-nowrap"><Badge type={log.type === 'CARICO' ? 'success' : log.type === 'SMALTIMENTO' ? 'dark' : 'warning'}>{log.type}</Badge></td>
-                    <td className="px-6 py-3 whitespace-nowrap font-medium text-slate-800">{log.substance}</td>
-                    <td className="px-6 py-3 font-mono text-xs whitespace-nowrap">{log.ni}</td>
-                    <td className={`px-6 py-3 text-right font-mono font-bold whitespace-nowrap ${(log.type === 'CARICO' || log.type === 'ANNULLAMENTO') ? 'text-green-600' : 'text-red-600'}`}>
+                    <td className="px-6 py-1.5 whitespace-nowrap text-slate-700">{formatDate(log.date)}</td>
+                    <td className="px-6 py-1.5 whitespace-nowrap"><Badge type={log.type === 'CARICO' ? 'success' : log.type === 'SMALTIMENTO' ? 'dark' : 'warning'}>{log.type}</Badge></td>
+                    <td className="px-6 py-1.5 whitespace-nowrap font-medium text-slate-800">{log.substance}</td>
+                    <td className="px-6 py-1.5 font-mono text-xs whitespace-nowrap">{log.ni}</td>
+                    <td className={`px-6 py-1.5 text-right font-mono font-bold whitespace-nowrap ${(log.type === 'CARICO' || log.type === 'ANNULLAMENTO') ? 'text-green-600' : 'text-red-600'}`}>
                       {log.quantity !== null ? (
                         <>{(log.type === 'CARICO' || log.type === 'ANNULLAMENTO') ? '+' : '-'}{Number(log.quantity).toFixed(2)} {log.unit}</>
                       ) : '-'}
                     </td>
-                    <td className="px-6 py-3 text-slate-500 text-xs whitespace-nowrap max-w-xs truncate" title={log.notes}>{renderNote(log.notes)}</td>
-                    <td className="px-6 py-3 text-center whitespace-nowrap">
+                    <td className="px-6 py-1.5 text-slate-500 text-xs whitespace-nowrap max-w-xs truncate" title={log.notes}>{renderNote(log.notes)}</td>
+                    <td className="px-6 py-1.5 text-center whitespace-nowrap">
                         {isAdmin && (
                             <button 
                                 onClick={() => handleConfirmDelete(log.id)} 
