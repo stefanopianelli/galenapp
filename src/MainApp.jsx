@@ -109,7 +109,7 @@ export default function MainApp() {
   });
 
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
-  const [prepSortConfig, setPrepSortConfig] = useState({ key: 'prepNumber', direction: 'asc' });
+  const [prepSortConfig, setPrepSortConfig] = useState({ key: 'date', direction: 'desc' });
   const [searchTerm, setSearchTerm] = useState('');
   const [prepSearchTerm, setPrepSearchTerm] = useState('');
   const [inventoryFilter, setInventoryFilter] = useState('all');
@@ -371,9 +371,17 @@ export default function MainApp() {
     }
     if (prepSortConfig.key) {
       filtered.sort((a, b) => {
+        // 1. Priorità alle Bozze (sempre in alto)
+        const isDraftA = a.status === 'Bozza';
+        const isDraftB = b.status === 'Bozza';
+        if (isDraftA && !isDraftB) return -1;
+        if (!isDraftA && isDraftB) return 1;
+
+        // 2. Ordinamento normale
         let aVal = a[prepSortConfig.key]; let bVal = b[prepSortConfig.key];
         if (prepSortConfig.key === 'totalPrice') { aVal = parseFloat(aVal || 0); bVal = parseFloat(bVal || 0); }
         else { if (typeof aVal === 'string') aVal = aVal.toLowerCase(); if (typeof bVal === 'string') bVal = bVal.toLowerCase(); }
+        
         if (aVal < bVal) return prepSortConfig.direction === 'asc' ? -1 : 1;
         if (aVal > bVal) return prepSortConfig.direction === 'asc' ? 1 : -1;
         return 0;
