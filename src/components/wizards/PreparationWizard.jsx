@@ -1373,6 +1373,7 @@ function PreparationWizard({ inventory, preparations, onComplete, initialData, p
                       unit={getPrepUnit(details.pharmaceuticalForm)} 
                       ingredients={selectedIngredients} 
                       savedData={details.uniformityCheck} 
+                      prepType={isOfficinale ? 'officinale' : 'magistrale'}
                       onUpdate={(data) => setDetails(prev => ({ ...prev, uniformityCheck: data }))} 
                   />
               )}

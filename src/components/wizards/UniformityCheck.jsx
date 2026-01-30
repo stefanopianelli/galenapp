@@ -2,11 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { Scale, AlertTriangle, CheckCircle, XCircle, Info } from 'lucide-react';
 import { useConfirmation } from '../../context/ConfirmationContext';
 
-const UniformityCheck = ({ totalQuantity, unit, ingredients, onUpdate, savedData }) => {
+const UniformityCheck = ({ totalQuantity, unit, ingredients, onUpdate, savedData, prepType = 'magistrale' }) => {
     const confirm = useConfirmation();
-    // 1. Calcolo Campione (10% del totale, arrotondato per eccesso, minimo 5 se possibile, ma seguiamo 10% strict)
+    // 1. Calcolo Campione
+    // OFFICINALI: Fisso a 20 unità
+    // MAGISTRALI: 10% del totale (arrotondato per eccesso, minimo 1)
     const totalUnits = parseInt(totalQuantity) || 0;
-    const sampleSize = Math.max(1, Math.ceil(totalUnits * 0.1));
+    
+    let sampleSize = 1;
+    if (prepType === 'officinale') {
+        sampleSize = Math.min(totalUnits, 20); // Se ho meno di 20 unità totali, le peso tutte
+    } else {
+        sampleSize = Math.max(1, Math.ceil(totalUnits * 0.1));
+    }
 
     // 2. Calcolo Peso Teorico Netto (Totale Grammi Sostanze / Numero Unità) * 1000 per mg
     const totalWeightGrams = ingredients.reduce((sum, ing) => {
@@ -48,7 +56,20 @@ const UniformityCheck = ({ totalQuantity, unit, ingredients, onUpdate, savedData
 
     const filledCount = measurements.filter(m => m !== '').length;
     const isComplete = filledCount === sampleSize;
-    const allCompliant = isComplete && results.every(r => r && r.isCompliant);
+    
+    // Logica Validazione:
+    // Magistrali: 0 errori ammessi
+    // Officinali: Max 2 errori ammessi su 20 campioni
+    const failures = results.filter(r => r && !r.isCompliant).length;
+    let allCompliant = false;
+
+    if (isComplete) {
+        if (prepType === 'officinale' && sampleSize >= 20) {
+            allCompliant = failures <= 2;
+        } else {
+            allCompliant = failures === 0;
+        }
+    }
     
     // Notifica al padre
     useEffect(() => {
