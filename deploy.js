@@ -55,6 +55,16 @@ if (targetEnv === 'test') {
             remoteDir: process.env.FTP2_REMOTE_DIR || '/'
         });
     }
+    if (process.env.FTP3_HOST) {
+        servers.push({
+            name: 'Farmacia Verde Maremma - Grosseto',
+            host: process.env.FTP3_HOST,
+            username: process.env.FTP3_USER,
+            password: process.env.FTP3_PASSWORD,
+            port: 22,
+            remoteDir: process.env.FTP3_REMOTE_DIR || '/'
+        });
+    }
 }
 
 if (servers.length === 0) {
