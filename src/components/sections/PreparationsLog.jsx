@@ -213,7 +213,7 @@ const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparati
   
   // Paginazione
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = viewMode === 'table' ? 100 : 50; // Più item in tabella
+  const [itemsPerPage, setItemsPerPage] = useState(20);
 
   const filteredPrepName = activeFilter && preparations.length === 1 ? preparations[0].name : null;
   
@@ -387,26 +387,47 @@ const PreparationsLog = ({ preparations, handleJumpToStep, handleDeletePreparati
                 />
             )}
             
-            {/* CONTROLLI PAGINAZIONE */}
-            {totalPages > 1 && (
-                <div className="flex justify-between items-center pt-4 border-t border-slate-200">
-                    <button 
-                        onClick={() => handlePageChange(currentPage - 1)} 
-                        disabled={currentPage === 1}
-                        className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        Precedente
-                    </button>
-                    <span className="text-sm text-slate-500 font-mono">
-                        Pagina {currentPage} di {totalPages}
-                    </span>
-                    <button 
-                        onClick={() => handlePageChange(currentPage + 1)} 
-                        disabled={currentPage === totalPages}
-                        className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        Successiva
-                    </button>
+            {/* CONTROLLI PAGINAZIONE AVANZATI */}
+            {totalItems > 0 && (
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-slate-200 text-sm">
+                    <div className="flex items-center gap-2 text-slate-500">
+                        <span>Mostra</span>
+                        <select 
+                            value={itemsPerPage} 
+                            onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                            className="border border-slate-300 rounded px-2 py-1 bg-white focus:ring-2 focus:ring-teal-500 outline-none font-bold text-slate-700"
+                        >
+                            <option value={20}>20</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                            <option value={200}>200</option>
+                        </select>
+                        <span>righe</span>
+                        <span className="hidden sm:inline text-slate-400 mx-2">|</span>
+                        <span className="hidden sm:inline">Totale: <b>{totalItems}</b></span>
+                    </div>
+
+                    {totalPages > 1 && (
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => handlePageChange(currentPage - 1)} 
+                                disabled={currentPage === 1}
+                                className="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                Indietro
+                            </button>
+                            <span className="font-mono bg-slate-100 px-2 py-1 rounded text-xs text-slate-600">
+                                {currentPage} / {totalPages}
+                            </span>
+                            <button 
+                                onClick={() => handlePageChange(currentPage + 1)} 
+                                disabled={currentPage === totalPages}
+                                className="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                Avanti
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
           </>
