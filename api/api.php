@@ -547,13 +547,18 @@ function savePreparation($pdo, $userData) {
             if ($wasDraft) { 
                 foreach ($itemsUsed as $item) {
                     $qtyToDeduct = (!empty($item['stockDeduction']) && $item['stockDeduction'] > 0) ? $item['stockDeduction'] : $item['amountUsed'];
+                    
+                    // 1. Aggiorna quantità
                     $stmt = $pdo->prepare("UPDATE `inventory` SET 
                         `quantity` = `quantity` - ?, 
-                        `firstUseDate` = COALESCE(`firstUseDate`, CURDATE()),
-                        `disposed` = CASE WHEN `quantity` - ? <= 0.0001 THEN 1 ELSE `disposed` END,
-                        `endUseDate` = CASE WHEN `quantity` - ? <= 0.0001 THEN CURDATE() ELSE `endUseDate` END
+                        `firstUseDate` = COALESCE(`firstUseDate`, CURDATE())
                         WHERE `id` = ?");
-                    $stmt->execute([$qtyToDeduct, $qtyToDeduct, $qtyToDeduct, $item['id']]);
+                    $stmt->execute([$qtyToDeduct, $item['id']]);
+
+                    // 2. Controlla residuo e smaltisci se necessario
+                    $stmt = $pdo->prepare("UPDATE `inventory` SET `disposed` = 1, `endUseDate` = CURDATE() WHERE `id` = ? AND `quantity` <= 0.0001");
+                    $stmt->execute([$item['id']]);
+
                     createLog($pdo, 'SCARICO', "Completata Prep. #{$prepDetails['prepNumber']}", ['substance' => $item['name'], 'ni' => $item['ni'] ?? '', 'quantity' => $qtyToDeduct, 'unit' => $item['unit'], 'preparationId' => $newPrepId]);
                 }
             } else { 
@@ -574,13 +579,17 @@ function savePreparation($pdo, $userData) {
                     $diff = $newQty - $oldQty;
                     
                     if ($diff > 0.0001) {
+                        // 1. Aggiorna quantità
                         $stmt = $pdo->prepare("UPDATE `inventory` SET 
                             `quantity` = `quantity` - ?, 
-                            `firstUseDate` = COALESCE(`firstUseDate`, CURDATE()),
-                            `disposed` = CASE WHEN `quantity` - ? <= 0.0001 THEN 1 ELSE `disposed` END,
-                            `endUseDate` = CASE WHEN `quantity` - ? <= 0.0001 THEN CURDATE() ELSE `endUseDate` END
+                            `firstUseDate` = COALESCE(`firstUseDate`, CURDATE())
                             WHERE `id` = ?");
-                        $stmt->execute([$diff, $diff, $diff, $invId]);
+                        $stmt->execute([$diff, $invId]);
+
+                        // 2. Controlla residuo
+                        $stmt = $pdo->prepare("UPDATE `inventory` SET `disposed` = 1, `endUseDate` = CURDATE() WHERE `id` = ? AND `quantity` <= 0.0001");
+                        $stmt->execute([$invId]);
+
                         createLog($pdo, 'SCARICO', $logNote, ['substance' => $newIng['name'], 'ni' => $newIng['ni'] ?? '', 'quantity' => $diff, 'unit' => $newIng['unit'], 'preparationId' => $newPrepId]);
                     } elseif ($diff < -0.0001) {
                         $absDiff = abs($diff);
