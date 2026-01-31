@@ -607,7 +607,7 @@ function savePreparation($pdo, $userData) {
                         createLog($pdo, 'SCARICO', $logNote, ['substance' => $newIng['name'], 'ni' => $newIng['ni'] ?? '', 'quantity' => $diff, 'unit' => $newIng['unit'], 'preparationId' => $newPrepId]);
                     } elseif ($diff < -0.0001) {
                         $absDiff = abs($diff);
-                        $stmt = $pdo->prepare("UPDATE `inventory` SET `quantity` = `quantity` + ? WHERE `id` = ?");
+                        $stmt = $pdo->prepare("UPDATE `inventory` SET `quantity` = `quantity` + ?, `disposed` = 0, `endUseDate` = NULL WHERE `id` = ?");
                         $stmt->execute([$absDiff, $invId]);
                         createLog($pdo, 'ANNULLAMENTO', $logNote, ['substance' => $newIng['name'], 'ni' => $newIng['ni'] ?? '', 'quantity' => $absDiff, 'unit' => $newIng['unit'], 'preparationId' => $newPrepId]);
                     }
@@ -615,7 +615,7 @@ function savePreparation($pdo, $userData) {
                 foreach ($oldIngredientsMap as $invId => $oldIng) {
                     if (!isset($newIngredientsMap[$invId])) {
                         $oldQty = (!empty($oldIng['stockDeduction']) && $oldIng['stockDeduction'] > 0) ? $oldIng['stockDeduction'] : $oldIng['amountUsed'];
-                        $stmt = $pdo->prepare("UPDATE `inventory` SET `quantity` = `quantity` + ? WHERE `id` = ?");
+                        $stmt = $pdo->prepare("UPDATE `inventory` SET `quantity` = `quantity` + ?, `disposed` = 0, `endUseDate` = NULL WHERE `id` = ?");
                         $stmt->execute([$oldQty, $invId]);
                         createLog($pdo, 'ANNULLAMENTO', $logNote, ['substance' => $oldIng['name'], 'ni' => $oldIng['ni'] ?? '', 'quantity' => $oldQty, 'unit' => $oldIng['unit'], 'preparationId' => $newPrepId]);
                     }
@@ -658,7 +658,7 @@ function deletePreparation($pdo, $userData) {
 
             foreach ($ingredientsToRefund as $item) {
                 $qtyToRefund = (!empty($item['stockDeduction']) && $item['stockDeduction'] > 0) ? $item['stockDeduction'] : $item['amountUsed'];
-                $stmt = $pdo->prepare("UPDATE `inventory` SET `quantity` = `quantity` + ? WHERE `id` = ?");
+                $stmt = $pdo->prepare("UPDATE `inventory` SET `quantity` = `quantity` + ?, `disposed` = 0, `endUseDate` = NULL WHERE `id` = ?");
                 $stmt->execute([$qtyToRefund, $item['inventoryId']]);
                 createLog($pdo, 'ANNULLAMENTO', "Annullata preparazione", ['substance' => $item['name'], 'ni' => $item['ni'], 'quantity' => $qtyToRefund, 'unit' => $item['unit'], 'preparationId' => $prepId]);
             }
