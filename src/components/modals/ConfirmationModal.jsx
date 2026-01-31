@@ -9,7 +9,8 @@ const ConfirmationModal = ({
   message, 
   confirmText = "Conferma", 
   cancelText = "Annulla",
-  isDangerous = false 
+  isDangerous = false,
+  children
 }) => {
   if (!isOpen) return null;
 
@@ -24,9 +25,12 @@ const ConfirmationModal = ({
           <h2 className="text-xl font-bold text-slate-800 mb-2">
             {title}
           </h2>
-          <p className="text-slate-500 text-sm leading-relaxed">
-            {message}
-          </p>
+          {message && (
+            <p className="text-slate-500 text-sm leading-relaxed mb-4">
+              {message}
+            </p>
+          )}
+          {children}
         </div>
 
         <div className="flex gap-3">

@@ -543,6 +543,8 @@ function savePreparation($pdo, $userData) {
             ]);
         }
 
+        $disposedItems = [];
+
         if (!$isDraft) {
             if ($wasDraft) { 
                 foreach ($itemsUsed as $item) {
@@ -558,6 +560,12 @@ function savePreparation($pdo, $userData) {
                     // 2. Controlla residuo e smaltisci se necessario
                     $stmt = $pdo->prepare("UPDATE `inventory` SET `disposed` = 1, `endUseDate` = CURDATE() WHERE `id` = ? AND `quantity` <= 0.0001");
                     $stmt->execute([$item['id']]);
+                    
+                    if ($stmt->rowCount() > 0) {
+                        $stmtInfo = $pdo->prepare("SELECT name, ni, lot FROM inventory WHERE id = ?");
+                        $stmtInfo->execute([$item['id']]);
+                        $disposedItems[] = $stmtInfo->fetch(PDO::FETCH_ASSOC);
+                    }
 
                     createLog($pdo, 'SCARICO', "Completata Prep. #{$prepDetails['prepNumber']}", ['substance' => $item['name'], 'ni' => $item['ni'] ?? '', 'quantity' => $qtyToDeduct, 'unit' => $item['unit'], 'preparationId' => $newPrepId]);
                 }
@@ -589,6 +597,12 @@ function savePreparation($pdo, $userData) {
                         // 2. Controlla residuo
                         $stmt = $pdo->prepare("UPDATE `inventory` SET `disposed` = 1, `endUseDate` = CURDATE() WHERE `id` = ? AND `quantity` <= 0.0001");
                         $stmt->execute([$invId]);
+                        
+                        if ($stmt->rowCount() > 0) {
+                            $stmtInfo = $pdo->prepare("SELECT name, ni, lot FROM inventory WHERE id = ?");
+                            $stmtInfo->execute([$invId]);
+                            $disposedItems[] = $stmtInfo->fetch(PDO::FETCH_ASSOC);
+                        }
 
                         createLog($pdo, 'SCARICO', $logNote, ['substance' => $newIng['name'], 'ni' => $newIng['ni'] ?? '', 'quantity' => $diff, 'unit' => $newIng['unit'], 'preparationId' => $newPrepId]);
                     } elseif ($diff < -0.0001) {
@@ -610,7 +624,7 @@ function savePreparation($pdo, $userData) {
         }
 
         $pdo->commit();
-        echo json_encode(['success' => true, 'id' => $newPrepId]);
+        echo json_encode(['success' => true, 'id' => $newPrepId, 'disposedItems' => $disposedItems]);
     } catch (Throwable $e) {
         $pdo->rollBack();
         sendError(500, "Errore salvataggio preparazione: " . $e->getMessage());

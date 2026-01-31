@@ -16,6 +16,7 @@ export const ConfirmationProvider = ({ children }) => {
     isOpen: false,
     title: '',
     message: '',
+    content: null,
     confirmText: 'Conferma',
     cancelText: 'Annulla',
     isDangerous: false,
@@ -25,6 +26,7 @@ export const ConfirmationProvider = ({ children }) => {
   const confirm = useCallback(({ 
     title = "Conferma Azione", 
     message = "Sei sicuro di voler procedere?", 
+    content = null,
     confirmText = "Conferma", 
     cancelText = "Annulla", 
     isDangerous = false, 
@@ -34,6 +36,7 @@ export const ConfirmationProvider = ({ children }) => {
       isOpen: true,
       title,
       message,
+      content,
       confirmText,
       cancelText,
       isDangerous,
@@ -59,7 +62,9 @@ export const ConfirmationProvider = ({ children }) => {
         confirmText={modalState.confirmText}
         cancelText={modalState.cancelText}
         isDangerous={modalState.isDangerous}
-      />
+      >
+        {modalState.content}
+      </ConfirmationModal>
     </ConfirmationContext.Provider>
   );
 };

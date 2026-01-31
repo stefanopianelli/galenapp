@@ -528,8 +528,44 @@ export default function MainApp() {
     };
       const handleSavePreparation = async (itemsUsed, prepDetails, isDraft = false) => {
         if (!canEdit) { alert("Permesso negato"); return; }
-        try {        const result = await savePreparationData(itemsUsed, prepDetails, isDraft);
+        try {        
+        const result = await savePreparationData(itemsUsed, prepDetails, isDraft);
         if (result.error) throw new Error(result.error);
+        
+        // Controllo se ci sono sostanze dismesse
+        if (result.disposedItems && result.disposedItems.length > 0) {
+            confirm({
+                title: "Sostanze Terminate",
+                message: "Attenzione! Le seguenti sostanze sono state esaurite con questa preparazione e segnate come smaltite:",
+                content: (
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg overflow-hidden my-4 text-left">
+                        <table className="w-full text-sm">
+                            <thead className="bg-slate-100 text-slate-500 font-bold border-b border-slate-200">
+                                <tr>
+                                    <th className="px-3 py-2">Sostanza</th>
+                                    <th className="px-3 py-2 text-center">N.I.</th>
+                                    <th className="px-3 py-2 text-center">Lotto</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {result.disposedItems.map((item, idx) => (
+                                    <tr key={idx}>
+                                        <td className="px-3 py-2 font-medium text-slate-800">{item.name}</td>
+                                        <td className="px-3 py-2 text-center font-mono text-xs text-slate-500">{item.ni}</td>
+                                        <td className="px-3 py-2 text-center font-mono text-xs text-slate-500">{item.lot || '-'}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ),
+                confirmText: "Ho capito",
+                cancelText: "Chiudi", 
+                isDangerous: false,
+                onConfirm: () => {} 
+            });
+        }
+
         setEditingPrep(null); setActiveTab('preparations_log');
         if (AUTH_ENABLED) await loadData();
       } catch (error) {
