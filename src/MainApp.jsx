@@ -659,7 +659,7 @@ export default function MainApp() {
   return (
     <div className="flex h-screen bg-slate-50 font-sans text-slate-900">
       <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shadow-xl">
-        <div className="p-6 border-b border-slate-700"><div className="flex items-center gap-3 text-white mb-1"><Beaker className="w-8 h-8 text-teal-400" /><span className="font-bold text-xl tracking-tight">Galenico<span className="text-teal-400">Lab</span></span></div><p className="text-xs text-slate-500">Gestione Norme NBP</p></div>
+        <div className="p-6 border-b border-slate-700"><div className="flex items-center gap-3 text-white mb-1"><Beaker className="w-8 h-8 text-teal-400" /><span className="font-bold text-xl tracking-tight">Galen<span className="text-teal-400">APP</span></span></div><p className="text-xs text-slate-500">Il laboratorio...semplice</p></div>
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           <SidebarItem icon={<ClipboardList size={20} />} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => handleTabChange('dashboard')} />
           <SidebarItem icon={<Package size={20} />} label="Magazzino" active={activeTab === 'inventory'} onClick={() => { setInventoryFilter('all'); handleTabChange('inventory'); }} />

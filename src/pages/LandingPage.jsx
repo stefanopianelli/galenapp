@@ -39,7 +39,7 @@ const LandingPage = () => {
             <div className="bg-teal-600 p-1.5 rounded-lg text-white">
               <FlaskConical size={20} />
             </div>
-            <span className="font-bold text-xl tracking-tight text-slate-800">Galenico<span className="text-teal-600">Lab</span></span>
+            <span className="font-bold text-xl tracking-tight text-slate-800">Galen<span className="text-teal-600">APP</span></span>
           </div>
           <div className="flex gap-4">
             <button onClick={() => navigate('/login')} className="text-sm font-medium text-slate-600 hover:text-teal-600 transition-colors">Login</button>
@@ -165,9 +165,9 @@ const LandingPage = () => {
       <footer className="py-12 px-6 border-t border-slate-200 bg-slate-50 text-sm text-slate-500 text-center">
         <div className="flex items-center justify-center gap-2 mb-4 opacity-70">
           <FlaskConical size={16} />
-          <span className="font-bold tracking-tight">GalenicoLab</span>
+          <span className="font-bold tracking-tight">GalenAPP</span>
         </div>
-        <p>&copy; {new Date().getFullYear()} GalenicoLab. Tutti i diritti riservati.</p>
+        <p>&copy; {new Date().getFullYear()} GalenAPP. Tutti i diritti riservati.</p>
       </footer>
     </div>
   );
